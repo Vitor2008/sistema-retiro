@@ -1,0 +1,378 @@
+/* =========================================================================
+   Grupo Locks — HR Design System
+   colors_and_type.css
+   Single source of truth for color, type, spacing, radius, and shadow tokens.
+   Mirrors the Mantine-based Carreiras codebase in rh/careers/*.
+   ========================================================================= */
+
+/* Inter is loaded as the closest Google Fonts substitute for the
+   system-font stack the codebase inherits from Mantine defaults. */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+:root {
+  /* -----------------------------------------------------------------------
+   * COLOR — BRAND
+   * --------------------------------------------------------------------- */
+  --color-primary:        #003D35;   /* Locks forest green */
+  --color-primary-hover:  #002A24;
+  --color-primary-tint:   #E5EEEC;   /* primary @ ~10% */
+
+  --color-secondary:      #db8a07;   /* Locks amber */
+  --color-secondary-hover:#b8740a;
+  --color-secondary-tint: #FBEFD6;
+
+  --color-sage:           rgb(137, 168, 111);  /* #89A86F – everyday accent */
+  --color-sage-hover:     rgb(118, 148, 95);
+  --color-sage-tint:      #DCFCE7;   /* the literal hover bg used in code */
+  --color-sage-soft:      rgb(233, 245, 227);  /* approved chip bg */
+
+  --color-linkedin:       #0a66c2;   /* LinkedIn publish badge */
+  --color-info-blue:      #1c7ed6;   /* Mantine-style action blue */
+
+  /* -----------------------------------------------------------------------
+   * COLOR — SURFACE / NEUTRAL
+   * --------------------------------------------------------------------- */
+  --bg-app:               #F8F9FA;   /* page background */
+  --bg-card:              #FFFFFF;
+  --bg-muted:             #F1F3F5;
+  --bg-overlay:           rgba(0, 0, 0, 0.6);
+
+  --border-default:       #DEE2E6;   /* Mantine gray-3 */
+  --border-strong:        #CED4DA;
+  --border-hover:         var(--color-sage); /* signature card hover */
+
+  /* -----------------------------------------------------------------------
+   * COLOR — TEXT
+   * --------------------------------------------------------------------- */
+  --fg-strong:            #212529;   /* primary text */
+  --fg-default:           #495057;
+  --fg-muted:             #868E96;   /* Mantine "dimmed" */
+  --fg-on-primary:        #FFFFFF;
+  --fg-on-secondary:      #FFFFFF;
+  --fg-link:              var(--color-primary);
+
+  /* -----------------------------------------------------------------------
+   * COLOR — SEMANTIC STATUS (from CardCandidato.module.scss)
+   *   pairs: <bg> / <fg>
+   * --------------------------------------------------------------------- */
+  --status-progress-bg:   rgb(241, 238, 228);
+  --status-progress-fg:   rgb(204, 155, 6);   /* "Em análise" */
+
+  --status-interview-bg:  rgb(209, 229, 252);
+  --status-interview-fg:  rgb(42, 53, 207);   /* "Entrevista" */
+
+  --status-proposal-bg:   rgb(222, 247, 255);
+  --status-proposal-fg:   rgb(23, 162, 184);  /* "Proposta" */
+
+  --status-final-bg:      rgb(157, 252, 193);
+  --status-final-fg:      rgb(1, 139, 24);    /* "Decisão final" */
+
+  --status-approved-bg:   rgb(233, 245, 227);
+  --status-approved-fg:   rgb(137, 168, 111); /* "Aprovado" */
+
+  --status-rejected-bg:   rgb(248, 215, 218);
+  --status-rejected-fg:   rgb(220, 53, 69);   /* "Reprovado" */
+
+  --status-closed-bg:     rgb(224, 224, 224);
+  --status-closed-fg:     rgb(120, 120, 120); /* "Encerrada" */
+
+  /* Vaga (job) status palette */
+  --vaga-running-bg:      #FFF4E5;
+  --vaga-running-fg:      #FFA500;
+  --vaga-rejected-bg:     #FFE5E5;
+  --vaga-rejected-fg:     #FF0000;
+  --vaga-done-bg:         #E5FFF4;
+  --vaga-done-fg:         #04C504;
+  --vaga-paused-bg:       #E5E5FF;
+  --vaga-paused-fg:       #0000FF;
+
+  /* -----------------------------------------------------------------------
+   * COLOR — DATA VIZ
+   * Ordered to harmonize with brand: forest, amber, sage, then supports.
+   * --------------------------------------------------------------------- */
+  --viz-1: #003D35;   /* primary */
+  --viz-2: #db8a07;   /* secondary */
+  --viz-3: #89A86F;   /* sage */
+  --viz-4: #0a66c2;   /* linkedin blue */
+  --viz-5: #17A2B8;   /* proposal teal */
+  --viz-6: #DC3545;   /* rejected red */
+  --viz-7: #6F4E37;   /* warm brown for "outros" */
+
+  /* -----------------------------------------------------------------------
+   * TYPE — FAMILIES
+   * --------------------------------------------------------------------- */
+  --font-system: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+                 "Helvetica Neue", Arial, sans-serif;
+  --font-sans:   "Inter", var(--font-system);
+  --font-mono:   ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas,
+                 "Liberation Mono", monospace;
+
+  /* -----------------------------------------------------------------------
+   * TYPE — SCALE
+   * Mirrors Mantine's font sizes + the explicit overrides observed in the
+   * codebase (13px card titles, 17px tab labels, 10–12px chips).
+   * --------------------------------------------------------------------- */
+  --fs-xs:   10px;   /* status chips, micro labels */
+  --fs-sm:   12px;   /* dimmed info rows, Mantine fz="xs" */
+  --fs-md:   13px;   /* card titles */
+  --fs-base: 14px;   /* body */
+  --fs-lg:   15px;
+  --fs-xl:   17px;   /* tabs */
+  --fs-h4:   18px;
+  --fs-h3:   20px;
+  --fs-h2:   24px;
+  --fs-h1:   28px;
+
+  --fw-regular: 400;
+  --fw-medium:  500;
+  --fw-semibold:600;
+  --fw-bold:    700;
+
+  --lh-tight:  1.2;
+  --lh-snug:   1.35;
+  --lh-normal: 1.5;
+  --lh-loose:  1.65;
+
+  --tracking-tight:  -0.01em;
+  --tracking-normal: 0;
+  --tracking-wide:   0.04em;     /* for the FILTRAR button */
+
+  /* -----------------------------------------------------------------------
+   * SPACING (Mantine-ish 4px ramp)
+   * --------------------------------------------------------------------- */
+  --space-0:   0;
+  --space-1:   4px;
+  --space-2:   8px;
+  --space-3:   12px;
+  --space-4:   16px;
+  --space-5:   20px;
+  --space-6:   24px;
+  --space-7:   32px;
+  --space-8:   40px;
+  --space-9:   48px;
+  --space-10:  64px;
+
+  /* -----------------------------------------------------------------------
+   * RADII (Mantine radius scale)
+   * --------------------------------------------------------------------- */
+  --r-xs:  4px;
+  --r-sm:  5px;     /* status chips */
+  --r-md:  8px;     /* cards, inputs, buttons */
+  --r-lg:  10px;    /* publishedBadge LinkedIn pill */
+  --r-xl:  16px;
+  --r-pill: 9999px; /* avatars / circular badges */
+
+  /* -----------------------------------------------------------------------
+   * SHADOWS (Mantine sm + observed hover lift)
+   * --------------------------------------------------------------------- */
+  --shadow-xs:    0 1px 2px rgba(0, 0, 0, 0.05);
+  --shadow-sm:    0 1px 3px rgba(0, 0, 0, 0.05), 0 1px 2px rgba(0, 0, 0, 0.10);
+  --shadow-md:    0 4px 8px rgba(0, 0, 0, 0.10); /* card hover */
+  --shadow-lg:    0 10px 24px rgba(0, 0, 0, 0.12);
+  --shadow-popover:0 8px 20px rgba(0, 0, 0, 0.15);
+
+  /* -----------------------------------------------------------------------
+   * MOTION
+   * --------------------------------------------------------------------- */
+  --ease-default: cubic-bezier(0.4, 0, 0.2, 1);
+  --dur-fast:  150ms;
+  --dur-base:  200ms;   /* the codebase default */
+  --dur-slow:  300ms;   /* Mantine Collapse */
+}
+
+/* =========================================================================
+   SEMANTIC ELEMENTS — base styles that read like a starting reset for
+   any HR-themed HTML mock. Mirrors Mantine's "use system fonts, light bg".
+   ========================================================================= */
+html, body {
+  background: var(--bg-app);
+  color: var(--fg-strong);
+  font-family: var(--font-sans);
+  font-size: var(--fs-base);
+  line-height: var(--lh-normal);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+h1, .h1 {
+  font-family: var(--font-sans);
+  font-size: var(--fs-h1);
+  font-weight: var(--fw-semibold);
+  line-height: var(--lh-tight);
+  letter-spacing: var(--tracking-tight);
+  color: var(--fg-strong);
+  margin: 0;
+}
+h2, .h2 {
+  font-size: var(--fs-h2);
+  font-weight: var(--fw-semibold);
+  line-height: var(--lh-tight);
+  color: var(--fg-strong);
+  margin: 0;
+}
+h3, .h3 {
+  font-size: var(--fs-h3);
+  font-weight: var(--fw-semibold);
+  line-height: var(--lh-snug);
+  margin: 0;
+}
+h4, .h4 {
+  font-size: var(--fs-h4);
+  font-weight: var(--fw-semibold);
+  line-height: var(--lh-snug);
+  margin: 0;
+}
+h5, .card-title {
+  font-size: var(--fs-md);
+  font-weight: var(--fw-semibold);
+  line-height: var(--lh-snug);
+  margin: 0;
+}
+p {
+  font-size: var(--fs-base);
+  line-height: var(--lh-normal);
+  color: var(--fg-default);
+  margin: 0;
+}
+
+.dim   { color: var(--fg-muted); }
+.mono  { font-family: var(--font-mono); }
+.t-xs  { font-size: var(--fs-xs); }
+.t-sm  { font-size: var(--fs-sm); }
+.t-md  { font-size: var(--fs-md); }
+.t-base{ font-size: var(--fs-base); }
+.t-lg  { font-size: var(--fs-lg); }
+.t-xl  { font-size: var(--fs-xl); }
+
+/* =========================================================================
+   COMMON UTILITY CLASSES (used by previews + ui_kits)
+   ========================================================================= */
+
+.card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-default);
+  border-radius: var(--r-md);
+  box-shadow: var(--shadow-sm);
+  padding: var(--space-4);
+}
+.card:hover {
+  border-color: var(--border-hover);
+  box-shadow: var(--shadow-md);
+}
+
+/* Status chips — pre-baked combos */
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: var(--fs-xs);
+  font-weight: var(--fw-bold);
+  padding: 5px 10px;
+  border-radius: var(--r-sm);
+  white-space: nowrap;
+}
+.chip-progress  { background: var(--status-progress-bg); color: var(--status-progress-fg); }
+.chip-interview { background: var(--status-interview-bg); color: var(--status-interview-fg); }
+.chip-proposal  { background: var(--status-proposal-bg); color: var(--status-proposal-fg); }
+.chip-final     { background: var(--status-final-bg); color: var(--status-final-fg); }
+.chip-approved  { background: var(--status-approved-bg); color: var(--status-approved-fg); }
+.chip-rejected  { background: var(--status-rejected-bg); color: var(--status-rejected-fg); }
+.chip-closed    { background: var(--status-closed-bg); color: var(--status-closed-fg); }
+
+.chip-vaga-running   { background: var(--vaga-running-bg); color: var(--vaga-running-fg); }
+.chip-vaga-rejected  { background: var(--vaga-rejected-bg); color: var(--vaga-rejected-fg); }
+.chip-vaga-done      { background: var(--vaga-done-bg); color: var(--vaga-done-fg); }
+.chip-vaga-paused    { background: var(--vaga-paused-bg); color: var(--vaga-paused-fg); }
+
+/* Buttons */
+.btn {
+  font-family: var(--font-sans);
+  font-size: var(--fs-base);
+  font-weight: var(--fw-medium);
+  padding: 8px 16px;
+  border-radius: var(--r-md);
+  border: 1px solid transparent;
+  cursor: pointer;
+  transition: background var(--dur-base) var(--ease-default),
+              border-color var(--dur-base) var(--ease-default),
+              color var(--dur-base) var(--ease-default);
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  line-height: 1;
+}
+.btn-primary {
+  background: var(--color-primary);
+  color: var(--fg-on-primary);
+}
+.btn-primary:hover { background: var(--color-primary-hover); }
+
+.btn-secondary {
+  background: var(--color-secondary);
+  color: var(--fg-on-secondary);
+}
+.btn-secondary:hover { background: var(--color-secondary-hover); }
+
+.btn-outline {
+  background: transparent;
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+}
+.btn-outline:hover { background: var(--color-primary-tint); }
+
+.btn-default {
+  background: #fff;
+  border-color: var(--border-default);
+  color: var(--fg-strong);
+}
+.btn-default:hover { background: var(--bg-muted); }
+
+.btn-xs { padding: 4px 10px; font-size: var(--fs-sm); }
+.btn-sm { padding: 6px 12px; font-size: var(--fs-sm); }
+.btn-md { padding: 8px 16px; font-size: var(--fs-base); }
+
+/* Inputs */
+.input {
+  font-family: var(--font-sans);
+  font-size: var(--fs-base);
+  padding: 8px 12px;
+  border: 1px solid var(--border-default);
+  border-radius: var(--r-md);
+  background: #fff;
+  color: var(--fg-strong);
+  width: 100%;
+}
+.input:focus {
+  outline: none;
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px var(--color-primary-tint);
+}
+
+/* Avatar (initials chip) */
+.avatar-initials {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--color-sage);
+  color: #fff;
+  font-weight: var(--fw-bold);
+  border-radius: var(--r-pill);
+  width: 36px;
+  height: 36px;
+  font-size: var(--fs-sm);
+}
+
+/* KPI value typography */
+.kpi-value {
+  font-size: 28px;
+  font-weight: var(--fw-bold);
+  letter-spacing: var(--tracking-tight);
+  color: var(--fg-strong);
+}
+.kpi-label {
+  font-size: var(--fs-sm);
+  color: var(--fg-muted);
+  text-transform: none;
+}
+.kpi-delta-up   { color: var(--status-final-fg); font-weight: var(--fw-semibold); font-size: var(--fs-sm); }
+.kpi-delta-down { color: var(--status-rejected-fg); font-weight: var(--fw-semibold); font-size: var(--fs-sm); }

@@ -1,0 +1,128 @@
+import { asc, eq } from 'drizzle-orm'
+import { db } from '../db/client.js'
+import { inscritos, pagamentos } from '../db/schema.js'
+import type { Inscrito, Pagamento } from '../types.js'
+
+type InscritoRow = typeof inscritos.$inferSelect
+type PagamentoRow = typeof pagamentos.$inferSelect
+
+function toDTO(row: InscritoRow, pags: PagamentoRow[]): Inscrito {
+  return {
+    id: row.id,
+    nome: row.nome,
+    genero: row.genero as Inscrito['genero'],
+    tipo: row.tipo as Inscrito['tipo'],
+    diaServir: row.diaServir,
+    lider: row.lider,
+    forma: row.forma,
+    parcelas: row.parcelas,
+    tel: row.tel,
+    statusInscricao: row.statusInscricao as Inscrito['statusInscricao'],
+    cancelInfo: row.cancelInfo,
+    comprovante: row.comprovante,
+    comprovanteId: row.comprovanteId,
+    quarto: row.quarto,
+    pagamentos: pags
+      .sort((a, b) => a.ordem - b.ordem)
+      .map((p) => ({
+        valor: p.valor,
+        oferta: p.oferta,
+        forma: p.forma,
+        obs: p.obs,
+        data: p.data,
+        usuario: p.usuario,
+        dataPrevista: p.dataPrevista,
+      })),
+  }
+}
+
+async function inserirPagamentos(inscritoId: string, pags: Pagamento[]) {
+  if (!pags.length) return
+  await db.insert(pagamentos).values(
+    pags.map((p, i) => ({
+      inscritoId,
+      ordem: i,
+      valor: p.valor,
+      oferta: p.oferta,
+      forma: p.forma,
+      obs: p.obs,
+      data: p.data,
+      usuario: p.usuario,
+      dataPrevista: p.dataPrevista ?? null,
+    })),
+  )
+}
+
+export const inscritoRepository = {
+  async list(): Promise<Inscrito[]> {
+    const rows = await db.select().from(inscritos).orderBy(asc(inscritos.id))
+    const pags = await db.select().from(pagamentos)
+    const porInscrito = new Map<string, PagamentoRow[]>()
+    for (const p of pags) {
+      const arr = porInscrito.get(p.inscritoId) ?? []
+      arr.push(p)
+      porInscrito.set(p.inscritoId, arr)
+    }
+    return rows.map((r) => toDTO(r, porInscrito.get(r.id) ?? []))
+  },
+
+  async get(id: string): Promise<Inscrito | null> {
+    const [row] = await db.select().from(inscritos).where(eq(inscritos.id, id))
+    if (!row) return null
+    const pags = await db
+      .select()
+      .from(pagamentos)
+      .where(eq(pagamentos.inscritoId, id))
+    return toDTO(row, pags)
+  },
+
+  async create(dto: Inscrito): Promise<Inscrito> {
+    await db.insert(inscritos).values({
+      id: dto.id,
+      nome: dto.nome,
+      genero: dto.genero,
+      tipo: dto.tipo,
+      diaServir: dto.diaServir,
+      lider: dto.lider,
+      forma: dto.forma,
+      parcelas: dto.parcelas,
+      tel: dto.tel,
+      statusInscricao: dto.statusInscricao,
+      cancelInfo: dto.cancelInfo,
+      comprovante: dto.comprovante,
+      comprovanteId: dto.comprovanteId,
+      quarto: dto.quarto,
+    })
+    await inserirPagamentos(dto.id, dto.pagamentos)
+    return dto
+  },
+
+  async update(id: string, dto: Inscrito): Promise<Inscrito> {
+    await db
+      .update(inscritos)
+      .set({
+        nome: dto.nome,
+        genero: dto.genero,
+        tipo: dto.tipo,
+        diaServir: dto.diaServir,
+        lider: dto.lider,
+        forma: dto.forma,
+        parcelas: dto.parcelas,
+        tel: dto.tel,
+        statusInscricao: dto.statusInscricao,
+        cancelInfo: dto.cancelInfo,
+        comprovante: dto.comprovante,
+        comprovanteId: dto.comprovanteId,
+        quarto: dto.quarto,
+      })
+      .where(eq(inscritos.id, id))
+    // pagamentos: substitui o conjunto (replace-all é suficiente aqui)
+    await db.delete(pagamentos).where(eq(pagamentos.inscritoId, id))
+    await inserirPagamentos(id, dto.pagamentos)
+    return dto
+  },
+
+  async remove(id: string): Promise<void> {
+    await db.delete(inscritos).where(eq(inscritos.id, id))
+  },
+}
