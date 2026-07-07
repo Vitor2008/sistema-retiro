@@ -1,6 +1,5 @@
 import { fileService } from '../services/fileService'
 import type { Attachment } from '../types'
-
 interface Props {
   label: string
   onFile: (a: Attachment | null) => void
