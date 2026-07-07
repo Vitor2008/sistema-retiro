@@ -84,10 +84,17 @@ export interface Venda {
   id: string
   tipo: 'avulsa' | 'anotada'
   cliente: string
-  forma: FormaPagamento
+  /** Forma(s) de pagamento. Pode ser um resumo combinado, ex.: "Pix R$ 20,00 + Dinheiro R$ 30,00". */
+  forma: string
   status: 'pago' | 'pendente'
   data: string
   itens: ItemVenda[]
+}
+
+/** Uma parcela de pagamento na hora de fechar a conta (forma + valor digitado). */
+export interface PagamentoLinha {
+  forma: FormaPagamento
+  valor: string
 }
 
 export interface Despesa {
@@ -188,7 +195,13 @@ export interface ModalDespesa {
 export interface ModalFecharConta {
   type: 'fecharConta'
   vid: string
-  forma: FormaPagamento
+  pagamentos: PagamentoLinha[]
+}
+
+export interface ModalEditarConta {
+  type: 'editarConta'
+  vid: string
+  itens: ItemVenda[]
 }
 
 export type Modal =
@@ -199,6 +212,7 @@ export type Modal =
   | ModalProduto
   | ModalDespesa
   | ModalFecharConta
+  | ModalEditarConta
   | null
 
 /** Estado global da aplicação. */

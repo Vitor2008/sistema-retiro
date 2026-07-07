@@ -363,21 +363,68 @@ export function useActions() {
     const m = s.modal as ModalFecharConta
     if (!m || m.type !== 'fecharConta') return
     const v = s.vendas.find((x) => x.id === m.vid)
+    if (!v) return
+    const total = v.itens.reduce((a, i) => a + i.valor * i.qtd, 0)
+    const linhas = m.pagamentos
+      .map((l) => ({ forma: l.forma, valor: Number(l.valor) || 0 }))
+      .filter((l) => l.valor > 0 && l.forma)
+    if (!linhas.length) {
+      toast('Informe ao menos uma forma de pagamento.')
+      return
+    }
+    const soma = linhas.reduce((a, l) => a + l.valor, 0)
+    const naoDinheiro = linhas
+      .filter((l) => l.forma !== 'Dinheiro')
+      .reduce((a, l) => a + l.valor, 0)
+    if (naoDinheiro > total + 0.005) {
+      toast('Pagamentos que não são dinheiro não podem passar do total.')
+      return
+    }
+    if (soma + 0.005 < total) {
+      toast('Valor insuficiente — falta ' + fmt(total - soma) + '.')
+      return
+    }
+    const troco = Math.max(0, soma - total)
+    const resumo =
+      linhas.map((l) => l.forma + ' ' + fmt(l.valor)).join(' + ') +
+      (troco > 0.005 ? ' (troco ' + fmt(troco) + ')' : '')
     patch({
       vendas: s.vendas.map((x) =>
-        x.id === m.vid
-          ? { ...x, status: 'pago', forma: m.forma || 'Dinheiro' }
-          : x,
+        x.id === m.vid ? { ...x, status: 'pago', forma: resumo } : x,
       ) as Venda[],
       modal: null,
     })
     toast(
       'Conta de ' +
-        (v ? v.cliente : '') +
-        ' recebida em ' +
-        (m.forma || 'Dinheiro') +
-        '.',
+        v.cliente +
+        ' recebida.' +
+        (troco > 0.005 ? ' Troco ' + fmt(troco) + '.' : ''),
     )
+  }
+
+  /** Salva a edição dos itens de uma conta aberta, reconciliando o estoque. */
+  const salvarEdicaoConta = () => {
+    const s = state
+    const m = s.modal
+    if (!m || m.type !== 'editarConta') return
+    const v = s.vendas.find((x) => x.id === m.vid)
+    if (!v) return
+    const novos = m.itens.filter((i) => i.qtd > 0)
+    // quantidade antiga x nova por produto → ajuste de estoque
+    const oldQ: Record<string, number> = {}
+    v.itens.forEach((i) => (oldQ[i.id] = (oldQ[i.id] || 0) + i.qtd))
+    const newQ: Record<string, number> = {}
+    novos.forEach((i) => (newQ[i.id] = (newQ[i.id] || 0) + i.qtd))
+    const produtos = s.produtos.map((p) => {
+      const delta = (newQ[p.id] || 0) - (oldQ[p.id] || 0) // >0 = sai mais do estoque
+      return delta !== 0 ? { ...p, estoque: Math.max(0, p.estoque - delta) } : p
+    })
+    patch({
+      vendas: s.vendas.map((x) => (x.id === m.vid ? { ...x, itens: novos } : x)),
+      produtos,
+      modal: null,
+    })
+    toast('Conta atualizada.')
   }
 
   const enviarInscricao = () => {
@@ -450,6 +497,7 @@ export function useActions() {
     salvarProduto,
     salvarDespesa,
     confirmarFecharConta,
+    salvarEdicaoConta,
     enviarInscricao,
     toggleLink,
     exportarRelatorio,

@@ -217,7 +217,8 @@ export function CantinaView() {
                   </span>
                   <div style={{ display: 'flex', gap: 6 }}>
                     <button className="btn btn-default btn-xs" onClick={() => patch({ cantinaTab: 'venda', vendaTipo: 'anotada', vCliente: v.cliente })}>+ Itens</button>
-                    <button className="btn btn-primary btn-xs" onClick={() => setModal({ type: 'fecharConta', vid: v.id, forma: 'Dinheiro' })}>Receber</button>
+                    <button className="btn btn-outline btn-xs" onClick={() => setModal({ type: 'editarConta', vid: v.id, itens: v.itens.map((i) => ({ ...i })) })}>Editar</button>
+                    <button className="btn btn-primary btn-xs" onClick={() => setModal({ type: 'fecharConta', vid: v.id, pagamentos: [{ forma: 'Dinheiro', valor: String(total) }] })}>Receber</button>
                   </div>
                 </div>
               </div>

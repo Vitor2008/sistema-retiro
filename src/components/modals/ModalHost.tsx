@@ -6,6 +6,7 @@ import { QuartoModal } from './QuartoModal'
 import { ProdutoModal } from './ProdutoModal'
 import { DespesaModal } from './DespesaModal'
 import { FecharContaModal } from './FecharContaModal'
+import { EditarContaModal } from './EditarContaModal'
 
 export function ModalHost() {
   const { state, closeModal } = useRetiro()
@@ -30,6 +31,7 @@ export function ModalHost() {
         {m.type === 'produto' && <ProdutoModal modal={m} />}
         {m.type === 'despesa' && <DespesaModal modal={m} />}
         {m.type === 'fecharConta' && <FecharContaModal modal={m} />}
+        {m.type === 'editarConta' && <EditarContaModal modal={m} />}
       </div>
     </div>
   )
