@@ -16,7 +16,6 @@ export function AttachmentLink({ fileId, label, fallback, style }: Props) {
     const url = await fileService.toObjectURL(fileId)
     if (url) window.open(url, '_blank', 'noopener')
   }
-
   if (!fileId) {
     return <span style={style}>{fallback ?? label}</span>
   }
