@@ -134,6 +134,16 @@ export const despesas = pgTable('despesas', {
   anexoId: text('anexo_id').notNull().default(''),
 })
 
+/** Usuários do sistema (autenticação). Senha guardada como hash bcrypt. */
+export const usuarios = pgTable('usuarios', {
+  id: serial('id').primaryKey(),
+  username: text('username').notNull().unique(),
+  senhaHash: text('senha_hash').notNull(),
+  nome: text('nome').notNull().default(''),
+  role: text('role').notNull().default('admin'),
+  criadoEm: text('criado_em').notNull().default(''),
+})
+
 /** Comprovantes/notas (imagens/PDF) armazenados como bytea no próprio banco. */
 export const arquivos = pgTable('arquivos', {
   id: text('id').primaryKey(),

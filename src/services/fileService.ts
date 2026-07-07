@@ -11,6 +11,12 @@
 
 import { idbDelete, idbGet, idbPut } from '../lib/idb'
 import type { Attachment } from '../types'
+import { session } from './auth/session'
+
+function authHeader(): Record<string, string> {
+  const token = session.getToken()
+  return token ? { Authorization: 'Bearer ' + token } : {}
+}
 
 const BASE_URL =
   (import.meta.env.VITE_API_URL as string | undefined) ?? 'http://localhost:3001/api'
@@ -51,6 +57,7 @@ async function uploadOne(fileId: string, blob: Blob, name: string): Promise<bool
         'Content-Type': blob.type || 'application/octet-stream',
         'X-File-Name': encodeURIComponent(name),
         'X-File-Id': fileId,
+        ...authHeader(),
       },
       body: blob,
     })
@@ -86,7 +93,7 @@ class ApiFileService implements FileService {
     if (cached) return URL.createObjectURL(cached)
     // senão, baixa do backend
     try {
-      const res = await fetch(BASE_URL + '/arquivos/' + fileId)
+      const res = await fetch(BASE_URL + '/arquivos/' + fileId, { headers: authHeader() })
       if (!res.ok) return null
       const blob = await res.blob()
       return URL.createObjectURL(blob)
@@ -99,7 +106,7 @@ class ApiFileService implements FileService {
     await idbDelete(fileId)
     removePending(fileId)
     try {
-      await fetch(BASE_URL + '/arquivos/' + fileId, { method: 'DELETE' })
+      await fetch(BASE_URL + '/arquivos/' + fileId, { method: 'DELETE', headers: authHeader() })
     } catch {
       /* offline: o registro no banco pode ser limpo depois */
     }

@@ -6,11 +6,20 @@ import { quartoService } from '../services/quartoService.js'
 import { retiroService } from '../services/retiroService.js'
 import { vendaService } from '../services/vendaService.js'
 import { arquivoRoutes } from './arquivoRoutes.js'
+import { requireAuth } from './authMiddleware.js'
+import { authRoutes } from './authRoutes.js'
 import { crudRouter } from './crudRouter.js'
 import { snapshotRoutes } from './snapshotRoutes.js'
 
 /** Agrega todas as rotas da API sob /api. */
 export const apiRouter = Router()
+
+// ---- Rotas públicas (antes do middleware de autenticação) ----
+apiRouter.use('/auth', authRoutes)
+apiRouter.get('/health', (_req, res) => res.json({ ok: true }))
+
+// ---- A partir daqui, tudo exige Bearer token válido ----
+apiRouter.use(requireAuth)
 
 // CRUD por entidade
 apiRouter.use('/inscritos', crudRouter(inscritoService))
@@ -42,6 +51,3 @@ apiRouter.use('/snapshot', snapshotRoutes)
 
 // Comprovantes/notas (bytea no Postgres)
 apiRouter.use('/arquivos', arquivoRoutes)
-
-// Healthcheck
-apiRouter.get('/health', (_req, res) => res.json({ ok: true }))

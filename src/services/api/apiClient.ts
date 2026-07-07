@@ -2,6 +2,8 @@
 // Cliente HTTP fino para a API do backend. Base URL vem de VITE_API_URL.
 // ============================================================================
 
+import { session } from '../auth/session'
+
 const BASE_URL =
   (import.meta.env.VITE_API_URL as string | undefined) ?? 'http://localhost:3001/api'
 
@@ -13,11 +15,22 @@ export class ApiError extends Error {
   }
 }
 
+function authHeaders(): Record<string, string> {
+  const token = session.getToken()
+  return token ? { Authorization: 'Bearer ' + token } : {}
+}
+
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const res = await fetch(BASE_URL + path, {
-    headers: { 'Content-Type': 'application/json' },
     ...init,
+    headers: { 'Content-Type': 'application/json', ...authHeaders(), ...init?.headers },
   })
+  // 401 numa rota protegida = sessão expirada → derruba o login.
+  // No próprio /auth/login, 401 é credencial inválida e deve seguir o fluxo normal.
+  if (res.status === 401 && !path.startsWith('/auth/')) {
+    session.onUnauthorized?.()
+    throw new ApiError('Sessão expirada. Faça login novamente.', 401)
+  }
   if (res.status === 204) return undefined as T
   const text = await res.text()
   const body = text ? JSON.parse(text) : undefined

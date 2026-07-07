@@ -1,5 +1,6 @@
 import type { ReactElement } from 'react'
 import { appConfig } from '../config'
+import { useAuth } from '../store/AuthContext'
 import { useRetiro } from '../store/RetiroContext'
 import type { View } from '../types'
 
@@ -94,8 +95,16 @@ const NAV: Array<{
 
 export function Sidebar() {
   const { state, patch } = useRetiro()
+  const { user, logout } = useAuth()
   const nomeIgreja = appConfig.nomeIgreja
   const igrejaCurta = nomeIgreja.split(' ').slice(-1)[0]
+  const iniciais = (user?.nome || user?.username || 'AD')
+    .trim()
+    .split(/\s+/)
+    .map((p) => p[0])
+    .slice(0, 2)
+    .join('')
+    .toUpperCase()
 
   const go = (key: View) => () =>
     patch({ view: key, sbOpen: !state.narrow ? state.sbOpen : false })
@@ -123,12 +132,32 @@ export function Sidebar() {
       ))}
 
       <div className="user">
-        <div className="av">AD</div>
+        <div className="av">{iniciais}</div>
         <div className="info">
-          Administrador
+          {user?.nome || 'Administrador'}
           <br />
-          <span className="em">{nomeIgreja}</span>
+          <span className="em">@{user?.username || 'adm'}</span>
         </div>
+        <button
+          onClick={logout}
+          title="Sair"
+          style={{
+            marginLeft: 'auto',
+            background: 'none',
+            border: 'none',
+            cursor: 'pointer',
+            color: 'var(--fg-muted)',
+            display: 'flex',
+            alignItems: 'center',
+            padding: 4,
+          }}
+        >
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+            <polyline points="16 17 21 12 16 7"></polyline>
+            <line x1="21" y1="12" x2="9" y2="12"></line>
+          </svg>
+        </button>
       </div>
     </div>
   )
