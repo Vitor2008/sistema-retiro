@@ -141,6 +141,8 @@ export const usuarios = pgTable('usuarios', {
   senhaHash: text('senha_hash').notNull(),
   nome: text('nome').notNull().default(''),
   role: text('role').notNull().default('admin'),
+  /** Tipos de acesso do usuário: adm | financeiro | cantina | quarto | servico */
+  acessos: jsonb('acessos').$type<string[]>().notNull().default([]),
   criadoEm: text('criado_em').notNull().default(''),
 })
 

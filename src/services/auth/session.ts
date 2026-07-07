@@ -8,6 +8,7 @@ export interface SessionUser {
   username: string
   nome: string
   role: string
+  acessos: string[]
 }
 
 const TOKEN_KEY = 'retiros-token'

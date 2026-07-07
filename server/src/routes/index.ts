@@ -10,6 +10,7 @@ import { requireAuth } from './authMiddleware.js'
 import { authRoutes } from './authRoutes.js'
 import { crudRouter } from './crudRouter.js'
 import { snapshotRoutes } from './snapshotRoutes.js'
+import { usuarioRoutes } from './usuarioRoutes.js'
 
 /** Agrega todas as rotas da API sob /api. */
 export const apiRouter = Router()
@@ -51,3 +52,6 @@ apiRouter.use('/snapshot', snapshotRoutes)
 
 // Comprovantes/notas (bytea no Postgres)
 apiRouter.use('/arquivos', arquivoRoutes)
+
+// Gestão de usuários (somente ADM)
+apiRouter.use('/usuarios', usuarioRoutes)

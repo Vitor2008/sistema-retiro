@@ -1,3 +1,4 @@
+import { useNavigate } from 'react-router-dom'
 import { appConfig } from '../config'
 import { fmt } from '../lib/format'
 import { useRetiro } from '../store/RetiroContext'
@@ -11,8 +12,9 @@ import {
 } from '../store/selectors'
 
 export function RetirosView() {
-  const { state, patch, toast } = useRetiro()
+  const { state, toast } = useRetiro()
   const { toggleLink, setModal } = useActions()
+  const navigate = useNavigate()
 
   const valor = state.retiro.valor
   const atv = ativos(state)
@@ -120,7 +122,7 @@ export function RetirosView() {
               <button className="btn btn-outline btn-sm" onClick={editarRetiro}>
                 Editar retiro
               </button>
-              <button className="btn btn-default btn-sm" onClick={() => patch({ view: 'inscricao' })}>
+              <button className="btn btn-default btn-sm" onClick={() => navigate('/inscricao')}>
                 Ver formulário
               </button>
               {state.retiro.aberto && vagasRest === 0 && (

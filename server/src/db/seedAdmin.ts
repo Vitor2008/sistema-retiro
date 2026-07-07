@@ -11,6 +11,7 @@ await usuarioRepository.upsert({
   senhaHash,
   nome: 'Administrador',
   role: 'admin',
+  acessos: ['adm'],
 })
 
 console.log(`Admin "${env.adminUsername}" criado/atualizado com sucesso.`)

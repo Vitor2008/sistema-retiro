@@ -1,0 +1,1 @@
+ALTER TABLE "usuarios" ADD COLUMN "acessos" jsonb DEFAULT '[]'::jsonb NOT NULL;

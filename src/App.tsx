@@ -1,23 +1,36 @@
+import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
+import { canAccess } from './acessos'
 import { MobileTopbar } from './components/MobileTopbar'
 import { Sidebar } from './components/Sidebar'
 import { SyncBadge } from './components/SyncBadge'
 import { Toast } from './components/Toast'
 import { ModalHost } from './components/modals/ModalHost'
+import { NAV } from './navigation'
 import { AuthProvider, useAuth } from './store/AuthContext'
 import { RetiroProvider, useRetiro } from './store/RetiroContext'
-import { CantinaView } from './views/CantinaView'
-import { CheckinView } from './views/CheckinView'
-import { ContasView } from './views/ContasView'
-import { EscalasView } from './views/EscalasView'
-import { InscricaoView } from './views/InscricaoView'
 import { LoginView } from './views/LoginView'
-import { QuartosView } from './views/QuartosView'
-import { RetirosView } from './views/RetirosView'
+
+function SemAcesso() {
+  return (
+    <div className="card" style={{ maxWidth: 460, margin: '40px auto', textAlign: 'center', padding: 40 }}>
+      <h3>Sem áreas liberadas</h3>
+      <p style={{ marginTop: 8 }}>
+        Seu usuário ainda não tem acesso a nenhuma área. Fale com o administrador.
+      </p>
+    </div>
+  )
+}
 
 function Shell() {
   const { state } = useRetiro()
+  const { user } = useAuth()
   const narrow = state.narrow
   const showSidebar = !narrow || state.sbOpen
+
+  // Só as páginas que o usuário pode acessar viram rotas — deep-link a uma
+  // rota não permitida cai no catch-all e volta pra página padrão dele.
+  const permitidas = NAV.filter((item) => canAccess(user?.acessos, item.key))
+  const defaultPath = permitidas[0]?.path
 
   return (
     <div className="shell" style={{ minHeight: '100vh', gridTemplateColumns: narrow ? '1fr' : '240px 1fr' }}>
@@ -25,13 +38,16 @@ function Shell() {
 
       <div className="main" style={{ padding: narrow ? '16px 14px 40px' : '22px 28px 40px' }}>
         <MobileTopbar />
-        {state.view === 'retiros' && <RetirosView />}
-        {state.view === 'inscricao' && <InscricaoView />}
-        {state.view === 'checkin' && <CheckinView />}
-        {state.view === 'quartos' && <QuartosView />}
-        {state.view === 'escalas' && <EscalasView />}
-        {state.view === 'contas' && <ContasView />}
-        {state.view === 'cantina' && <CantinaView />}
+        {defaultPath ? (
+          <Routes>
+            {permitidas.map((item) => (
+              <Route key={item.key} path={item.path} element={item.element} />
+            ))}
+            <Route path="*" element={<Navigate to={defaultPath} replace />} />
+          </Routes>
+        ) : (
+          <SemAcesso />
+        )}
       </div>
 
       <ModalHost />
@@ -54,8 +70,10 @@ function Gate() {
 
 export default function App() {
   return (
-    <AuthProvider>
-      <Gate />
-    </AuthProvider>
+    <BrowserRouter>
+      <AuthProvider>
+        <Gate />
+      </AuthProvider>
+    </BrowserRouter>
   )
 }

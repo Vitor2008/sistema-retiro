@@ -1,3 +1,4 @@
+import { useNavigate } from 'react-router-dom'
 import { appConfig } from '../config'
 import { FileDropField } from '../components/FileDropField'
 import { attachLabel, fmt } from '../lib/format'
@@ -15,6 +16,7 @@ import type { FormInscricao } from '../types'
 export function InscricaoView() {
   const { state, patch } = useRetiro()
   const { enviarInscricao } = useActions()
+  const navigate = useNavigate()
 
   const f = state.form
   const err = f.erros || {}
@@ -58,7 +60,7 @@ export function InscricaoView() {
               ? 'As vagas do ' + state.retiro.nome + ' esgotaram. Fale com seu líder para entrar na lista de espera.'
               : 'As inscrições do ' + state.retiro.nome + ' estão temporariamente fechadas.'}
           </p>
-          <button className="btn btn-outline btn-sm" style={{ marginTop: 20 }} onClick={() => patch({ view: 'retiros' })}>
+          <button className="btn btn-outline btn-sm" style={{ marginTop: 20 }} onClick={() => navigate('/retiros')}>
             Voltar para retiros (admin)
           </button>
         </div>

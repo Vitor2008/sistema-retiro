@@ -123,15 +123,6 @@ export type CelulaEscala = Record<Frente, string[]>
 export type DiaEscala = Record<Turno, CelulaEscala>
 export type Escala = Record<EscalaDia, DiaEscala>
 
-export type View =
-  | 'retiros'
-  | 'inscricao'
-  | 'checkin'
-  | 'quartos'
-  | 'escalas'
-  | 'contas'
-  | 'cantina'
-
 export type CantinaTab = 'venda' | 'contas' | 'produtos' | 'resumo'
 
 export interface FormInscricao {
@@ -212,7 +203,6 @@ export type Modal =
 
 /** Estado global da aplicação. */
 export interface AppState {
-  view: View
   narrow: boolean
   sbOpen: boolean
   retiro: Retiro

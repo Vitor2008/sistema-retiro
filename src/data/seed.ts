@@ -241,7 +241,6 @@ export function seedState(): AppState {
   ]
 
   return {
-    view: 'checkin',
     narrow: false,
     sbOpen: true,
     retiro: {

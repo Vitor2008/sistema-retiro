@@ -8,12 +8,14 @@ export interface AuthUser {
   username: string
   nome: string
   role: string
+  acessos: string[]
 }
 
 export interface TokenPayload {
   sub: number
   username: string
   role: string
+  acessos: string[]
 }
 
 const EXPIRES_IN = '12h'
@@ -31,11 +33,17 @@ export const authService = {
     const ok = await bcrypt.compare(senha, u.senhaHash)
     if (!ok) throw new Error('Usuário ou senha inválidos.')
 
-    const payload: TokenPayload = { sub: u.id, username: u.username, role: u.role }
+    const acessos = u.acessos ?? []
+    const payload: TokenPayload = {
+      sub: u.id,
+      username: u.username,
+      role: u.role,
+      acessos,
+    }
     const token = jwt.sign(payload, env.jwtSecret, { expiresIn: EXPIRES_IN })
     return {
       token,
-      user: { id: u.id, username: u.username, nome: u.nome, role: u.role },
+      user: { id: u.id, username: u.username, nome: u.nome, role: u.role, acessos },
     }
   },
 

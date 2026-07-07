@@ -23,3 +23,10 @@ export function requireAuth(req: Request, res: Response, next: NextFunction) {
     res.status(401).json({ error: 'Sessão inválida ou expirada.' })
   }
 }
+
+/** Exige que o usuário autenticado tenha acesso ADM. */
+export function requireAdmin(req: Request, res: Response, next: NextFunction) {
+  if (!req.user?.acessos?.includes('adm'))
+    return res.status(403).json({ error: 'Acesso restrito ao administrador.' })
+  next()
+}
