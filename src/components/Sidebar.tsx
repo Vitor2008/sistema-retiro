@@ -28,7 +28,13 @@ export function Sidebar() {
   return (
     <div className="sb" data-screen-label="Sidebar">
       <div className="brand">
-        <div className="mark">R</div>
+        <img
+          src={appConfig.logoUrl}
+          alt={appConfig.nomeIgreja}
+          width={32}
+          height={32}
+          style={{ borderRadius: 7, objectFit: 'contain', flexShrink: 0 }}
+        />
         <div className="name">
           Retiros <b>{igrejaCurta}</b>
         </div>

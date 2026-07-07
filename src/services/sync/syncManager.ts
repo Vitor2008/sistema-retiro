@@ -22,7 +22,7 @@ interface SyncMeta {
   lastSyncedAt: string | null
 }
 
-const META_KEY = 'retiros-sync-meta'
+const META_KEY = 'retiros-sync-meta-v4'
 const DEBOUNCE_MS = 800
 
 function loadMeta(): SyncMeta {

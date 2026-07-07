@@ -1,13 +1,14 @@
+import { DIAS_ESCALA, TURNO_INFO } from '../escalaConfig'
 import { fmtData } from '../lib/format'
 import { useRetiro } from '../store/RetiroContext'
 import { useActions } from '../store/useActions'
-import { escalaVazia, porId, servosDoDia } from '../store/selectors'
+import { escalaVazia, porId, servosServico } from '../store/selectors'
 import type { EscalaDia, Frente, Turno } from '../types'
 
-const nomes: Record<Turno, [string, string]> = {
-  cafe: ['Café da manhã', '06h30 – 08h00'],
-  almoco: ['Almoço', '11h30 – 13h30'],
-  jantar: ['Jantar', '18h30 – 20h30'],
+function dataDoDia(inicio: string, offset: number): string {
+  if (!inicio) return ''
+  const d = new Date(new Date(inicio + 'T12:00:00').getTime() + offset * 86400000)
+  return fmtData(d.toISOString().slice(0, 10))
 }
 
 export function EscalasView() {
@@ -18,34 +19,29 @@ export function EscalasView() {
   const narrow = s.narrow
   const escala = s.escala || escalaVazia()
   const dk = s.escalaDia
-  const servosDia = servosDoDia(s, dk)
+  const diaCfg = DIAS_ESCALA.find((d) => d.key === dk) ?? DIAS_ESCALA[0]
+  const servos = servosServico(s)
   const byId = porId(s)
   const seg = (on: boolean) => (on ? 'on' : '')
 
-  // carga por servo (todos os dias/turnos/frentes)
+  // carga por servo somando todos os dias/turnos/frentes da escala
   const cargas: Record<string, number> = {}
-  ;(['d1', 'd2'] as EscalaDia[]).forEach((d) =>
-    (['cafe', 'almoco', 'jantar'] as Turno[]).forEach((t) =>
-      (['prep', 'limp'] as Frente[]).forEach((fr) =>
-        (escala[d][t][fr] || []).forEach((id) => (cargas[id] = (cargas[id] || 0) + 1)),
+  DIAS_ESCALA.forEach((dia) =>
+    dia.turnos.forEach((t) =>
+      t.frentes.forEach((fr) =>
+        (escala[dia.key][t.key][fr] || []).forEach((id) => (cargas[id] = (cargas[id] || 0) + 1)),
       ),
     ),
   )
 
-  const modEscala = (t: Turno, mut: (cel: (typeof escala)['d1']['cafe']) => void) => {
+  const modEscala = (t: Turno, mut: (cel: (typeof escala)['sabado']['cafe']) => void) => {
     const e2 = JSON.parse(JSON.stringify(escala)) as typeof escala
     mut(e2[dk][t])
     patch({ escala: e2 })
   }
 
-  const diaLabel1 = fmtData(s.retiro.inicio)
-  let diaLabel2 = ''
-  if (s.retiro.inicio) {
-    const d2 = new Date(new Date(s.retiro.inicio + 'T12:00:00').getTime() + 86400000)
-    diaLabel2 = fmtData(d2.toISOString().slice(0, 10))
-  }
-  const cargaMedia = servosDia.length
-    ? (servosDia.reduce((a, sv) => a + (cargas[sv.id] || 0), 0) / servosDia.length).toFixed(1)
+  const cargaMedia = servos.length
+    ? (servos.reduce((a, sv) => a + (cargas[sv.id] || 0), 0) / servos.length).toFixed(1)
     : '0'
 
   return (
@@ -58,7 +54,8 @@ export function EscalasView() {
         <div>
           <h1>Escalas de serviço</h1>
           <div className="desc">
-            Preparo/serviço e limpeza por refeição. Limpeza do almoço e do jantar exige no mínimo 2 homens.
+            Sexta: só a limpeza do jantar. Sábado: café, almoço e jantar (preparo + limpeza).
+            Domingo: café e almoço (preparo + limpeza). Limpeza de almoço/jantar exige no mínimo 2 homens.
           </div>
         </div>
         <div className="actions">
@@ -70,16 +67,28 @@ export function EscalasView() {
 
       <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 14, flexWrap: 'wrap' }}>
         <div className="seg">
-          <button className={seg(dk === 'd1')} onClick={() => patch({ escalaDia: 'd1' })}>Dia 1 — {diaLabel1}</button>
-          <button className={seg(dk === 'd2')} onClick={() => patch({ escalaDia: 'd2' })}>Dia 2 — {diaLabel2}</button>
+          {DIAS_ESCALA.map((dia) => {
+            const data = dataDoDia(s.retiro.inicio, dia.offset)
+            return (
+              <button
+                key={dia.key}
+                className={seg(dk === dia.key)}
+                onClick={() => patch({ escalaDia: dia.key as EscalaDia })}
+              >
+                {dia.label}
+                {data ? ' — ' + data : ''}
+              </button>
+            )
+          })}
         </div>
         <span style={{ fontSize: 12, color: 'var(--fg-muted)' }}>
-          {servosDia.length} servos disponíveis neste dia · carga média {cargaMedia} turnos/pessoa
+          {servos.length} servos · carga média {cargaMedia} turnos/pessoa no fim de semana
         </span>
       </div>
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-        {(['cafe', 'almoco', 'jantar'] as Turno[]).map((tk) => {
+        {diaCfg.turnos.map((tCfg) => {
+          const tk = tCfg.key
           const cel = escala[dk][tk]
           const homensLimp = cel.limp.filter((id) => byId[id] && byId[id].genero === 'M').length
           const warn = tk !== 'cafe' && cel.limp.length > 0 && homensLimp < 2
@@ -118,7 +127,7 @@ export function EscalasView() {
                     }}
                   >
                     <option value="">+ Adicionar servo</option>
-                    {servosDia
+                    {servos
                       .filter((sv) => !emUso.has(sv.id))
                       .map((sv) => (
                         <option key={sv.id} value={sv.id}>
@@ -135,14 +144,14 @@ export function EscalasView() {
             <div key={tk} className="panel">
               <div className="head" style={{ marginBottom: 10 }}>
                 <div>
-                  <h3>{nomes[tk][0]}</h3>
-                  <div className="sub">{nomes[tk][1]}</div>
+                  <h3>{TURNO_INFO[tk].label}</h3>
+                  <div className="sub">{TURNO_INFO[tk].hora}</div>
                 </div>
                 {warn && <span className="chip chip-rejected">⚠ Limpeza precisa de no mínimo 2 homens</span>}
               </div>
-              <div style={{ display: 'grid', gridTemplateColumns: narrow ? '1fr' : '1fr 1fr', gap: 12 }}>
-                {frente('prep', 'Preparo e serviço', 'var(--color-primary)')}
-                {frente('limp', 'Limpeza' + (tk !== 'cafe' ? ' (mín. 2 homens)' : ''), 'var(--color-secondary-hover)')}
+              <div style={{ display: 'grid', gridTemplateColumns: narrow || tCfg.frentes.length === 1 ? '1fr' : '1fr 1fr', gap: 12 }}>
+                {tCfg.frentes.includes('prep') && frente('prep', 'Preparo e serviço', 'var(--color-primary)')}
+                {tCfg.frentes.includes('limp') && frente('limp', 'Limpeza' + (tk !== 'cafe' ? ' (mín. 2 homens)' : ''), 'var(--color-secondary-hover)')}
               </div>
             </div>
           )

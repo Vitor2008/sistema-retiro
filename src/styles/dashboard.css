@@ -39,7 +39,7 @@
   border: 2px solid #fff;
 }
 .sb .brand .name { font-weight: 700; font-size: 15px; color: var(--fg-strong); }
-.sb .brand .name b { color: #db8a07; }
+.sb .brand .name b { color: var(--color-secondary); }
 
 .sb .section {
   font-size: 10px; text-transform: uppercase; letter-spacing: .08em;
@@ -52,7 +52,7 @@
   user-select: none;
 }
 .sb .item:hover { background: #F1F3F5; }
-.sb .item.active { background: #E5EEEC; color: #003D35; font-weight: 600; }
+.sb .item.active { background: var(--color-primary-tint); color: var(--color-primary); font-weight: 600; }
 .sb .item svg { width: 16px; height: 16px; flex-shrink: 0; }
 .sb .sub {
   padding: 5px 12px 5px 38px; font-size: 12px; color: var(--fg-muted);
@@ -67,7 +67,7 @@
 }
 .sb .user .av {
   width: 32px; height: 32px; border-radius: 50%;
-  background: var(--color-sage); color: #fff;
+  background: var(--color-primary); color: #fff;
   font-weight: 700; font-size: 12px;
   display: flex; align-items: center; justify-content: center;
 }
@@ -367,7 +367,7 @@
 .tbl .resp-cell { display: flex; align-items: center; gap: 8px; }
 .tbl .resp-cell .av {
   width: 24px; height: 24px; border-radius: 50%;
-  background: var(--color-sage); color: #fff;
+  background: var(--color-primary); color: #fff;
   font-weight: 700; font-size: 10px;
   display: flex; align-items: center; justify-content: center;
 }

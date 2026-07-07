@@ -18,8 +18,8 @@ import {
   statusPag,
 } from '../store/selectors'
 
-const BRAND = 'FF003D35' // verde Locks
-const SAGE = 'FF89A86F'
+const BRAND = 'FF3E7CB0' // azul IMEL (logo)
+const SAGE = 'FFEE7D34' // laranja IMEL (usado como acento secundário)
 const HEADER_TEXT = 'FFFFFFFF'
 const MONEY = '"R$" #,##0.00'
 

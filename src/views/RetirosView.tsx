@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { appConfig } from '../config'
 import { fmt } from '../lib/format'
@@ -12,9 +13,10 @@ import {
 } from '../store/selectors'
 
 export function RetirosView() {
-  const { state, toast } = useRetiro()
+  const { state, patch, toast } = useRetiro()
   const { toggleLink, setModal } = useActions()
   const navigate = useNavigate()
+  const [novoLider, setNovoLider] = useState('')
 
   const valor = state.retiro.valor
   const atv = ativos(state)
@@ -22,7 +24,23 @@ export function RetirosView() {
   const vagasRest = vagasRestantes(state)
   const periodo = periodoSel(state)
   const link = 'https://' + linkPublico(state, appConfig.nomeIgreja)
-  const pctIns = Math.min(100, Math.round((atv.length / state.retiro.max) * 100))
+  const pctIns =
+    state.retiro.max > 0
+      ? Math.min(100, Math.round((atv.length / state.retiro.max) * 100))
+      : 0
+
+  const addLider = () => {
+    const nome = novoLider.trim()
+    if (!nome) return
+    if (state.lideres.some((l) => l.toLowerCase() === nome.toLowerCase())) {
+      toast('Esse líder já está cadastrado.')
+      return
+    }
+    patch({ lideres: [...state.lideres, nome] })
+    setNovoLider('')
+  }
+  const removeLider = (nome: string) =>
+    patch({ lideres: state.lideres.filter((l) => l !== nome) })
 
   const abrirNovoRetiro = () =>
     setModal({ type: 'retiro', novo: true, nome: '', inicio: '', fim: '', valor: '260', max: '45' })
@@ -175,6 +193,55 @@ export function RetirosView() {
           </div>
         </div>
       ))}
+
+      {/* Líderes (usados no formulário de inscrição) */}
+      <div className="tbl-wrap" style={{ marginTop: 8 }}>
+        <div className="tbl-head-bar">
+          <h3>Líderes</h3>
+          <span style={{ fontSize: 12, color: 'var(--fg-muted)' }}>
+            {state.lideres.length} cadastrado(s)
+          </span>
+        </div>
+        <div style={{ padding: '14px 16px' }}>
+          <div style={{ fontSize: 12, color: 'var(--fg-muted)', marginBottom: 10 }}>
+            Aparecem no campo “Líder / quem convidou” do formulário de inscrição.
+          </div>
+          <div style={{ display: 'flex', gap: 8, marginBottom: 12, maxWidth: 420 }}>
+            <input
+              className="input"
+              value={novoLider}
+              onChange={(e) => setNovoLider(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') addLider()
+              }}
+              placeholder="Nome do líder"
+            />
+            <button className="btn btn-primary btn-sm" style={{ flexShrink: 0 }} onClick={addLider}>
+              Adicionar
+            </button>
+          </div>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+            {state.lideres.map((l) => (
+              <span
+                key={l}
+                style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: 'var(--bg-muted)', borderRadius: 999, padding: '4px 6px 4px 12px', fontSize: 13 }}
+              >
+                {l}
+                <button
+                  onClick={() => removeLider(l)}
+                  style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--fg-muted)', padding: '0 3px', fontSize: 14, lineHeight: 1 }}
+                  title="Remover"
+                >
+                  ×
+                </button>
+              </span>
+            ))}
+            {state.lideres.length === 0 && (
+              <span style={{ fontSize: 12, color: 'var(--fg-muted)' }}>Nenhum líder cadastrado ainda.</span>
+            )}
+          </div>
+        </div>
+      </div>
     </div>
   )
 }

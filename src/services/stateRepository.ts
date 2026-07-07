@@ -19,7 +19,7 @@ export interface StateRepository {
   clear(): void
 }
 
-const KEY = 'retiros-app-v3'
+const KEY = 'retiros-app-v4'
 
 class LocalStorageStateRepository implements StateRepository {
   load(): Partial<AppState> | null {

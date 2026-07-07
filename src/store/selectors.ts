@@ -4,13 +4,7 @@
 // ============================================================================
 
 import { fmtData } from '../lib/format'
-import type {
-  AppState,
-  Escala,
-  EscalaDia,
-  Inscrito,
-  StatusPagamento,
-} from '../types'
+import type { AppState, Escala, Inscrito, StatusPagamento } from '../types'
 
 export function pago(p: Inscrito): number {
   return p.pagamentos.reduce((a, x) => a + (x.valor || 0), 0)
@@ -39,9 +33,9 @@ export function linkAbertoEfetivo(state: AppState): boolean {
   return state.retiro.aberto && vagasRestantes(state) > 0
 }
 
-export function servosDoDia(state: AppState, diaKey: EscalaDia): Inscrito[] {
-  const alvo = diaKey === 'd1' ? '1º dia' : '2º dia'
-  return ativos(state).filter((p) => p.tipo === 'Servo' && p.diaServir === alvo)
+/** Todos os servos ativos — no encontro (fim de semana) eles servem os 3 dias. */
+export function servosServico(state: AppState): Inscrito[] {
+  return ativos(state).filter((p) => p.tipo === 'Servo')
 }
 
 export function escalaVazia(): Escala {
@@ -50,7 +44,7 @@ export function escalaVazia(): Escala {
     almoco: { prep: [], limp: [] },
     jantar: { prep: [], limp: [] },
   })
-  return { d1: dia(), d2: dia() }
+  return { sexta: dia(), sabado: dia(), domingo: dia() }
 }
 
 /** Mapa id -> inscrito, para lookups O(1). */

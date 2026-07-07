@@ -13,13 +13,13 @@
   /* -----------------------------------------------------------------------
    * COLOR — BRAND
    * --------------------------------------------------------------------- */
-  --color-primary:        #003D35;   /* Locks forest green */
-  --color-primary-hover:  #002A24;
-  --color-primary-tint:   #E5EEEC;   /* primary @ ~10% */
+  --color-primary:        #3E7CB0;   /* IMEL — azul da logo (pomba) */
+  --color-primary-hover:  #315F88;
+  --color-primary-tint:   #E9F1F8;   /* primary @ ~10% */
 
-  --color-secondary:      #db8a07;   /* Locks amber */
-  --color-secondary-hover:#b8740a;
-  --color-secondary-tint: #FBEFD6;
+  --color-secondary:      #EE7D34;   /* IMEL — laranja da logo (chama) */
+  --color-secondary-hover:#D5691F;
+  --color-secondary-tint: #FCEADB;
 
   --color-sage:           rgb(137, 168, 111);  /* #89A86F – everyday accent */
   --color-sage-hover:     rgb(118, 148, 95);
@@ -39,7 +39,7 @@
 
   --border-default:       #DEE2E6;   /* Mantine gray-3 */
   --border-strong:        #CED4DA;
-  --border-hover:         var(--color-sage); /* signature card hover */
+  --border-hover:         var(--color-primary); /* hover de card na cor da marca */
 
   /* -----------------------------------------------------------------------
    * COLOR — TEXT
@@ -90,8 +90,8 @@
    * COLOR — DATA VIZ
    * Ordered to harmonize with brand: forest, amber, sage, then supports.
    * --------------------------------------------------------------------- */
-  --viz-1: #003D35;   /* primary */
-  --viz-2: #db8a07;   /* secondary */
+  --viz-1: #3E7CB0;   /* primary (azul IMEL) */
+  --viz-2: #EE7D34;   /* secondary (laranja IMEL) */
   --viz-3: #89A86F;   /* sage */
   --viz-4: #0a66c2;   /* linkedin blue */
   --viz-5: #17A2B8;   /* proposal teal */
@@ -353,7 +353,7 @@ p {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  background: var(--color-sage);
+  background: var(--color-primary);
   color: #fff;
   font-weight: var(--fw-bold);
   border-radius: var(--r-pill);

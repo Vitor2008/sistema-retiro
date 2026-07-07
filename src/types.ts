@@ -7,7 +7,7 @@ export type TipoInscricao = 'Encontrista' | 'Servo'
 export type StatusInscricao = 'pendente' | 'confirmada' | 'cancelada'
 export type StatusPagamento = 'pendente' | 'parcial' | 'confirmado'
 export type DiaServir = '' | '1º dia' | '2º dia'
-export type EscalaDia = 'd1' | 'd2'
+export type EscalaDia = 'sexta' | 'sabado' | 'domingo'
 export type Turno = 'cafe' | 'almoco' | 'jantar'
 export type Frente = 'prep' | 'limp'
 
@@ -235,5 +235,7 @@ export interface AppState {
 /** Configurações do app (equivalentes aos "props" do protótipo original). */
 export interface AppConfig {
   nomeIgreja: string
+  nomeIgrejaCompleto: string
+  logoUrl: string
   modoCompacto: boolean
 }

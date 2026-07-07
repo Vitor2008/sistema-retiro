@@ -6,11 +6,11 @@
 
 import { appConfig } from '../config'
 import { seedForm } from '../data/seed'
+import { DIAS_ESCALA } from '../escalaConfig'
 import { fmt, stampAgora, stampDia } from '../lib/format'
 import { exportPrestacaoContas } from '../services/reportExport'
 import type {
   Escala,
-  EscalaDia,
   Inscrito,
   ItemVenda,
   ModalFecharConta,
@@ -19,43 +19,48 @@ import type {
   ModalQuarto,
   ModalRetiro,
   Produto,
-  Turno,
   Venda,
 } from '../types'
 import { useRetiro } from './RetiroContext'
-import { escalaVazia, ofertado, pago, porId, servosDoDia } from './selectors'
+import { escalaVazia, ofertado, pago, porId, servosServico } from './selectors'
 
 export function useActions() {
   const { state, patch, setModal, toast } = useRetiro()
 
   const gerarEscala = () => {
     const escala: Escala = escalaVazia()
-    ;(['d1', 'd2'] as EscalaDia[]).forEach((dk) => {
-      const servos = servosDoDia(state, dk)
-      const load: Record<string, number> = {}
-      servos.forEach((s) => (load[s.id] = 0))
-      const pick = (
-        n: number,
-        filtro: ((s: Inscrito) => boolean) | null,
-        excluir: string[],
-      ): string[] => {
-        const pool = servos
-          .filter((s) => !excluir.includes(s.id) && (!filtro || filtro(s)))
-          .sort((a, b) => load[a.id] - load[b.id] || Math.random() - 0.5)
-        const sel = pool.slice(0, n)
-        sel.forEach((s) => load[s.id]++)
-        return sel.map((s) => s.id)
-      }
-      ;(['cafe', 'almoco', 'jantar'] as Turno[]).forEach((tk) => {
-        let limp: string[] = []
-        if (tk !== 'cafe') {
-          limp = pick(2, (s) => s.genero === 'M', [])
-          limp = limp.concat(pick(2, null, limp))
-        } else {
-          limp = pick(3, null, [])
+    // No fim de semana os servos servem os 3 dias; balanceamos a carga de todos
+    // ao longo de sexta, sábado e domingo (o `load` é compartilhado).
+    const servos = servosServico(state)
+    const load: Record<string, number> = {}
+    servos.forEach((s) => (load[s.id] = 0))
+    const pick = (
+      n: number,
+      filtro: ((s: Inscrito) => boolean) | null,
+      excluir: string[],
+    ): string[] => {
+      const pool = servos
+        .filter((s) => !excluir.includes(s.id) && (!filtro || filtro(s)))
+        .sort((a, b) => load[a.id] - load[b.id] || Math.random() - 0.5)
+      const sel = pool.slice(0, n)
+      sel.forEach((s) => load[s.id]++)
+      return sel.map((s) => s.id)
+    }
+    DIAS_ESCALA.forEach((dia) => {
+      dia.turnos.forEach((t) => {
+        const cel = escala[dia.key][t.key]
+        if (t.frentes.includes('limp')) {
+          // Limpeza de almoço/jantar exige no mínimo 2 homens.
+          if (t.key !== 'cafe') {
+            const homens = pick(2, (s) => s.genero === 'M', [])
+            cel.limp = homens.concat(pick(2, null, homens))
+          } else {
+            cel.limp = pick(3, null, [])
+          }
         }
-        const prep = pick(tk === 'cafe' ? 3 : 4, null, limp)
-        escala[dk][tk] = { prep, limp }
+        if (t.frentes.includes('prep')) {
+          cel.prep = pick(t.key === 'cafe' ? 3 : 4, null, cel.limp)
+        }
       })
     })
     patch({ escala })

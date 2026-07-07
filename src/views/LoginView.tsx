@@ -41,31 +41,25 @@ export function LoginView() {
       }}
     >
       <div className="card" style={{ width: '100%', maxWidth: 380, padding: '32px 28px' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 22 }}>
-          <div
-            style={{
-              width: 34,
-              height: 34,
-              borderRadius: 8,
-              background: 'var(--color-primary)',
-              color: '#fff',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              fontWeight: 800,
-              fontSize: 16,
-            }}
-          >
-            R
-          </div>
-          <div style={{ fontWeight: 700, fontSize: 16, color: 'var(--fg-strong)' }}>
-            Retiros · {appConfig.nomeIgreja}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 22 }}>
+          <img
+            src={appConfig.logoUrl}
+            alt={appConfig.nomeIgreja}
+            width={44}
+            height={44}
+            style={{ borderRadius: 8, objectFit: 'contain', flexShrink: 0 }}
+          />
+          <div>
+            <div style={{ fontWeight: 700, fontSize: 16, color: 'var(--fg-strong)' }}>
+              Retiros · {appConfig.nomeIgreja}
+            </div>
+            <div style={{ fontSize: 12, color: 'var(--fg-muted)' }}>{appConfig.nomeIgrejaCompleto}</div>
           </div>
         </div>
 
         <h2 style={{ marginBottom: 4 }}>Entrar</h2>
         <p className="dim" style={{ fontSize: 13, marginBottom: 20 }}>
-          Acesse com seu usuário administrador.
+          Acesse com seu usuário e senha.
         </p>
 
         <form onSubmit={submit} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
