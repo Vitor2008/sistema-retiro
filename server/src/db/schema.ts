@@ -32,6 +32,9 @@ export const retiros = pgTable('retiros', {
   max: integer('max').notNull().default(0),
   /** Total de oferta recebida no retiro (usado para abater inscrições). */
   oferta: doublePrecision('oferta').notNull().default(0),
+  /** Local do retiro e ponto de saída — exibidos no formulário público. */
+  local: text('local').notNull().default(''),
+  saida: text('saida').notNull().default(''),
   aberto: boolean('aberto').notNull().default(true),
   slug: text('slug').notNull().default(''),
   /** id do arquivo (bytea) usado como banner no formulário público, se houver. */
@@ -59,14 +62,35 @@ export const categorias = pgTable('categorias', {
   nome: text('nome').notNull(),
 })
 
+/** Prédios de origem oferecidos no formulário de inscrição. */
+export const predios = pgTable('predios', {
+  id: serial('id').primaryKey(),
+  nome: text('nome').notNull(),
+})
+
+/** Opções de condução (transporte) oferecidas no formulário de inscrição. */
+export const conducoes = pgTable('conducoes', {
+  id: serial('id').primaryKey(),
+  nome: text('nome').notNull(),
+})
+
 export const inscritos = pgTable('inscritos', {
   id: text('id').primaryKey(),
   nome: text('nome').notNull(),
   genero: text('genero').notNull(),
   tipo: text('tipo').notNull(),
-  diaServir: text('dia_servir').notNull().default(''),
+  /** Idade e data de nascimento informadas na inscrição. */
+  idade: integer('idade'),
+  dataNascimento: text('data_nascimento').notNull().default(''),
+  /** Para convidados: 1ª vez, 2ª vez ou + de 2. */
+  vez: text('vez').notNull().default(''),
   lider: text('lider').notNull().default(''),
+  /** Prédio de origem e forma de condução até o retiro. */
+  predio: text('predio').notNull().default(''),
+  conducao: text('conducao').notNull().default(''),
   forma: text('forma').notNull().default(''),
+  // Legado (não mais usado pelo app; mantido para não apagar dados existentes).
+  diaServir: text('dia_servir').notNull().default(''),
   parcelas: integer('parcelas'),
   tel: text('tel').notNull().default(''),
   statusInscricao: text('status_inscricao').notNull().default('pendente'),

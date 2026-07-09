@@ -6,9 +6,10 @@
 
 import { appConfig } from '../config'
 import { DIAS_ESCALA } from '../escalaConfig'
-import { fmt, stampAgora, stampDia } from '../lib/format'
+import { fmt, stampAgora, stampDia, uid } from '../lib/format'
 import { exportPrestacaoContas } from '../services/reportExport'
 import type {
+  Attachment,
   Escala,
   Inscrito,
   ItemVenda,
@@ -103,7 +104,7 @@ export function useActions() {
         toast('Itens lançados na conta de ' + v.cliente + '.')
       } else {
         vendas.push({
-          id: 'v' + Date.now(),
+          id: uid('v'),
           tipo: 'anotada',
           cliente: s.vCliente.trim(),
           forma: '',
@@ -115,7 +116,7 @@ export function useActions() {
       }
     } else {
       vendas.push({
-        id: 'v' + Date.now(),
+        id: uid('v'),
         tipo: 'avulsa',
         cliente: '',
         forma: s.vendaForma,
@@ -190,8 +191,10 @@ export function useActions() {
     const mRestanteV = Math.max(0, s.retiro.valor - pago(mp) - ofertado(mp))
     const vp = Number(m.valorPago) || 0
     const ofertaV = m.oferta ? Math.max(0, mRestanteV - vp) : 0
-    if (vp <= 0 && ofertaV <= 0) {
-      toast('Informe um valor pago ou marque como oferta.')
+    // Permite confirmar a inscrição SEM pagamento, desde que informe a data
+    // prevista para pagar o restante.
+    if (vp <= 0 && ofertaV <= 0 && !m.dataPrevista) {
+      toast('Informe um valor pago, marque como oferta ou defina a data prevista para pagar.')
       return
     }
     const lanc = {
@@ -217,13 +220,14 @@ export function useActions() {
       ),
       modal: null,
     })
+    const primeiroNome = mp.nome.split(' ')[0]
     const quitado = vp + ofertaV >= mRestanteV
     toast(
-      quitado
-        ? 'Pagamento de ' + mp.nome.split(' ')[0] + ' confirmado.'
-        : 'Pagamento parcial registrado — resta ' +
-            fmt(mRestanteV - vp - ofertaV) +
-            '.',
+      vp <= 0 && ofertaV <= 0
+        ? 'Inscrição de ' + primeiroNome + ' confirmada — pagamento pendente.'
+        : quitado
+          ? 'Pagamento de ' + primeiroNome + ' confirmado.'
+          : 'Pagamento parcial registrado — resta ' + fmt(mRestanteV - vp - ofertaV) + '.',
     )
   }
 
@@ -269,6 +273,8 @@ export function useActions() {
         fim: m.fim || s.retiro.fim,
         valor: Number(m.valor) || s.retiro.valor,
         max: Number(m.max) || s.retiro.max,
+        local: m.local,
+        saida: m.saida,
         bannerId: m.bannerId,
         slug: m.novo
           ? m.nome
@@ -294,7 +300,7 @@ export function useActions() {
     patch({
       quartos: s.quartos.concat([
         {
-          id: 'q' + Date.now(),
+          id: uid('q'),
           nome: m.nome.trim(),
           genero: m.genero || 'M',
           cap: Number(m.cap) || 8,
@@ -328,7 +334,7 @@ export function useActions() {
       })
     } else {
       patch({
-        produtos: s.produtos.concat([{ id: 'pr' + Date.now(), ...novo }]),
+        produtos: s.produtos.concat([{ id: uid('pr'), ...novo }]),
         modal: null,
       })
     }
@@ -343,10 +349,14 @@ export function useActions() {
       toast('Informe descrição e valor.')
       return
     }
+    if (!m.comprovante) {
+      toast('Anexe o comprovante da compra.')
+      return
+    }
     patch({
       despesas: s.despesas.concat([
         {
-          id: 'd' + Date.now(),
+          id: uid('d'),
           categoria: m.categoria,
           descricao: m.descricao,
           valor: Number(m.valor),
@@ -366,6 +376,17 @@ export function useActions() {
     const total = Math.max(0, Number(m.valor) || 0)
     patch({ retiro: { ...s.retiro, oferta: total }, modal: null })
     toast('Oferta cadastrada: ' + fmt(total) + '.')
+  }
+
+  /** Anexa/atualiza o comprovante de um inscrito (usado no modal de detalhes,
+   *  inclusive após a inscrição já estar confirmada e paga). */
+  const anexarComprovante = (pid: string, att: Attachment) => {
+    patch({
+      inscritos: state.inscritos.map((x) =>
+        x.id === pid ? { ...x, comprovante: true, comprovanteId: att.fileId } : x,
+      ),
+    })
+    toast('Comprovante anexado.')
   }
 
   const confirmarFecharConta = () => {
@@ -468,6 +489,7 @@ export function useActions() {
     salvarProduto,
     salvarDespesa,
     salvarOferta,
+    anexarComprovante,
     confirmarFecharConta,
     salvarEdicaoConta,
     toggleLink,

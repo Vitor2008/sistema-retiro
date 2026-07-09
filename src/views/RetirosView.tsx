@@ -14,6 +14,8 @@ export function RetirosView() {
   const { state, patch, toast } = useRetiro()
   const { toggleLink, setModal } = useActions()
   const [novoLider, setNovoLider] = useState('')
+  const [novoPredio, setNovoPredio] = useState('')
+  const [novaConducao, setNovaConducao] = useState('')
 
   const valor = state.retiro.valor
   const atv = ativos(state)
@@ -44,8 +46,40 @@ export function RetirosView() {
   const removeLider = (nome: string) =>
     patch({ lideres: state.lideres.filter((l) => l !== nome) })
 
-  const abrirNovoRetiro = () =>
-    setModal({ type: 'retiro', novo: true, nome: '', inicio: '', fim: '', valor: '260', max: '45', bannerId: null })
+  const addPredio = () => {
+    const nome = novoPredio.trim()
+    if (!nome) return
+    if (state.predios.some((p) => p.toLowerCase() === nome.toLowerCase())) {
+      toast('Esse prédio já está cadastrado.')
+      return
+    }
+    patch({ predios: [...state.predios, nome] })
+    setNovoPredio('')
+  }
+  const removePredio = (nome: string) =>
+    patch({ predios: state.predios.filter((p) => p !== nome) })
+
+  const addConducao = () => {
+    const nome = novaConducao.trim()
+    if (!nome) return
+    if (state.conducoes.some((c) => c.toLowerCase() === nome.toLowerCase())) {
+      toast('Essa condução já está cadastrada.')
+      return
+    }
+    patch({ conducoes: [...state.conducoes, nome] })
+    setNovaConducao('')
+  }
+  const removeConducao = (nome: string) =>
+    patch({ conducoes: state.conducoes.filter((c) => c !== nome) })
+
+  const abrirNovoRetiro = () => {
+    // Não permite substituir o retiro atual enquanto o link dele estiver aberto.
+    if (state.retiro.aberto) {
+      toast('Feche o link de inscrição do retiro atual antes de criar um novo.')
+      return
+    }
+    setModal({ type: 'retiro', novo: true, nome: '', inicio: '', fim: '', valor: '260', max: '45', local: '', saida: '', bannerId: null })
+  }
 
   const editarRetiro = () =>
     setModal({
@@ -56,6 +90,8 @@ export function RetirosView() {
       fim: state.retiro.fim,
       valor: String(valor),
       max: String(state.retiro.max),
+      local: state.retiro.local,
+      saida: state.retiro.saida,
       bannerId: state.retiro.bannerId,
     })
 
@@ -71,7 +107,13 @@ export function RetirosView() {
           <div className="desc">Cadastro, link de inscrição e histórico de retiros.</div>
         </div>
         <div className="actions">
-          <button className="btn btn-primary" onClick={abrirNovoRetiro}>
+          <button
+            className="btn btn-primary"
+            onClick={abrirNovoRetiro}
+            disabled={state.retiro.aberto}
+            title={state.retiro.aberto ? 'Feche o link de inscrição do retiro atual antes de criar um novo.' : undefined}
+            style={state.retiro.aberto ? { opacity: 0.5, cursor: 'not-allowed' } : undefined}
+          >
             + Criar retiro
           </button>
         </div>
@@ -243,6 +285,99 @@ export function RetirosView() {
               <span style={{ fontSize: 12, color: 'var(--fg-muted)' }}>Nenhum líder cadastrado ainda.</span>
             )}
           </div>
+        </div>
+      </div>
+
+      <ListaChips
+        titulo="Prédios"
+        descricao="Opções do campo “Qual prédio?” no formulário de inscrição."
+        itens={state.predios}
+        valor={novoPredio}
+        setValor={setNovoPredio}
+        onAdd={addPredio}
+        onRemove={removePredio}
+        placeholder="Nome do prédio"
+        vazio="Nenhum prédio cadastrado ainda."
+      />
+
+      <ListaChips
+        titulo="Conduções"
+        descricao="Opções do campo “Como pretende ir?” no formulário de inscrição."
+        itens={state.conducoes}
+        valor={novaConducao}
+        setValor={setNovaConducao}
+        onAdd={addConducao}
+        onRemove={removeConducao}
+        placeholder="Ex.: Ônibus do Encontro"
+        vazio="Nenhuma condução cadastrada ainda."
+      />
+    </div>
+  )
+}
+
+/** Lista simples editável (chips): usada para prédios e conduções. */
+function ListaChips({
+  titulo,
+  descricao,
+  itens,
+  valor,
+  setValor,
+  onAdd,
+  onRemove,
+  placeholder,
+  vazio,
+}: {
+  titulo: string
+  descricao: string
+  itens: string[]
+  valor: string
+  setValor: (v: string) => void
+  onAdd: () => void
+  onRemove: (nome: string) => void
+  placeholder: string
+  vazio: string
+}) {
+  return (
+    <div className="tbl-wrap" style={{ marginTop: 8 }}>
+      <div className="tbl-head-bar">
+        <h3>{titulo}</h3>
+        <span style={{ fontSize: 12, color: 'var(--fg-muted)' }}>{itens.length} cadastrado(s)</span>
+      </div>
+      <div style={{ padding: '14px 16px' }}>
+        <div style={{ fontSize: 12, color: 'var(--fg-muted)', marginBottom: 10 }}>{descricao}</div>
+        <div style={{ display: 'flex', gap: 8, marginBottom: 12, maxWidth: 420 }}>
+          <input
+            className="input"
+            value={valor}
+            onChange={(e) => setValor(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') onAdd()
+            }}
+            placeholder={placeholder}
+          />
+          <button className="btn btn-primary btn-sm" style={{ flexShrink: 0 }} onClick={onAdd}>
+            Adicionar
+          </button>
+        </div>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+          {itens.map((item) => (
+            <span
+              key={item}
+              style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: 'var(--bg-muted)', borderRadius: 999, padding: '4px 6px 4px 12px', fontSize: 13 }}
+            >
+              {item}
+              <button
+                onClick={() => onRemove(item)}
+                style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--fg-muted)', padding: '0 3px', fontSize: 14, lineHeight: 1 }}
+                title="Remover"
+              >
+                ×
+              </button>
+            </span>
+          ))}
+          {itens.length === 0 && (
+            <span style={{ fontSize: 12, color: 'var(--fg-muted)' }}>{vazio}</span>
+          )}
         </div>
       </div>
     </div>

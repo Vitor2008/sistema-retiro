@@ -14,6 +14,7 @@ export type Frente = 'prep' | 'limp'
 export type FormaPagamento =
   | 'Dinheiro'
   | 'Pix'
+  | 'Cartão'
   | 'Débito'
   | 'Crédito à vista'
   | 'Crédito parcelado'
@@ -39,15 +40,23 @@ export interface Pagamento {
   dataPrevista?: string | null
 }
 
+/** Quantas vezes o convidado já participou (campo do formulário público). */
+export type Vez = '' | '1ª Vez' | '2ª Vez' | '+ de 2'
+
 export interface Inscrito {
   id: string
   nome: string
   genero: Genero
   tipo: TipoInscricao
-  diaServir: DiaServir
+  idade: number | null
+  dataNascimento: string
+  /** Para convidados: 1ª, 2ª ou + de 2 vezes. */
+  vez: Vez
   lider: string
+  /** Prédio de origem e condução informados na inscrição. */
+  predio: string
+  conducao: string
   forma: FormaPagamento
-  parcelas: number | null
   tel: string
   statusInscricao: StatusInscricao
   cancelInfo: string
@@ -115,6 +124,9 @@ export interface Retiro {
   max: number
   /** Total de oferta recebida no retiro (abatido nas inscrições). */
   oferta: number
+  /** Local do retiro e ponto de saída — exibidos no formulário público. */
+  local: string
+  saida: string
   aberto: boolean
   slug: string
   /** id do arquivo (banner) exibido no formulário público. */
@@ -175,6 +187,8 @@ export interface ModalRetiro {
   fim: string
   valor: string
   max: string
+  local: string
+  saida: string
   bannerId: string | null
 }
 export interface ModalQuarto {
@@ -201,6 +215,10 @@ export interface ModalOferta {
   type: 'oferta'
   valor: string
 }
+export interface ModalDetalhes {
+  type: 'detalhes'
+  pid: string
+}
 export interface ModalFecharConta {
   type: 'fecharConta'
   vid: string
@@ -221,6 +239,7 @@ export type Modal =
   | ModalProduto
   | ModalDespesa
   | ModalOferta
+  | ModalDetalhes
   | ModalFecharConta
   | ModalEditarConta
   | null
@@ -232,6 +251,8 @@ export interface AppState {
   retiro: Retiro
   retirosPassados: RetiroPassado[]
   lideres: string[]
+  predios: string[]
+  conducoes: string[]
   inscritos: Inscrito[]
   quartos: Quarto[]
   produtos: Produto[]
@@ -256,10 +277,27 @@ export interface AppState {
   toast: string | null
 }
 
+/** Conteúdo fixo e dados de pagamento do formulário público de inscrição. */
+export interface FormularioConfig {
+  subtitulo: string
+  descricao: string
+  incluidos: string[]
+  versiculo: string
+  versiculoRef: string
+  /** Pagamento (fixo da igreja). */
+  pixChave: string
+  pixInfo: string
+  /** Caminho de asset estático do QR Code (em /public); vazio = não exibe. */
+  qrCodeUrl: string
+  /** Link de pagamento por cartão (débito/crédito); vazio = não exibe. */
+  linkPagamento: string
+}
+
 /** Configurações do app (equivalentes aos "props" do protótipo original). */
 export interface AppConfig {
   nomeIgreja: string
   nomeIgrejaCompleto: string
   logoUrl: string
   modoCompacto: boolean
+  formulario: FormularioConfig
 }

@@ -17,6 +17,8 @@ export const retiroRepository = {
       valor: row.valor,
       max: row.max,
       oferta: row.oferta,
+      local: row.local,
+      saida: row.saida,
       aberto: row.aberto,
       slug: row.slug,
       bannerId: row.bannerId,

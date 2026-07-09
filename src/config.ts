@@ -8,4 +8,26 @@ export const appConfig: AppConfig = {
   nomeIgrejaCompleto: 'Igreja Metodista Livre — Cuiabá',
   logoUrl: '/logo.jpg',
   modoCompacto: false,
+  // Conteúdo fixo do formulário público (texto institucional + pagamento).
+  formulario: {
+    subtitulo: 'Um Final de Semana para Ser Transformado!',
+    descricao:
+      'Serão dias de renovo, libertação e transformação espiritual. Um tempo para parar, silenciar o mundo à volta e permitir que Deus fale ao teu coração de forma pessoal e profunda. E você é nosso convidado especial! Faça sua inscrição agora mesmo.',
+    incluidos: [
+      'Traslado',
+      'Hospedagem',
+      'Alimentação completa',
+      'Programação espiritual completa',
+    ],
+    versiculo:
+      'Clama a mim, e responder-te-ei, e anunciar-te-ei coisas grandes e ocultas que não sabes.',
+    versiculoRef: 'Jeremias 33:3',
+    pixChave: '09.172.041/0001-30',
+    pixInfo: 'CNPJ · SICREDI',
+    // Coloque o arquivo do QR Code em /public (ex.: public/qrcode-pix.png) e
+    // ajuste o caminho abaixo. Vazio = não exibe o QR.
+    qrCodeUrl: '',
+    // Link de pagamento por cartão (débito/crédito), se houver. Vazio = não exibe.
+    linkPagamento: '',
+  },
 }

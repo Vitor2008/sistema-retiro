@@ -41,6 +41,7 @@ export function ContasView() {
     .map((p) => {
       const sp = statusPag(s, p)
       const rest = Math.max(0, valor - pago(p) - ofertado(p))
+      const obs = p.pagamentos.map((x) => x.obs).filter(Boolean).slice(-1)[0] || ''
       return {
         id: p.id,
         nome: p.nome,
@@ -51,7 +52,11 @@ export function ContasView() {
         pago: fmt(pago(p)),
         oferta: ofertado(p) ? fmt(ofertado(p)) : '—',
         saldo: rest ? fmt(rest) : '—',
-        saldoColor: rest ? 'var(--status-progress-fg)' : 'var(--fg-muted)',
+        // Pendência (saldo > 0) destacada em vermelho.
+        saldoColor: rest ? 'var(--status-rejected-fg)' : 'var(--fg-muted)',
+        saldoBold: rest > 0,
+        comprovanteId: p.comprovanteId,
+        obs,
       }
     })
 
@@ -211,11 +216,17 @@ export function ContasView() {
                 <th style={{ textAlign: 'right' }}>Pago</th>
                 <th style={{ textAlign: 'right' }}>Oferta</th>
                 <th style={{ textAlign: 'right' }}>Saldo</th>
+                <th>Comprovante</th>
+                <th>Observação</th>
               </tr>
             </thead>
             <tbody>
               {checkinRows.map((r) => (
-                <tr key={r.id}>
+                <tr
+                  key={r.id}
+                  onClick={() => setModal({ type: 'detalhes', pid: r.id })}
+                  style={{ cursor: 'pointer' }}
+                >
                   <td>
                     <div className="resp-cell">
                       <div className="av">{initials(r.nome)}</div>
@@ -229,7 +240,15 @@ export function ContasView() {
                   </td>
                   <td style={{ textAlign: 'right', fontWeight: 600 }}>{r.pago}</td>
                   <td style={{ textAlign: 'right', color: 'var(--color-sage)' }}>{r.oferta}</td>
-                  <td style={{ textAlign: 'right', color: r.saldoColor }}>{r.saldo}</td>
+                  <td style={{ textAlign: 'right', color: r.saldoColor, fontWeight: r.saldoBold ? 700 : 400 }}>{r.saldo}</td>
+                  <td style={{ fontSize: 12 }} onClick={(e) => e.stopPropagation()}>
+                    {r.comprovanteId
+                      ? <AttachmentLink fileId={r.comprovanteId} label="📎 ver" style={{ fontSize: 11 }} />
+                      : <span style={{ color: 'var(--fg-muted)' }}>—</span>}
+                  </td>
+                  <td style={{ fontSize: 12, color: 'var(--fg-muted)', maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={r.obs}>
+                    {r.obs || '—'}
+                  </td>
                 </tr>
               ))}
             </tbody>

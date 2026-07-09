@@ -10,7 +10,11 @@
 import express, { Router } from 'express'
 import { arquivoService } from '../services/arquivoService.js'
 import { inscritoRepository } from '../repositories/inscritoRepository.js'
-import { lideresRepository } from '../repositories/listaRepository.js'
+import {
+  conducaoRepository,
+  lideresRepository,
+  predioRepository,
+} from '../repositories/listaRepository.js'
 import { inscritoService } from '../services/inscritoService.js'
 import { retiroService } from '../services/retiroService.js'
 import type { Inscrito } from '../types.js'
@@ -36,7 +40,11 @@ publicRoutes.get('/retiro/:slug', async (req, res, next) => {
     const r = await retiroPorSlug(req.params.slug)
     if (!r) return res.status(404).json({ error: 'Formulário não encontrado.' })
     const vagasRestantes = Math.max(0, r.max - (await ocupadas()))
-    const lideres = await lideresRepository.list()
+    const [lideres, predios, conducoes] = await Promise.all([
+      lideresRepository.list(),
+      predioRepository.list(),
+      conducaoRepository.list(),
+    ])
     // Nunca devolvemos dados sensíveis — só o que a landing precisa exibir.
     res.json({
       nome: r.nome,
@@ -44,9 +52,13 @@ publicRoutes.get('/retiro/:slug', async (req, res, next) => {
       fim: r.fim,
       valor: r.valor,
       max: r.max,
+      local: r.local,
+      saida: r.saida,
       slug: r.slug,
       bannerId: r.bannerId,
       lideres,
+      predios,
+      conducoes,
       // "aberto" efetivo: flag do admin E ainda há vaga.
       aberto: r.aberto && vagasRestantes > 0,
       vagasRestantes,
@@ -104,31 +116,40 @@ publicRoutes.post('/inscricao/:slug', async (req, res, next) => {
     const tel = String(b.tel || '').trim()
     const genero = b.genero === 'M' || b.genero === 'F' ? b.genero : null
     const tipo = b.tipo === 'Servo' ? 'Servo' : 'Encontrista'
-    const diaServir = tipo === 'Servo' ? String(b.diaServir || '') : ''
+    const idade = Number(b.idade) > 0 ? Math.floor(Number(b.idade)) : null
+    const dataNascimento = String(b.dataNascimento || '').trim()
+    // "Vez" só se aplica a convidados (Encontrista).
+    const vez = tipo === 'Encontrista' ? String(b.vez || '').trim() : ''
     const lider = String(b.lider || '').trim()
+    const predio = String(b.predio || '').trim()
+    const conducao = String(b.conducao || '').trim()
     const forma = String(b.forma || '').trim()
     const comprovanteId = b.comprovanteId ? String(b.comprovanteId) : null
 
     // Validações espelham as do formulário (nome com 2+ palavras, etc.).
     if (nome.split(/\s+/).length < 2) return res.status(400).json({ error: 'Informe o nome completo.' })
+    if (!idade) return res.status(400).json({ error: 'Informe a idade.' })
+    if (!genero) return res.status(400).json({ error: 'Selecione o gênero.' })
     if (!tel) return res.status(400).json({ error: 'Informe o telefone.' })
-    if (!genero) return res.status(400).json({ error: 'Selecione o sexo.' })
-    if (!lider) return res.status(400).json({ error: 'Selecione o líder.' })
+    if (!dataNascimento) return res.status(400).json({ error: 'Informe a data de nascimento.' })
+    if (tipo === 'Encontrista' && !vez) return res.status(400).json({ error: 'Selecione se é a 1ª, 2ª ou mais vezes.' })
+    if (!lider) return res.status(400).json({ error: 'Informe quem convidou.' })
+    if (!predio) return res.status(400).json({ error: 'Selecione o prédio.' })
+    if (!conducao) return res.status(400).json({ error: 'Selecione a condução.' })
     if (!forma) return res.status(400).json({ error: 'Selecione a forma de pagamento.' })
-    if (tipo === 'Servo' && !diaServir) return res.status(400).json({ error: 'Selecione o dia de serviço.' })
-
-    const parcelas =
-      forma === 'Crédito parcelado' && Number(b.parcelas) > 0 ? Number(b.parcelas) : null
 
     const inscrito: Inscrito = {
       id: 'p' + Date.now() + Math.floor(Math.random() * 1000),
       nome,
       genero,
       tipo,
-      diaServir,
+      idade,
+      dataNascimento,
+      vez,
       lider,
+      predio,
+      conducao,
       forma,
-      parcelas,
       tel,
       statusInscricao: 'pendente',
       cancelInfo: '',

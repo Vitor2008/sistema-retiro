@@ -32,10 +32,18 @@ export function DespesaModal({ modal }: { modal: ModalDespesa }) {
           <label style={label}>Valor (R$)</label>
           <input className="input" type="number" min="0" step="0.01" value={modal.valor} onChange={(e) => patchModal({ valor: e.target.value })} />
         </div>
-        <FileDropField
-          label={attachLabel(modal.comprovante, 'Anexar comprovante / nota fiscal')}
-          onFile={(a) => patchModal({ comprovante: a })}
-        />
+        <div>
+          <label style={label}>Comprovante / nota fiscal *</label>
+          <FileDropField
+            label={attachLabel(modal.comprovante, 'Anexar comprovante / nota fiscal (obrigatório)')}
+            onFile={(a) => patchModal({ comprovante: a })}
+          />
+          {!modal.comprovante && (
+            <div style={{ fontSize: 11, color: 'var(--fg-muted)', marginTop: 4 }}>
+              O comprovante da compra é obrigatório para lançar a despesa.
+            </div>
+          )}
+        </div>
       </div>
       <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, marginTop: 18 }}>
         <button className="btn btn-default" onClick={closeModal}>Fechar</button>

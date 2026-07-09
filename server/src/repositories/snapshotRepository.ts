@@ -2,11 +2,13 @@ import { eq } from 'drizzle-orm'
 import { db } from '../db/client.js'
 import {
   categorias,
+  conducoes,
   despesas,
   escalas,
   inscritos,
   lideres,
   pagamentos,
+  predios,
   produtos,
   quartos,
   retiros,
@@ -18,7 +20,12 @@ import type { DomainSnapshot } from '../types.js'
 import { despesaRepository } from './despesaRepository.js'
 import { escalaRepository } from './escalaRepository.js'
 import { inscritoRepository } from './inscritoRepository.js'
-import { categoriaRepository, lideresRepository } from './listaRepository.js'
+import {
+  categoriaRepository,
+  conducaoRepository,
+  lideresRepository,
+  predioRepository,
+} from './listaRepository.js'
 import { produtoRepository } from './produtoRepository.js'
 import { quartoRepository } from './quartoRepository.js'
 import { retiroRepository } from './retiroRepository.js'
@@ -26,6 +33,12 @@ import { vendaRepository } from './vendaRepository.js'
 
 const RETIRO_ID = 'atual'
 const ESCALA_ID = 'atual'
+
+/** Remove itens com id repetido, mantendo a última ocorrência (a mais recente
+ *  no array). Evita "duplicate key" caso o cliente envie ids duplicados. */
+function dedupePorId<T extends { id: string }>(itens: T[]): T[] {
+  return Array.from(new Map(itens.map((x) => [x.id, x])).values())
+}
 
 export const snapshotRepository = {
   /** Monta o snapshot completo do domínio a partir do banco. */
@@ -37,6 +50,8 @@ export const snapshotRepository = {
       retirosPassadosLista,
       lideresLista,
       categoriasLista,
+      prediosLista,
+      conducoesLista,
       inscritosLista,
       quartosLista,
       produtosLista,
@@ -47,6 +62,8 @@ export const snapshotRepository = {
       retiroRepository.listPassados(),
       lideresRepository.list(),
       categoriaRepository.list(),
+      predioRepository.list(),
+      conducaoRepository.list(),
       inscritoRepository.list(),
       quartoRepository.list(),
       produtoRepository.list(),
@@ -60,6 +77,8 @@ export const snapshotRepository = {
       retirosPassados: retirosPassadosLista,
       lideres: lideresLista,
       categorias: categoriasLista,
+      predios: prediosLista,
+      conducoes: conducoesLista,
       inscritos: inscritosLista,
       quartos: quartosLista,
       produtos: produtosLista,
@@ -84,6 +103,8 @@ export const snapshotRepository = {
       await tx.delete(retirosPassados)
       await tx.delete(lideres)
       await tx.delete(categorias)
+      await tx.delete(predios)
+      await tx.delete(conducoes)
       await tx.delete(retiros)
       await tx.delete(escalas)
 
@@ -96,6 +117,10 @@ export const snapshotRepository = {
         await tx.insert(lideres).values(snap.lideres.map((nome) => ({ nome })))
       if (snap.categorias.length)
         await tx.insert(categorias).values(snap.categorias.map((nome) => ({ nome })))
+      if (snap.predios.length)
+        await tx.insert(predios).values(snap.predios.map((nome) => ({ nome })))
+      if (snap.conducoes.length)
+        await tx.insert(conducoes).values(snap.conducoes.map((nome) => ({ nome })))
 
       // Inscritos: MERGE (upsert). Nunca apagamos inscritos que não vieram no
       // snapshot — assim inscrições feitas pelo formulário público (inseridas
@@ -106,10 +131,13 @@ export const snapshotRepository = {
           nome: p.nome,
           genero: p.genero,
           tipo: p.tipo,
-          diaServir: p.diaServir,
+          idade: p.idade,
+          dataNascimento: p.dataNascimento,
+          vez: p.vez,
           lider: p.lider,
+          predio: p.predio,
+          conducao: p.conducao,
           forma: p.forma,
-          parcelas: p.parcelas,
           tel: p.tel,
           statusInscricao: p.statusInscricao,
           cancelInfo: p.cancelInfo,
@@ -136,13 +164,21 @@ export const snapshotRepository = {
       )
       if (pags.length) await tx.insert(pagamentos).values(pags)
 
-      if (snap.quartos.length) await tx.insert(quartos).values(snap.quartos)
-      if (snap.produtos.length) await tx.insert(produtos).values(snap.produtos)
-      if (snap.despesas.length) await tx.insert(despesas).values(snap.despesas)
+      // Dedupe defensivo por id: um clique-duplo no cliente pode gerar dois
+      // registros com o mesmo id (ids baseados em Date.now()); sem isso o
+      // insert falharia com "duplicate key" e travaria toda a sincronização.
+      const quartosU = dedupePorId(snap.quartos)
+      const produtosU = dedupePorId(snap.produtos)
+      const despesasU = dedupePorId(snap.despesas)
+      const vendasU = dedupePorId(snap.vendas)
 
-      if (snap.vendas.length) {
+      if (quartosU.length) await tx.insert(quartos).values(quartosU)
+      if (produtosU.length) await tx.insert(produtos).values(produtosU)
+      if (despesasU.length) await tx.insert(despesas).values(despesasU)
+
+      if (vendasU.length) {
         await tx.insert(vendas).values(
-          snap.vendas.map((v) => ({
+          vendasU.map((v) => ({
             id: v.id,
             tipo: v.tipo,
             cliente: v.cliente,
@@ -151,7 +187,7 @@ export const snapshotRepository = {
             data: v.data,
           })),
         )
-        const itens = snap.vendas.flatMap((v) =>
+        const itens = vendasU.flatMap((v) =>
           v.itens.map((i) => ({
             vendaId: v.id,
             itemId: i.id,

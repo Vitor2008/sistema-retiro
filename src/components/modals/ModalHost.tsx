@@ -6,6 +6,7 @@ import { QuartoModal } from './QuartoModal'
 import { ProdutoModal } from './ProdutoModal'
 import { DespesaModal } from './DespesaModal'
 import { OfertaModal } from './OfertaModal'
+import { DetalhesModal } from './DetalhesModal'
 import { FecharContaModal } from './FecharContaModal'
 import { EditarContaModal } from './EditarContaModal'
 
@@ -14,7 +15,7 @@ export function ModalHost() {
   const m = state.modal
   if (!m) return null
 
-  const width = m.type === 'pagamento' ? '520px' : '460px'
+  const width = m.type === 'pagamento' || m.type === 'detalhes' ? '560px' : '460px'
 
   return (
     <div
@@ -32,6 +33,7 @@ export function ModalHost() {
         {m.type === 'produto' && <ProdutoModal modal={m} />}
         {m.type === 'despesa' && <DespesaModal modal={m} />}
         {m.type === 'oferta' && <OfertaModal modal={m} />}
+        {m.type === 'detalhes' && <DetalhesModal modal={m} />}
         {m.type === 'fecharConta' && <FecharContaModal modal={m} />}
         {m.type === 'editarConta' && <EditarContaModal modal={m} />}
       </div>

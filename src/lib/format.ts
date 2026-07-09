@@ -11,6 +11,12 @@ export function fmt(v: number | undefined | null): string {
   )
 }
 
+/** Gera um id único com prefixo. Resistente a colisão no mesmo milissegundo
+ *  (ex.: clique-duplo), pois combina tempo + trecho aleatório. */
+export function uid(prefixo: string): string {
+  return prefixo + Date.now().toString(36) + Math.random().toString(36).slice(2, 7)
+}
+
 /** Iniciais a partir de um nome completo (primeiro + último). */
 export function initials(nome: string): string {
   const p = nome.trim().split(/\s+/)

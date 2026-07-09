@@ -1,3 +1,4 @@
+import { useEffect } from 'react'
 import { AttachmentLink } from '../components/AttachmentLink'
 import { appConfig } from '../config'
 import { fmt, initials } from '../lib/format'
@@ -20,6 +21,12 @@ const insInfo: Record<StatusInscricao, [string, string]> = {
 export function CheckinView() {
   const { state, patch } = useRetiro()
   const { setModal } = useActions()
+
+  // Ao abrir o Check-in, sempre começa mostrando qualquer forma de pagamento.
+  useEffect(() => {
+    patch({ ciPag: 'todos' })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   const s = state
   const valor = s.retiro.valor
@@ -113,6 +120,7 @@ export function CheckinView() {
               <th>Inscrito</th>
               <th>Tipo</th>
               <th>Líder</th>
+              <th>Prédio</th>
               <th>Pagamento</th>
               <th>Status pgto.</th>
               <th>Inscrição</th>
@@ -132,7 +140,11 @@ export function CheckinView() {
               else resumo = 'nada recebido'
 
               return (
-                <tr key={p.id} style={{ opacity: cancelada ? 0.55 : 1 }}>
+                <tr
+                  key={p.id}
+                  onClick={() => setModal({ type: 'detalhes', pid: p.id })}
+                  style={{ opacity: cancelada ? 0.55 : 1, cursor: 'pointer' }}
+                >
                   <td style={{ padding: (compacto ? '6px' : '12px') + ' 14px' }}>
                     <div className="resp-cell">
                       <div className="av">{initials(p.nome)}</div>
@@ -154,12 +166,12 @@ export function CheckinView() {
                     </span>
                   </td>
                   <td style={{ fontSize: 12 }}>{p.lider}</td>
+                  <td style={{ fontSize: 12 }}>{p.predio || '—'}</td>
                   <td style={{ fontSize: 12 }}>
                     {p.forma}
-                    {p.parcelas ? ' (' + p.parcelas + 'x)' : ''}
                     <div className="vaga-id">{cancelada ? '—' : resumo}</div>
                     {p.comprovanteId && (
-                      <div style={{ marginTop: 2 }}>
+                      <div style={{ marginTop: 2 }} onClick={(e) => e.stopPropagation()}>
                         <AttachmentLink fileId={p.comprovanteId} label="📎 comprovante" style={{ fontSize: 11 }} />
                       </div>
                     )}
@@ -172,7 +184,7 @@ export function CheckinView() {
                   </td>
                   <td style={{ textAlign: 'right', whiteSpace: 'nowrap' }}>
                     {!cancelada ? (
-                      <div style={{ display: 'inline-flex', gap: 6 }}>
+                      <div style={{ display: 'inline-flex', gap: 6 }} onClick={(e) => e.stopPropagation()}>
                         {/* Já confirmada e totalmente paga: nada a confirmar. */}
                         {!(p.statusInscricao === 'confirmada' && sp === 'confirmado') && (
                           <button
@@ -190,7 +202,7 @@ export function CheckinView() {
                               })
                             }
                           >
-                            Confirmar pagamento
+                            Confirmar inscrição
                           </button>
                         )}
                         <button

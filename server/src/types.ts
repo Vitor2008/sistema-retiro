@@ -18,10 +18,13 @@ export interface Inscrito {
   nome: string
   genero: 'M' | 'F'
   tipo: 'Encontrista' | 'Servo'
-  diaServir: string
+  idade: number | null
+  dataNascimento: string
+  vez: string
   lider: string
+  predio: string
+  conducao: string
   forma: string
-  parcelas: number | null
   tel: string
   statusInscricao: 'pendente' | 'confirmada' | 'cancelada'
   cancelInfo: string
@@ -79,6 +82,8 @@ export interface Retiro {
   valor: number
   max: number
   oferta: number
+  local: string
+  saida: string
   aberto: boolean
   slug: string
   bannerId: string | null
@@ -101,6 +106,8 @@ export interface DomainSnapshot {
   retirosPassados: RetiroPassado[]
   lideres: string[]
   categorias: string[]
+  predios: string[]
+  conducoes: string[]
   inscritos: Inscrito[]
   quartos: Quarto[]
   produtos: Produto[]

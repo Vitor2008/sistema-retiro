@@ -4,7 +4,7 @@
 // Totalmente autossuficiente: não usa o store offline nem o token de sessão.
 // Fala apenas com as rotas /api/public/* (sem autenticação). Estrutura:
 //  - carrega os dados do retiro pelo slug da URL (/inscricao/:slug)
-//  - exibe banner + informações + formulário
+//  - exibe banner + conteúdo institucional (fixo) + formulário
 //  - envia a inscrição direto ao backend (uma linha, sem snapshot)
 // ============================================================================
 
@@ -12,7 +12,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { useParams } from 'react-router-dom'
 import { appConfig } from '../config'
 import { fmt, fmtData } from '../lib/format'
-import type { FormaPagamento, Genero, TipoInscricao } from '../types'
+import type { FormaPagamento, Genero, TipoInscricao, Vez } from '../types'
 
 const BASE_URL =
   (import.meta.env.VITE_API_URL as string | undefined) ?? 'http://localhost:3001/api'
@@ -23,39 +23,50 @@ interface RetiroPublico {
   fim: string
   valor: number
   max: number
+  local: string
+  saida: string
   slug: string
   bannerId: string | null
   lideres: string[]
+  predios: string[]
+  conducoes: string[]
   aberto: boolean
   vagasRestantes: number
 }
 
 interface FormState {
   nome: string
-  tel: string
+  idade: string
   genero: Genero | ''
+  tel: string
+  dataNascimento: string
   tipo: TipoInscricao
-  dia: '' | '1º dia' | '2º dia'
+  vez: Vez
   lider: string
+  predio: string
+  conducao: string
   forma: FormaPagamento
-  parcelas: string
 }
 
 const formInicial: FormState = {
   nome: '',
-  tel: '',
+  idade: '',
   genero: '',
+  tel: '',
+  dataNascimento: '',
   tipo: 'Encontrista',
-  dia: '',
+  vez: '',
   lider: '',
+  predio: '',
+  conducao: '',
   forma: '',
-  parcelas: '3',
 }
 
 type Fase = 'carregando' | 'erro' | 'fechado' | 'aberto' | 'enviado'
 
 export function InscricaoPublica() {
   const { slug = '' } = useParams()
+  const cfg = appConfig.formulario
   const [retiro, setRetiro] = useState<RetiroPublico | null>(null)
   const [fase, setFase] = useState<Fase>('carregando')
   const [form, setForm] = useState<FormState>(formInicial)
@@ -64,6 +75,7 @@ export function InscricaoPublica() {
   const [comprovanteNome, setComprovanteNome] = useState<string>('')
   const [enviando, setEnviando] = useState(false)
   const [erroEnvio, setErroEnvio] = useState<string | null>(null)
+  const [pixCopiado, setPixCopiado] = useState(false)
 
   useEffect(() => {
     let vivo = true
@@ -91,6 +103,7 @@ export function InscricaoPublica() {
   const setF = (partial: Partial<FormState>) => setForm((f) => ({ ...f, ...partial }))
 
   const uploadComprovante = async (file: File) => {
+    setErroEnvio(null)
     try {
       const res = await fetch(`${BASE_URL}/public/arquivo/${encodeURIComponent(slug)}`, {
         method: 'POST',
@@ -109,13 +122,23 @@ export function InscricaoPublica() {
     }
   }
 
+  const copiarPix = () => {
+    navigator.clipboard?.writeText(cfg.pixChave).catch(() => {})
+    setPixCopiado(true)
+    setTimeout(() => setPixCopiado(false), 2000)
+  }
+
   const validar = (): boolean => {
     const e: Record<string, boolean> = {}
     if (!form.nome.trim() || form.nome.trim().split(/\s+/).length < 2) e.nome = true
-    if (!form.tel.trim()) e.tel = true
+    if (!(Number(form.idade) > 0)) e.idade = true
     if (!form.genero) e.genero = true
-    if (form.tipo === 'Servo' && !form.dia) e.dia = true
-    if (!form.lider) e.lider = true
+    if (!form.tel.trim()) e.tel = true
+    if (!form.dataNascimento) e.dataNascimento = true
+    if (form.tipo === 'Encontrista' && !form.vez) e.vez = true
+    if (!form.lider.trim()) e.lider = true
+    if (!form.predio) e.predio = true
+    if (!form.conducao) e.conducao = true
     if (!form.forma) e.forma = true
     setErros(e)
     return Object.keys(e).length === 0
@@ -123,7 +146,10 @@ export function InscricaoPublica() {
 
   const enviar = async () => {
     setErroEnvio(null)
-    if (!validar()) return
+    if (!validar()) {
+      setErroEnvio('Revise os campos destacados.')
+      return
+    }
     setEnviando(true)
     try {
       const res = await fetch(`${BASE_URL}/public/inscricao/${encodeURIComponent(slug)}`, {
@@ -131,13 +157,16 @@ export function InscricaoPublica() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           nome: form.nome.trim(),
-          tel: form.tel.trim(),
+          idade: Number(form.idade),
           genero: form.genero,
+          tel: form.tel.trim(),
+          dataNascimento: form.dataNascimento,
           tipo: form.tipo,
-          diaServir: form.tipo === 'Servo' ? form.dia : '',
-          lider: form.lider,
+          vez: form.tipo === 'Encontrista' ? form.vez : '',
+          lider: form.lider.trim(),
+          predio: form.predio,
+          conducao: form.conducao,
           forma: form.forma,
-          parcelas: form.forma === 'Crédito parcelado' ? Number(form.parcelas) : null,
           comprovanteId,
         }),
       })
@@ -207,7 +236,7 @@ export function InscricaoPublica() {
               <h3 style={{ marginTop: 8 }}>Inscrição recebida!</h3>
               <p style={{ marginTop: 8 }}>
                 Sua inscrição está <b>pendente de confirmação</b>. A confirmação acontece no
-                check-in presencial do retiro. 
+                check-in presencial do retiro.
               </p>
               <button
                 className="btn btn-outline btn-sm"
@@ -217,6 +246,7 @@ export function InscricaoPublica() {
                   setComprovanteId(null)
                   setComprovanteNome('')
                   setErros({})
+                  setErroEnvio(null)
                   setFase('aberto')
                 }}
               >
@@ -227,119 +257,203 @@ export function InscricaoPublica() {
         )}
 
         {fase === 'aberto' && retiro && (
-          <Cartao>
-            <div style={{ textAlign: 'center', marginBottom: 22 }}>
-              <p className="dim" style={{ fontSize: 13 }}>
-                {periodo} · Inscrição <b>{fmt(retiro.valor)}</b> ·{' '}
-                {/* <b>{retiro.vagasRestantes}</b> vagas restantes */}
-              </p>
-            </div>
+          <>
+            {/* ---- Conteúdo institucional (fixo) ---- */}
+            <Cartao>
+              <h2 style={{ textAlign: 'center' }}>{cfg.subtitulo}</h2>
+              <p style={{ marginTop: 12 }}>{cfg.descricao}</p>
 
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-              <Campo label="Nome completo *" erro={erros.nome ? 'Informe o nome completo.' : ''}>
-                <input className="input" value={form.nome} placeholder="Seu nome completo"
-                  onChange={(e) => setF({ nome: e.target.value })} />
-              </Campo>
-
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-                <Campo label="Telefone / WhatsApp *" erro={erros.tel ? 'Informe o telefone.' : ''}>
-                  <input className="input" value={form.tel} placeholder="(65) 99999-9999"
-                    onChange={(e) => setF({ tel: e.target.value })} />
-                </Campo>
-                <Campo label="Sexo *" erro={erros.genero ? 'Selecione o sexo.' : ''}>
-                  <select className="input" value={form.genero}
-                    onChange={(e) => setF({ genero: e.target.value as Genero | '' })}>
-                    <option value="">Selecione…</option>
-                    <option value="M">Masculino</option>
-                    <option value="F">Feminino</option>
-                  </select>
-                </Campo>
+              <div style={{ marginTop: 16, display: 'flex', flexDirection: 'column', gap: 6 }}>
+                {cfg.incluidos.map((item) => (
+                  <div key={item} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 14 }}>
+                    <span style={{ color: 'var(--color-sage)' }}>✔️</span>
+                    {item}
+                  </div>
+                ))}
               </div>
 
-              <Campo label="Tipo de inscrição *">
-                <div style={{ display: 'flex', gap: 8 }}>
-                  <BotaoSel on={form.tipo === 'Encontrista'} onClick={() => setF({ tipo: 'Encontrista', dia: '' })}>
-                    Encontrista (convidado)
-                  </BotaoSel>
-                  <BotaoSel on={form.tipo === 'Servo'} onClick={() => setF({ tipo: 'Servo' })}>
-                    Servo
-                  </BotaoSel>
-                </div>
-              </Campo>
+              <div style={{ marginTop: 16, display: 'flex', flexDirection: 'column', gap: 6, fontSize: 14 }}>
+                <InfoLinha emoji="🗓" texto={<><b>Data:</b> {periodo}</>} />
+                {retiro.local && <InfoLinha emoji="📍" texto={<><b>Local:</b> {retiro.local}</>} />}
+                {retiro.saida && <InfoLinha emoji="🚌" texto={<><b>Saída:</b> {retiro.saida}</>} />}
+                <InfoLinha emoji="📌" texto={<><b>{retiro.vagasRestantes}</b> vagas restantes — garanta a sua!</>} />
+              </div>
 
-              {form.tipo === 'Servo' && (
-                <Campo label="Em qual dia você vai servir? *" erro={erros.dia ? 'Selecione o dia de serviço.' : ''}>
-                  <div style={{ display: 'flex', gap: 8 }}>
-                    <BotaoSel on={form.dia === '1º dia'} onClick={() => setF({ dia: '1º dia' })}>1º dia</BotaoSel>
-                    <BotaoSel on={form.dia === '2º dia'} onClick={() => setF({ dia: '2º dia' })}>2º dia</BotaoSel>
-                  </div>
-                </Campo>
+              {cfg.versiculo && (
+                <blockquote style={{ marginTop: 16, padding: '10px 14px', borderLeft: '3px solid var(--color-secondary)', background: 'var(--color-secondary-tint)', borderRadius: 6, fontStyle: 'italic', fontSize: 13 }}>
+                  “{cfg.versiculo}”
+                  <div style={{ marginTop: 4, fontStyle: 'normal', fontWeight: 600, color: 'var(--color-secondary-hover)' }}>— {cfg.versiculoRef}</div>
+                </blockquote>
               )}
+            </Cartao>
 
-              <Campo label="Líder / quem convidou *" erro={erros.lider ? 'Selecione o líder.' : ''}>
-                <select className="input" value={form.lider} onChange={(e) => setF({ lider: e.target.value })}>
-                  <option value="">Selecione o líder…</option>
-                  {retiro.lideres.map((l) => (
-                    <option key={l} value={l}>{l}</option>
-                  ))}
-                </select>
-              </Campo>
+            {/* ---- Formulário ---- */}
+            <div style={{ marginTop: 16 }}>
+              <Cartao>
+                <h3 style={{ marginBottom: 4 }}>Faça sua inscrição</h3>
+                <p className="dim" style={{ fontSize: 12, marginBottom: 18 }}>
+                  Campos com * são obrigatórios.
+                </p>
 
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-                <Campo label="Forma de pagamento *" erro={erros.forma ? 'Selecione a forma de pagamento.' : ''}>
-                  <select className="input" value={form.forma}
-                    onChange={(e) => setF({ forma: e.target.value as FormaPagamento })}>
-                    <option value="">Selecione…</option>
-                    <option value="Dinheiro">Dinheiro</option>
-                    <option value="Pix">Pix</option>
-                    <option value="Débito">Débito</option>
-                    <option value="Crédito à vista">Crédito à vista</option>
-                    <option value="Crédito parcelado">Crédito parcelado</option>
-                  </select>
-                </Campo>
-                {form.forma === 'Crédito parcelado' && (
-                  <Campo label="Número de parcelas *">
-                    <select className="input" value={form.parcelas} onChange={(e) => setF({ parcelas: e.target.value })}>
-                      {[2, 3, 4, 5, 6].map((n) => (
-                        <option key={n} value={n}>{n}x</option>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+                  <Campo label="Nome completo *" erro={erros.nome ? 'Informe o nome completo.' : ''}>
+                    <input className="input" value={form.nome} placeholder="Seu nome completo"
+                      onChange={(e) => setF({ nome: e.target.value })} />
+                  </Campo>
+
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                    <Campo label="Idade *" erro={erros.idade ? 'Informe a idade.' : ''}>
+                      <input className="input" type="number" min="0" inputMode="numeric" value={form.idade}
+                        placeholder="Somente número" onChange={(e) => setF({ idade: e.target.value })} />
+                    </Campo>
+                    <Campo label="Gênero *" erro={erros.genero ? 'Selecione o gênero.' : ''}>
+                      <select className="input" value={form.genero}
+                        onChange={(e) => setF({ genero: e.target.value as Genero | '' })}>
+                        <option value="">Selecione…</option>
+                        <option value="M">Homem</option>
+                        <option value="F">Mulher</option>
+                      </select>
+                    </Campo>
+                  </div>
+
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                    <Campo label="Telefone / WhatsApp *" erro={erros.tel ? 'Informe o telefone.' : ''}>
+                      <input className="input" value={form.tel} placeholder="(65) 99999-9999"
+                        onChange={(e) => setF({ tel: e.target.value })} />
+                    </Campo>
+                    <Campo label="Data de nascimento *" erro={erros.dataNascimento ? 'Informe a data de nascimento.' : ''}>
+                      <input className="input" type="date" value={form.dataNascimento}
+                        onChange={(e) => setF({ dataNascimento: e.target.value })} />
+                    </Campo>
+                  </div>
+
+                  <Campo label="Você está indo como? *">
+                    <div style={{ display: 'flex', gap: 8 }}>
+                      <BotaoSel on={form.tipo === 'Encontrista'} onClick={() => setF({ tipo: 'Encontrista' })}>
+                        Convidado
+                      </BotaoSel>
+                      <BotaoSel on={form.tipo === 'Servo'} onClick={() => setF({ tipo: 'Servo', vez: '' })}>
+                        Voluntário / Servo
+                      </BotaoSel>
+                    </div>
+                  </Campo>
+
+                  {form.tipo === 'Encontrista' && (
+                    <Campo label="Se convidado, é a sua… *" erro={erros.vez ? 'Selecione uma opção.' : ''}>
+                      <div style={{ display: 'flex', gap: 8 }}>
+                        <BotaoSel on={form.vez === '1ª Vez'} onClick={() => setF({ vez: '1ª Vez' })}>1ª Vez</BotaoSel>
+                        <BotaoSel on={form.vez === '2ª Vez'} onClick={() => setF({ vez: '2ª Vez' })}>2ª Vez</BotaoSel>
+                        <BotaoSel on={form.vez === '+ de 2'} onClick={() => setF({ vez: '+ de 2' })}>+ de 2</BotaoSel>
+                      </div>
+                    </Campo>
+                  )}
+
+                  <Campo label="Quem lhe convidou? (líder) *" erro={erros.lider ? 'Selecione quem convidou.' : ''}>
+                    <select className="input" value={form.lider} onChange={(e) => setF({ lider: e.target.value })}>
+                      <option value="">Selecione o líder…</option>
+                      {retiro.lideres.map((l) => (
+                        <option key={l} value={l}>{l}</option>
                       ))}
                     </select>
                   </Campo>
-                )}
-              </div>
 
-              <Campo label="Comprovante de pagamento (imagem ou PDF)">
-                <label style={{ display: 'flex', alignItems: 'center', gap: 10, border: '1px dashed var(--border-strong)', borderRadius: 8, padding: '10px 12px', cursor: 'pointer', background: 'var(--bg-app)' }}>
-                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--color-sage)" strokeWidth="2" strokeLinecap="round">
-                    <path d="M15 7l-6.5 6.5a2.1 2.1 0 0 0 3 3L18 10a4.2 4.2 0 0 0-6-6L5.5 10.5"></path>
-                  </svg>
-                  <span style={{ fontSize: 12, color: 'var(--fg-default)' }}>
-                    {comprovanteNome || 'Anexar comprovante (opcional se pagar no check-in)'}
-                  </span>
-                  <input type="file" accept="image/*,.pdf" style={{ display: 'none' }}
-                    onChange={(e) => {
-                      const file = e.target.files?.[0]
-                      if (file) void uploadComprovante(file)
-                    }} />
-                </label>
-              </Campo>
-
-              {erroEnvio && (
-                <div style={{ fontSize: 12, color: 'var(--status-rejected-fg)', background: 'var(--status-rejected-bg)', padding: '8px 12px', borderRadius: 8 }}>
-                  {erroEnvio}
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                    <Campo label="Qual prédio? *" erro={erros.predio ? 'Selecione o prédio.' : ''}>
+                      <select className="input" value={form.predio} onChange={(e) => setF({ predio: e.target.value })}>
+                        <option value="">Selecione…</option>
+                        {retiro.predios.map((p) => (
+                          <option key={p} value={p}>{p}</option>
+                        ))}
+                      </select>
+                    </Campo>
+                    <Campo label="Como pretende ir? *" erro={erros.conducao ? 'Selecione a condução.' : ''}>
+                      <select className="input" value={form.conducao} onChange={(e) => setF({ conducao: e.target.value })}>
+                        <option value="">Selecione…</option>
+                        {retiro.conducoes.map((c) => (
+                          <option key={c} value={c}>{c}</option>
+                        ))}
+                      </select>
+                    </Campo>
+                  </div>
                 </div>
-              )}
-
-              <button className="btn btn-primary" disabled={enviando}
-                style={{ justifyContent: 'center', padding: 12, fontSize: 15, marginTop: 6, opacity: enviando ? 0.7 : 1 }}
-                onClick={enviar}>
-                {enviando ? 'Enviando…' : 'Enviar inscrição'}
-              </button>
-              <div style={{ fontSize: 11, color: 'var(--fg-muted)', textAlign: 'center' }}>
-                A inscrição fica pendente de confirmação até o check-in presencial.
-              </div>
+              </Cartao>
             </div>
-          </Cartao>
+
+            {/* ---- Pagamento ---- */}
+            <div style={{ marginTop: 16 }}>
+              <Cartao>
+                <h3 style={{ marginBottom: 12 }}>Pagamento</h3>
+                <div style={{ fontSize: 15, fontWeight: 600, marginBottom: 12 }}>
+                  Investimento: <span style={{ color: 'var(--color-primary)' }}>{fmt(retiro.valor)}</span> por pessoa
+                </div>
+
+                <div style={{ background: 'var(--bg-app)', border: '1px solid var(--border-default)', borderRadius: 8, padding: '12px 14px', marginBottom: 14 }}>
+                  <div style={{ fontSize: 12, color: 'var(--fg-muted)', marginBottom: 4 }}>
+                    Chave PIX {cfg.pixInfo ? `(${cfg.pixInfo})` : ''}
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <span className="mono" style={{ fontSize: 14, fontWeight: 600, flex: 1, wordBreak: 'break-all' }}>{cfg.pixChave}</span>
+                    <button className="btn btn-default btn-xs" style={{ flexShrink: 0 }} onClick={copiarPix}>
+                      {pixCopiado ? 'Copiado!' : 'Copiar'}
+                    </button>
+                  </div>
+                  {cfg.qrCodeUrl && (
+                    <div style={{ textAlign: 'center', marginTop: 12 }}>
+                      <img src={cfg.qrCodeUrl} alt="QR Code PIX" style={{ width: 180, height: 180, objectFit: 'contain' }} />
+                    </div>
+                  )}
+                  {cfg.linkPagamento && (
+                    <a href={cfg.linkPagamento} target="_blank" rel="noopener noreferrer"
+                      className="btn btn-outline btn-sm" style={{ marginTop: 12, width: '100%', justifyContent: 'center' }}>
+                      Pagar com cartão (débito/crédito)
+                    </a>
+                  )}
+                </div>
+
+                <Campo label="Forma de pagamento *" erro={erros.forma ? 'Selecione a forma de pagamento.' : ''}>
+                  <div style={{ display: 'flex', gap: 8 }}>
+                    <BotaoSel on={form.forma === 'Pix'} onClick={() => setF({ forma: 'Pix' })}>PIX</BotaoSel>
+                    <BotaoSel on={form.forma === 'Cartão'} onClick={() => setF({ forma: 'Cartão' })}>Cartão</BotaoSel>
+                    <BotaoSel on={form.forma === 'Dinheiro'} onClick={() => setF({ forma: 'Dinheiro' })}>Dinheiro</BotaoSel>
+                  </div>
+                </Campo>
+
+                <div style={{ marginTop: 14 }}>
+                  <label style={{ fontSize: 12, fontWeight: 600, display: 'block', marginBottom: 5 }}>
+                    Comprovante de pagamento (imagem ou PDF)
+                  </label>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: 10, border: '1px dashed var(--border-strong)', borderRadius: 8, padding: '10px 12px', cursor: 'pointer', background: 'var(--bg-app)' }}>
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--color-sage)" strokeWidth="2" strokeLinecap="round">
+                      <path d="M15 7l-6.5 6.5a2.1 2.1 0 0 0 3 3L18 10a4.2 4.2 0 0 0-6-6L5.5 10.5"></path>
+                    </svg>
+                    <span style={{ fontSize: 12, color: 'var(--fg-default)' }}>
+                      {comprovanteNome || 'Anexar comprovante (opcional se pagar no check-in)'}
+                    </span>
+                    <input type="file" accept="image/*,.pdf" style={{ display: 'none' }}
+                      onChange={(e) => {
+                        const file = e.target.files?.[0]
+                        if (file) void uploadComprovante(file)
+                      }} />
+                  </label>
+                </div>
+
+                {erroEnvio && (
+                  <div style={{ fontSize: 12, color: 'var(--status-rejected-fg)', background: 'var(--status-rejected-bg)', padding: '8px 12px', borderRadius: 8, marginTop: 14 }}>
+                    {erroEnvio}
+                  </div>
+                )}
+
+                <button className="btn btn-primary" disabled={enviando}
+                  style={{ justifyContent: 'center', padding: 12, fontSize: 15, marginTop: 16, width: '100%', opacity: enviando ? 0.7 : 1 }}
+                  onClick={enviar}>
+                  {enviando ? 'Enviando…' : 'Enviar inscrição'}
+                </button>
+                <div style={{ fontSize: 11, color: 'var(--fg-muted)', textAlign: 'center', marginTop: 8 }}>
+                  A inscrição fica pendente de confirmação até o check-in presencial.
+                </div>
+              </Cartao>
+            </div>
+          </>
         )}
 
         <p style={{ textAlign: 'center', fontSize: 11, color: 'var(--fg-muted)', marginTop: 20 }}>
@@ -398,6 +512,15 @@ function Hero({ bannerUrl, igreja, nome }: { bannerUrl: string | null; igreja: s
 
 function Cartao({ children }: { children: React.ReactNode }) {
   return <div className="card" style={{ padding: '28px 28px 24px' }}>{children}</div>
+}
+
+function InfoLinha({ emoji, texto }: { emoji: string; texto: React.ReactNode }) {
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+      <span>{emoji}</span>
+      <span>{texto}</span>
+    </div>
+  )
 }
 
 function Campo({ label, erro, children }: { label: string; erro?: string; children: React.ReactNode }) {

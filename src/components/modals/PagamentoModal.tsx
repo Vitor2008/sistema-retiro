@@ -43,15 +43,14 @@ export function PagamentoModal({ modal }: { modal: ModalPagamento }) {
 
   return (
     <div style={{ padding: '22px 24px' }}>
-      <h3 style={{ marginBottom: 14 }}>Confirmar pagamento</h3>
+      <h3 style={{ marginBottom: 14 }}>Confirmar inscrição</h3>
       <div style={{ background: 'var(--bg-app)', border: '1px solid var(--border-default)', borderRadius: 8, padding: '12px 14px', marginBottom: 14 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
           <div className="avatar-initials" style={{ width: 32, height: 32, fontSize: 11 }}>{initials(mp.nome)}</div>
           <div style={{ flex: 1 }}>
             <div style={{ fontWeight: 600, fontSize: 13 }}>{mp.nome}</div>
             <div style={{ fontSize: 11, color: 'var(--fg-muted)' }}>
-              {mp.tipo} · {mp.forma}
-              {mp.parcelas ? ' (' + mp.parcelas + 'x)' : ''} · inscrição {fmt(valor)}
+              {mp.tipo} · {mp.forma} · inscrição {fmt(valor)}
             </div>
           </div>
           <div style={{ textAlign: 'right' }}>

@@ -69,6 +69,14 @@ export function RetiroModal({ modal }: { modal: ModalRetiro }) {
             <input className="input" type="number" min="1" value={modal.max} onChange={(e) => patchModal({ max: e.target.value })} />
           </div>
         </div>
+        <div>
+          <label style={label}>Local (exibido no formulário público)</label>
+          <input className="input" value={modal.local} onChange={(e) => patchModal({ local: e.target.value })} placeholder="Ex.: Chácara da Igreja (detalhes enviados após a inscrição)" />
+        </div>
+        <div>
+          <label style={label}>Ponto e horário de saída</label>
+          <input className="input" value={modal.saida} onChange={(e) => patchModal({ saida: e.target.value })} placeholder="Ex.: Sexta-feira, 20h, no Prédio do Areão" />
+        </div>
 
         <div>
           <label style={label}>Banner do formulário público (imagem)</label>

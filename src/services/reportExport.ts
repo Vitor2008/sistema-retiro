@@ -162,24 +162,40 @@ export async function exportPrestacaoContas(
   // --------------------------------------------------------------- Check-in ---
   const checkin = wb.addWorksheet('Check-in')
   checkin.columns = [
-    { width: 26 },
-    { width: 12 },
-    { width: 22 },
-    { width: 18 },
-    { width: 14 },
-    { width: 14 },
-    { width: 14 },
-    { width: 14 },
+    { width: 26 }, // Inscrito
+    { width: 12 }, // Tipo
+    { width: 10 }, // Gênero
+    { width: 8 }, // Idade
+    { width: 14 }, // Nascimento
+    { width: 16 }, // Telefone
+    { width: 10 }, // Vez
+    { width: 22 }, // Líder
+    { width: 18 }, // Prédio
+    { width: 24 }, // Condução
+    { width: 16 }, // Forma de pgto.
+    { width: 14 }, // Status pgto.
+    { width: 12 }, // Pago
+    { width: 12 }, // Oferta
+    { width: 12 }, // Saldo
+    { width: 40 }, // Observação
   ]
   const ch = checkin.addRow([
     'Inscrito',
     'Tipo',
+    'Gênero',
+    'Idade',
+    'Nascimento',
+    'Telefone',
+    'Participação',
     'Líder',
+    'Prédio',
+    'Condução',
     'Forma de pgto.',
     'Status pgto.',
     'Pago',
     'Oferta',
     'Saldo',
+    'Observação',
   ])
   styleHeader(ch)
   confirmados
@@ -188,17 +204,27 @@ export async function exportPrestacaoContas(
     .forEach((p) => {
       const sp = statusPag(state, p)
       const rest = Math.max(0, valor - pago(p) - ofertado(p))
+      const obs = p.pagamentos.map((x) => x.obs).filter(Boolean).slice(-1)[0] || ''
       const r = checkin.addRow([
         p.nome,
-        p.tipo,
+        p.tipo === 'Servo' ? 'Voluntário/Servo' : 'Convidado',
+        p.genero === 'M' ? 'Homem' : p.genero === 'F' ? 'Mulher' : '',
+        p.idade ?? '',
+        p.dataNascimento,
+        p.tel,
+        p.tipo === 'Encontrista' ? p.vez : '',
         p.lider,
-        p.forma + (p.parcelas ? ' (' + p.parcelas + 'x)' : ''),
+        p.predio,
+        p.conducao,
+        p.forma,
         pagLabel[sp],
         pago(p),
         ofertado(p),
         rest,
+        obs,
       ])
-      ;[6, 7, 8].forEach((c) => (r.getCell(c).numFmt = MONEY))
+      // Pago / Oferta / Saldo → colunas 13, 14, 15.
+      ;[13, 14, 15].forEach((c) => (r.getCell(c).numFmt = MONEY))
     })
 
   // ---------------------------------------------------------------- Cantina ---
