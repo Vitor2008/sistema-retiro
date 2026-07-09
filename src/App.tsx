@@ -8,6 +8,7 @@ import { ModalHost } from './components/modals/ModalHost'
 import { NAV } from './navigation'
 import { AuthProvider, useAuth } from './store/AuthContext'
 import { RetiroProvider, useRetiro } from './store/RetiroContext'
+import { InscricaoPublica } from './views/InscricaoPublica'
 import { LoginView } from './views/LoginView'
 
 function SemAcesso() {
@@ -71,9 +72,19 @@ function Gate() {
 export default function App() {
   return (
     <BrowserRouter>
-      <AuthProvider>
-        <Gate />
-      </AuthProvider>
+      <Routes>
+        {/* Formulário público de inscrição — fora do login e da sincronização. */}
+        <Route path="/inscricao/:slug" element={<InscricaoPublica />} />
+        {/* Todo o restante é o app autenticado. */}
+        <Route
+          path="*"
+          element={
+            <AuthProvider>
+              <Gate />
+            </AuthProvider>
+          }
+        />
+      </Routes>
     </BrowserRouter>
   )
 }

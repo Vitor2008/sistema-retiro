@@ -173,23 +173,26 @@ export function CheckinView() {
                   <td style={{ textAlign: 'right', whiteSpace: 'nowrap' }}>
                     {!cancelada ? (
                       <div style={{ display: 'inline-flex', gap: 6 }}>
-                        <button
-                          className="btn btn-primary btn-xs"
-                          onClick={() =>
-                            setModal({
-                              type: 'pagamento',
-                              pid: p.id,
-                              valorPago: String(Math.max(0, valor - pg - of)),
-                              forma: p.forma,
-                              obs: '',
-                              oferta: false,
-                              dataPrevista: '',
-                              comprovante: null,
-                            })
-                          }
-                        >
-                          Confirmar pagamento
-                        </button>
+                        {/* Já confirmada e totalmente paga: nada a confirmar. */}
+                        {!(p.statusInscricao === 'confirmada' && sp === 'confirmado') && (
+                          <button
+                            className="btn btn-primary btn-xs"
+                            onClick={() =>
+                              setModal({
+                                type: 'pagamento',
+                                pid: p.id,
+                                valorPago: String(Math.max(0, valor - pg - of)),
+                                forma: p.forma,
+                                obs: '',
+                                oferta: false,
+                                dataPrevista: '',
+                                comprovante: null,
+                              })
+                            }
+                          >
+                            Confirmar pagamento
+                          </button>
+                        )}
                         <button
                           className="btn btn-default btn-xs"
                           style={{ color: 'var(--status-rejected-fg)' }}

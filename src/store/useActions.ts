@@ -5,7 +5,6 @@
 // ============================================================================
 
 import { appConfig } from '../config'
-import { seedForm } from '../data/seed'
 import { DIAS_ESCALA } from '../escalaConfig'
 import { fmt, stampAgora, stampDia } from '../lib/format'
 import { exportPrestacaoContas } from '../services/reportExport'
@@ -15,6 +14,7 @@ import type {
   ItemVenda,
   ModalFecharConta,
   ModalPagamento,
+  ModalOferta,
   ModalProduto,
   ModalQuarto,
   ModalRetiro,
@@ -269,6 +269,7 @@ export function useActions() {
         fim: m.fim || s.retiro.fim,
         valor: Number(m.valor) || s.retiro.valor,
         max: Number(m.max) || s.retiro.max,
+        bannerId: m.bannerId,
         slug: m.novo
           ? m.nome
               .trim()
@@ -358,6 +359,15 @@ export function useActions() {
     toast('Despesa lançada.')
   }
 
+  const salvarOferta = () => {
+    const s = state
+    const m = s.modal as ModalOferta
+    if (!m || m.type !== 'oferta') return
+    const total = Math.max(0, Number(m.valor) || 0)
+    patch({ retiro: { ...s.retiro, oferta: total }, modal: null })
+    toast('Oferta cadastrada: ' + fmt(total) + '.')
+  }
+
   const confirmarFecharConta = () => {
     const s = state
     const m = s.modal as ModalFecharConta
@@ -427,45 +437,6 @@ export function useActions() {
     toast('Conta atualizada.')
   }
 
-  const enviarInscricao = () => {
-    const s = state
-    const f = s.form
-    const erros: Record<string, number> = {}
-    if (!f.nome.trim() || f.nome.trim().split(/\s+/).length < 2) erros.nome = 1
-    if (!f.tel.trim()) erros.tel = 1
-    if (!f.genero) erros.genero = 1
-    if (f.tipo === 'Servo' && !f.dia) erros.dia = 1
-    if (!f.lider) erros.lider = 1
-    if (!f.forma) erros.forma = 1
-    if (Object.keys(erros).length) {
-      patch({ form: { ...f, erros } })
-      toast('Revise os campos destacados.')
-      return
-    }
-    const novo: Inscrito = {
-      id: 'p' + Date.now(),
-      nome: f.nome.trim(),
-      genero: f.genero as Inscrito['genero'],
-      tipo: f.tipo,
-      diaServir: f.tipo === 'Servo' ? f.dia : '',
-      lider: f.lider,
-      forma: f.forma,
-      parcelas: f.forma === 'Crédito parcelado' ? Number(f.parcelas) : null,
-      tel: f.tel,
-      statusInscricao: 'pendente',
-      cancelInfo: '',
-      pagamentos: [],
-      comprovante: !!f.comprovante,
-      comprovanteId: f.comprovante?.fileId ?? null,
-      quarto: null,
-    }
-    patch({
-      inscritos: s.inscritos.concat([novo]),
-      form: { ...seedForm(), enviado: true },
-    })
-    toast('Inscrição de ' + novo.nome + ' recebida.')
-  }
-
   const toggleLink = () => {
     const s = state
     patch({ retiro: { ...s.retiro, aberto: !s.retiro.aberto } })
@@ -496,9 +467,9 @@ export function useActions() {
     salvarQuarto,
     salvarProduto,
     salvarDespesa,
+    salvarOferta,
     confirmarFecharConta,
     salvarEdicaoConta,
-    enviarInscricao,
     toggleLink,
     exportarRelatorio,
     setModal,

@@ -3,11 +3,13 @@ import type { Attachment } from '../types'
 interface Props {
   label: string
   onFile: (a: Attachment | null) => void
+  /** Filtro de tipos aceitos (default: imagem ou PDF). */
+  accept?: string
 }
 
 /** Campo de anexo estilo "dashed drop". Salva o arquivo no fileService
  *  (IndexedDB) e devolve a referência serializável via `onFile`. */
-export function FileDropField({ label, onFile }: Props) {
+export function FileDropField({ label, onFile, accept = 'image/*,.pdf' }: Props) {
   const handle = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (!file) {
@@ -37,7 +39,7 @@ export function FileDropField({ label, onFile }: Props) {
       <span style={{ fontSize: 12, color: 'var(--fg-default)' }}>{label}</span>
       <input
         type="file"
-        accept="image/*,.pdf"
+        accept={accept}
         style={{ display: 'none' }}
         onChange={handle}
       />

@@ -25,10 +25,13 @@ export function ContasView() {
 
   const arrecadadoTot = s.inscritos.reduce((a, p) => a + pago(p), 0)
   const aReceberTot = atv.reduce((a, p) => a + Math.max(0, valor - pago(p) - ofertado(p)), 0)
-  const ofertasTot = s.inscritos.reduce((a, p) => a + ofertado(p), 0)
+  const ofertaUtilizada = s.inscritos.reduce((a, p) => a + ofertado(p), 0)
+  const ofertaRecebida = s.retiro.oferta || 0
+  const ofertaDisponivel = ofertaRecebida - ofertaUtilizada
   const despesasTot = s.despesas.reduce((a, d) => a + d.valor, 0)
   const cantina = cantinaTotais(s)
-  const totalEntradas = arrecadadoTot + ofertasTot + cantina.vendido
+  // Entrada conta a oferta RECEBIDA (cadastrada); o abatimento é só uso do saldo.
+  const totalEntradas = arrecadadoTot + ofertaRecebida + cantina.vendido
   const saldo = totalEntradas - despesasTot
   const ofertasN = s.inscritos.filter((p) => ofertado(p) > 0).length
 
@@ -68,8 +71,14 @@ export function ContasView() {
             Exportar relatório
           </button>
           <button
+            className="btn btn-outline btn-sm"
+            onClick={() => setModal({ type: 'oferta', valor: String(s.retiro.oferta || 0) })}
+          >
+            Cadastrar oferta
+          </button>
+          <button
             className="btn btn-primary btn-sm"
-            onClick={() => setModal({ type: 'despesa', categoria: s.categorias[0], descricao: '', valor: '', comprovante: null })}
+            onClick={() => setModal({ type: 'despesa', categoria: s.categorias[0] ?? '', descricao: '', valor: '', comprovante: null })}
           >
             + Lançar despesa
           </button>
@@ -89,9 +98,11 @@ export function ContasView() {
           <div className="meta">pendentes + parciais</div>
         </div>
         <div className="kpi">
-          <div className="topline">Abatido como oferta</div>
-          <div className="v" style={{ fontSize: 22, color: 'var(--color-sage)' }}>{fmt(ofertasTot)}</div>
-          <div className="meta">{ofertasN} inscrições</div>
+          <div className="topline">Oferta recebida</div>
+          <div className="v" style={{ fontSize: 22, color: 'var(--color-sage)' }}>{fmt(ofertaRecebida)}</div>
+          <div className="meta" style={{ color: ofertaDisponivel < 0 ? 'var(--status-rejected-fg)' : undefined }}>
+            usado {fmt(ofertaUtilizada)} · saldo {fmt(ofertaDisponivel)}
+          </div>
         </div>
         <div className="kpi">
           <div className="topline">Total de despesas</div>
@@ -126,9 +137,9 @@ export function ContasView() {
               chip="Ofertas"
               chipBg="var(--color-sage-soft)"
               chipFg="var(--color-sage)"
-              titulo="Abatido como oferta"
-              sub={ofertasN + ' inscrições'}
-              valor={fmt(ofertasTot)}
+              titulo="Oferta recebida"
+              sub={ofertasN + ' inscrições abatidas · usado ' + fmt(ofertaUtilizada)}
+              valor={fmt(ofertaRecebida)}
             />
             <EntradaRow
               chip="Cantina"

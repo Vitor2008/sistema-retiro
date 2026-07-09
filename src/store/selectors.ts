@@ -54,14 +54,15 @@ export function porId(state: AppState): Record<string, Inscrito> {
   return m
 }
 
-/** Domínio do link público de inscrição derivado do nome da igreja + slug. */
-export function linkPublico(state: AppState, nomeIgreja: string): string {
-  return (
-    'retiros.' +
-    nomeIgreja.toLowerCase().replace(/[^a-z]+/g, '') +
-    '.com.br/' +
-    state.retiro.slug
-  )
+/** Link público real do formulário de inscrição: <origem>/inscricao/<slug>.
+ *  Usa a origem atual do navegador para ser copiável/compartilhável. O segundo
+ *  parâmetro (nome da igreja) é mantido por compatibilidade e não é mais usado. */
+export function linkPublico(state: AppState, _nomeIgreja?: string): string {
+  const origem =
+    typeof window !== 'undefined' && window.location?.origin
+      ? window.location.origin
+      : ''
+  return origem + '/inscricao/' + state.retiro.slug
 }
 
 /** Período do retiro formatado: 'DD/MM/AA a DD/MM/AA'. */

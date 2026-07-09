@@ -1,0 +1,1 @@
+ALTER TABLE "retiros" ADD COLUMN "banner_id" text;

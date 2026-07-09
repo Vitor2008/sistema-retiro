@@ -30,8 +30,12 @@ export const retiros = pgTable('retiros', {
   fim: text('fim').notNull().default(''),
   valor: doublePrecision('valor').notNull().default(0),
   max: integer('max').notNull().default(0),
+  /** Total de oferta recebida no retiro (usado para abater inscrições). */
+  oferta: doublePrecision('oferta').notNull().default(0),
   aberto: boolean('aberto').notNull().default(true),
   slug: text('slug').notNull().default(''),
+  /** id do arquivo (bytea) usado como banner no formulário público, se houver. */
+  bannerId: text('banner_id'),
 })
 
 /** Histórico de retiros passados (resumos). */

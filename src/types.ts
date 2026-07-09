@@ -113,8 +113,12 @@ export interface Retiro {
   fim: string
   valor: number
   max: number
+  /** Total de oferta recebida no retiro (abatido nas inscrições). */
+  oferta: number
   aberto: boolean
   slug: string
+  /** id do arquivo (banner) exibido no formulário público. */
+  bannerId: string | null
 }
 
 export interface RetiroPassado {
@@ -171,6 +175,7 @@ export interface ModalRetiro {
   fim: string
   valor: string
   max: string
+  bannerId: string | null
 }
 export interface ModalQuarto {
   type: 'quarto'
@@ -192,6 +197,10 @@ export interface ModalDespesa {
   valor: string
   comprovante: Attachment | null
 }
+export interface ModalOferta {
+  type: 'oferta'
+  valor: string
+}
 export interface ModalFecharConta {
   type: 'fecharConta'
   vid: string
@@ -211,6 +220,7 @@ export type Modal =
   | ModalQuarto
   | ModalProduto
   | ModalDespesa
+  | ModalOferta
   | ModalFecharConta
   | ModalEditarConta
   | null

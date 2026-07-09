@@ -78,8 +78,10 @@ export interface Retiro {
   fim: string
   valor: number
   max: number
+  oferta: number
   aberto: boolean
   slug: string
+  bannerId: string | null
 }
 
 export interface RetiroPassado {

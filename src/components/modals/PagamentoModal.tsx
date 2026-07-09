@@ -15,6 +15,13 @@ export function PagamentoModal({ modal }: { modal: ModalPagamento }) {
   const mRestanteV = Math.max(0, valor - pago(mp) - ofertado(mp))
   const valorPagoN = Number(modal.valorPago) || 0
   const mostraDataPrevista = !modal.oferta && valorPagoN < mRestanteV
+
+  // Saldo de oferta cadastrado (retiro) menos o que já foi abatido em inscrições.
+  const ofertaRecebida = state.retiro.oferta || 0
+  const ofertaUsada = state.inscritos.reduce((a, x) => a + ofertado(x), 0)
+  const ofertaDisponivel = ofertaRecebida - ofertaUsada
+  const abatimentoAgora = modal.oferta ? Math.max(0, mRestanteV - valorPagoN) : 0
+  const ofertaApos = ofertaDisponivel - abatimentoAgora
   const salvarLabel = modal.oferta
     ? 'Registrar e abater oferta'
     : valorPagoN >= mRestanteV && mRestanteV > 0
@@ -81,6 +88,33 @@ export function PagamentoModal({ modal }: { modal: ModalPagamento }) {
         <input type="checkbox" checked={modal.oferta} onChange={(e) => patchModal({ oferta: e.target.checked })} style={{ width: 16, height: 16, accentColor: 'var(--color-primary)' }} />
         Abater o restante como <b>oferta</b>
       </label>
+
+      {modal.oferta && (
+        <div style={{ background: 'var(--color-sage-soft)', border: '1px solid var(--color-sage)', borderRadius: 8, padding: '10px 14px', marginBottom: 12, fontSize: 12 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', color: 'var(--fg-default)' }}>
+            <span>Saldo de oferta disponível</span>
+            <span style={{ fontWeight: 600 }}>{fmt(ofertaDisponivel)}</span>
+          </div>
+          <div style={{ display: 'flex', justifyContent: 'space-between', color: 'var(--fg-default)', marginTop: 4 }}>
+            <span>Abater desta inscrição</span>
+            <span style={{ fontWeight: 600 }}>− {fmt(abatimentoAgora)}</span>
+          </div>
+          <div style={{ display: 'flex', justifyContent: 'space-between', borderTop: '1px dashed var(--color-sage)', marginTop: 6, paddingTop: 6 }}>
+            <span style={{ fontWeight: 700 }}>Saldo após abater</span>
+            <span style={{ fontWeight: 700, color: ofertaApos < 0 ? 'var(--status-rejected-fg)' : 'var(--color-primary)' }}>{fmt(ofertaApos)}</span>
+          </div>
+          {ofertaApos < 0 && (
+            <div style={{ color: 'var(--status-rejected-fg)', marginTop: 6 }}>
+              A oferta cadastrada não cobre este abatimento — o saldo ficará negativo. Cadastre mais oferta na Prestação de contas se necessário.
+            </div>
+          )}
+          {ofertaRecebida === 0 && (
+            <div style={{ color: 'var(--fg-muted)', marginTop: 6 }}>
+              Nenhuma oferta cadastrada ainda. Cadastre o total recebido em Prestação de contas → “Cadastrar oferta”.
+            </div>
+          )}
+        </div>
+      )}
 
       {mostraDataPrevista && (
         <div style={{ marginBottom: 12 }}>

@@ -1,8 +1,41 @@
+import { useEffect, useState } from 'react'
+import { FileDropField } from '../FileDropField'
+import { fileService } from '../../services/fileService'
 import { useRetiro } from '../../store/RetiroContext'
 import { useActions } from '../../store/useActions'
 import type { ModalRetiro } from '../../types'
 
 const label: React.CSSProperties = { fontSize: 12, fontWeight: 600, display: 'block', marginBottom: 5 }
+
+/** Miniatura do banner atual (resolve o blob local/servidor). */
+function BannerPreview({ bannerId }: { bannerId: string }) {
+  const [url, setUrl] = useState<string | null>(null)
+  useEffect(() => {
+    let vivo = true
+    let objeto: string | null = null
+    void fileService.toObjectURL(bannerId).then((u) => {
+      if (vivo) {
+        objeto = u
+        setUrl(u)
+      } else if (u) {
+        URL.revokeObjectURL(u)
+      }
+    })
+    return () => {
+      vivo = false
+      if (objeto) URL.revokeObjectURL(objeto)
+    }
+  }, [bannerId])
+
+  if (!url) return null
+  return (
+    <img
+      src={url}
+      alt="Banner do formulário"
+      style={{ width: '100%', height: 120, objectFit: 'cover', borderRadius: 8, border: '1px solid var(--border-default)' }}
+    />
+  )
+}
 
 export function RetiroModal({ modal }: { modal: ModalRetiro }) {
   const { patchModal, closeModal } = useRetiro()
@@ -36,6 +69,30 @@ export function RetiroModal({ modal }: { modal: ModalRetiro }) {
             <input className="input" type="number" min="1" value={modal.max} onChange={(e) => patchModal({ max: e.target.value })} />
           </div>
         </div>
+
+        <div>
+          <label style={label}>Banner do formulário público (imagem)</label>
+          {modal.bannerId && (
+            <div style={{ marginBottom: 8 }}>
+              <BannerPreview bannerId={modal.bannerId} />
+            </div>
+          )}
+          <FileDropField
+            accept="image/*"
+            label={modal.bannerId ? 'Trocar imagem do banner' : 'Anexar imagem de banner (opcional)'}
+            onFile={(a) => patchModal({ bannerId: a?.fileId ?? modal.bannerId })}
+          />
+          {modal.bannerId && (
+            <button
+              className="btn btn-default btn-xs"
+              style={{ marginTop: 8 }}
+              onClick={() => patchModal({ bannerId: null })}
+            >
+              Remover banner
+            </button>
+          )}
+        </div>
+
         <div style={{ fontSize: 12, color: 'var(--fg-muted)' }}>
           Ao salvar, um link público único de inscrição é gerado automaticamente. O link fecha sozinho quando as vagas acabarem.
         </div>

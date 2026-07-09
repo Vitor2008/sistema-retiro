@@ -3,7 +3,6 @@ import { CantinaView } from './views/CantinaView'
 import { CheckinView } from './views/CheckinView'
 import { ContasView } from './views/ContasView'
 import { EscalasView } from './views/EscalasView'
-import { InscricaoView } from './views/InscricaoView'
 import { QuartosView } from './views/QuartosView'
 import { RetirosView } from './views/RetirosView'
 import { UsuariosView } from './views/UsuariosView'
@@ -33,20 +32,6 @@ export const NAV: NavItem[] = [
         <line x1="16" y1="3" x2="16" y2="7"></line>
         <line x1="8" y1="3" x2="8" y2="7"></line>
         <line x1="4" y1="11" x2="20" y2="11"></line>
-      </svg>
-    ),
-  },
-  {
-    key: 'inscricao',
-    path: '/inscricao',
-    label: 'Formulário público',
-    element: <InscricaoView />,
-    icon: (
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M14 3v4a1 1 0 0 0 1 1h4"></path>
-        <path d="M17 21H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h7l5 5v11a2 2 0 0 1-2 2z"></path>
-        <line x1="9" y1="13" x2="15" y2="13"></line>
-        <line x1="9" y1="17" x2="13" y2="17"></line>
       </svg>
     ),
   },

@@ -1,3 +1,4 @@
+import { eq } from 'drizzle-orm'
 import { db } from '../db/client.js'
 import {
   categorias,
@@ -71,10 +72,11 @@ export const snapshotRepository = {
   /** Substitui TODO o estado do domínio de forma transacional (last-write-wins). */
   async replaceAll(snap: DomainSnapshot): Promise<void> {
     await db.transaction(async (tx) => {
-      // Limpa (filhos primeiro; FKs em cascata também cobririam)
-      await tx.delete(pagamentos)
+      // Limpa (filhos primeiro; FKs em cascata também cobririam).
+      // ATENÇÃO: inscritos e pagamentos NÃO são apagados aqui — eles são
+      // "merge" (upsert) mais abaixo, para nunca sobrescrever inscrições
+      // criadas pelo formulário público enquanto o admin estava offline.
       await tx.delete(vendaItens)
-      await tx.delete(inscritos)
       await tx.delete(vendas)
       await tx.delete(quartos)
       await tx.delete(produtos)
@@ -95,40 +97,44 @@ export const snapshotRepository = {
       if (snap.categorias.length)
         await tx.insert(categorias).values(snap.categorias.map((nome) => ({ nome })))
 
-      if (snap.inscritos.length) {
-        await tx.insert(inscritos).values(
-          snap.inscritos.map((p) => ({
-            id: p.id,
-            nome: p.nome,
-            genero: p.genero,
-            tipo: p.tipo,
-            diaServir: p.diaServir,
-            lider: p.lider,
-            forma: p.forma,
-            parcelas: p.parcelas,
-            tel: p.tel,
-            statusInscricao: p.statusInscricao,
-            cancelInfo: p.cancelInfo,
-            comprovante: p.comprovante,
-            comprovanteId: p.comprovanteId,
-            quarto: p.quarto,
-          })),
-        )
-        const pags = snap.inscritos.flatMap((p) =>
-          p.pagamentos.map((pg, i) => ({
-            inscritoId: p.id,
-            ordem: i,
-            valor: pg.valor,
-            oferta: pg.oferta,
-            forma: pg.forma,
-            obs: pg.obs,
-            data: pg.data,
-            usuario: pg.usuario,
-            dataPrevista: pg.dataPrevista ?? null,
-          })),
-        )
-        if (pags.length) await tx.insert(pagamentos).values(pags)
+      // Inscritos: MERGE (upsert). Nunca apagamos inscritos que não vieram no
+      // snapshot — assim inscrições feitas pelo formulário público (inseridas
+      // direto no banco) sobrevivem a um "save" do app do administrador.
+      for (const p of snap.inscritos) {
+        const row = {
+          id: p.id,
+          nome: p.nome,
+          genero: p.genero,
+          tipo: p.tipo,
+          diaServir: p.diaServir,
+          lider: p.lider,
+          forma: p.forma,
+          parcelas: p.parcelas,
+          tel: p.tel,
+          statusInscricao: p.statusInscricao,
+          cancelInfo: p.cancelInfo,
+          comprovante: p.comprovante,
+          comprovanteId: p.comprovanteId,
+          quarto: p.quarto,
+        }
+        await tx.insert(inscritos).values(row).onConflictDoUpdate({ target: inscritos.id, set: row })
+        // Substitui os pagamentos apenas deste inscrito.
+        await tx.delete(pagamentos).where(eq(pagamentos.inscritoId, p.id))
       }
+      const pags = snap.inscritos.flatMap((p) =>
+        p.pagamentos.map((pg, i) => ({
+          inscritoId: p.id,
+          ordem: i,
+          valor: pg.valor,
+          oferta: pg.oferta,
+          forma: pg.forma,
+          obs: pg.obs,
+          data: pg.data,
+          usuario: pg.usuario,
+          dataPrevista: pg.dataPrevista ?? null,
+        })),
+      )
+      if (pags.length) await tx.insert(pagamentos).values(pags)
 
       if (snap.quartos.length) await tx.insert(quartos).values(snap.quartos)
       if (snap.produtos.length) await tx.insert(produtos).values(snap.produtos)

@@ -1,6 +1,4 @@
 import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
-import { appConfig } from '../config'
 import { fmt } from '../lib/format'
 import { useRetiro } from '../store/RetiroContext'
 import { useActions } from '../store/useActions'
@@ -15,7 +13,6 @@ import {
 export function RetirosView() {
   const { state, patch, toast } = useRetiro()
   const { toggleLink, setModal } = useActions()
-  const navigate = useNavigate()
   const [novoLider, setNovoLider] = useState('')
 
   const valor = state.retiro.valor
@@ -23,7 +20,12 @@ export function RetirosView() {
   const linkAberto = linkAbertoEfetivo(state)
   const vagasRest = vagasRestantes(state)
   const periodo = periodoSel(state)
-  const link = 'https://' + linkPublico(state, appConfig.nomeIgreja)
+  const link = linkPublico(state)
+  const copiarLink = () => {
+    navigator.clipboard?.writeText(link).catch(() => {})
+    toast('Link copiado: ' + link)
+  }
+  const abrirFormulario = () => window.open(link, '_blank', 'noopener')
   const pctIns =
     state.retiro.max > 0
       ? Math.min(100, Math.round((atv.length / state.retiro.max) * 100))
@@ -43,7 +45,7 @@ export function RetirosView() {
     patch({ lideres: state.lideres.filter((l) => l !== nome) })
 
   const abrirNovoRetiro = () =>
-    setModal({ type: 'retiro', novo: true, nome: '', inicio: '', fim: '', valor: '260', max: '45' })
+    setModal({ type: 'retiro', novo: true, nome: '', inicio: '', fim: '', valor: '260', max: '45', bannerId: null })
 
   const editarRetiro = () =>
     setModal({
@@ -54,6 +56,7 @@ export function RetirosView() {
       fim: state.retiro.fim,
       valor: String(valor),
       max: String(state.retiro.max),
+      bannerId: state.retiro.bannerId,
     })
 
   return (
@@ -125,7 +128,7 @@ export function RetirosView() {
               <button
                 className="btn btn-default btn-xs"
                 style={{ marginLeft: 'auto', flexShrink: 0 }}
-                onClick={() => toast('Link copiado: ' + linkPublico(state, appConfig.nomeIgreja))}
+                onClick={copiarLink}
               >
                 Copiar
               </button>
@@ -140,7 +143,7 @@ export function RetirosView() {
               <button className="btn btn-outline btn-sm" onClick={editarRetiro}>
                 Editar retiro
               </button>
-              <button className="btn btn-default btn-sm" onClick={() => navigate('/inscricao')}>
+              <button className="btn btn-default btn-sm" onClick={abrirFormulario}>
                 Ver formulário
               </button>
               {state.retiro.aberto && vagasRest === 0 && (
