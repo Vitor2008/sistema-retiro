@@ -18,7 +18,7 @@ export interface TokenPayload {
   acessos: string[]
 }
 
-const EXPIRES_IN = '12h'
+const EXPIRES_IN = '56h'
 
 export const authService = {
   /** Valida credenciais contra a tabela `usuarios` e devolve token + usuário. */
