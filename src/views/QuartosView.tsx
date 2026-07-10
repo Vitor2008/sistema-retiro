@@ -1,4 +1,6 @@
 import { initials } from '../lib/format'
+import { esc, imprimirHtml } from '../lib/print'
+import { appConfig } from '../config'
 import { useRetiro } from '../store/RetiroContext'
 import { useActions } from '../store/useActions'
 import { ativos, porId } from '../store/selectors'
@@ -7,7 +9,7 @@ import type { Genero } from '../types'
 
 export function QuartosView() {
   const { state, patch, toast } = useRetiro()
-  const { atribuirQuarto, setModal } = useActions()
+  const { atribuirQuarto, preDefinirQuartos, setModal } = useActions()
   const { mid } = useViewport()
 
   const s = state
@@ -15,6 +17,27 @@ export function QuartosView() {
   const atv = ativos(s)
   const byId = porId(s)
   const semQuartoAll = atv.filter((p) => !p.quarto)
+  const temQuartos = s.quartos.length > 0
+  const todosAlocados = atv.length > 0 && semQuartoAll.length === 0
+
+  const imprimirAlocacao = () => {
+    let html = `<h1>Alocação de quartos — ${esc(s.retiro.nome)}</h1>`
+    html += `<div class="sub">${esc(appConfig.nomeIgrejaCompleto)}</div><div class="grid">`
+    s.quartos.forEach((q) => {
+      const membros = atv
+        .filter((p) => p.quarto === q.id)
+        .sort((a, b) => a.nome.localeCompare(b.nome))
+      html += `<div class="card"><h3><span>${esc(q.nome)} · ${q.genero === 'M' ? 'Masculino' : 'Feminino'}</span><span class="tag">${membros.length}/${q.cap}</span></h3><ul>`
+      membros.forEach((m) => {
+        const lider = q.lideres.includes(m.id)
+        html += `<li>${lider ? '★ ' : ''}${esc(m.nome)} <span class="tag">${m.tipo === 'Servo' ? 'Servo' : 'Enc.'}</span></li>`
+      })
+      if (!membros.length) html += `<li><i>vazio</i></li>`
+      html += `</ul></div>`
+    })
+    html += `</div>`
+    imprimirHtml('Alocação de quartos', html)
+  }
   const semQuartoG = semQuartoAll.filter((p) => p.genero === s.qGenero)
   const seg = (on: boolean) => (on ? 'on' : '')
 
@@ -85,6 +108,20 @@ export function QuartosView() {
         <div className="actions">
           <button className="btn btn-outline btn-sm" onClick={() => setModal({ type: 'quarto', nome: '', genero: 'M', cap: '8' })}>
             + Novo quarto
+          </button>
+          {temQuartos && (
+            <button className="btn btn-secondary btn-sm" onClick={preDefinirQuartos}>
+              ⟳ Gerar pré-definição
+            </button>
+          )}
+          <button
+            className="btn btn-default btn-sm"
+            onClick={imprimirAlocacao}
+            disabled={!todosAlocados}
+            title={todosAlocados ? undefined : 'Aloque todas as pessoas para imprimir.'}
+            style={todosAlocados ? undefined : { opacity: 0.5, cursor: 'not-allowed' }}
+          >
+            🖨 Imprimir alocação
           </button>
         </div>
       </div>

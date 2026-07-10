@@ -1,13 +1,25 @@
 import type { EscalaDia, Frente, Turno } from './types'
 
-/** Configuração dos dias do encontro (sexta a domingo) e o que cada dia tem.
- *  - Sexta: só o jantar, apenas limpeza.
- *  - Sábado: café, almoço e jantar, com preparo e limpeza.
- *  - Domingo: café e almoço, com preparo e limpeza. */
+/** Configuração dos dias do encontro (sexta a domingo).
+ *  Cada refeição tem 3 frentes: lavar louça (2 homens), lavar pratos (2) e
+ *  limpeza do pátio (2).
+ *  - Sexta: só o jantar.
+ *  - Sábado: café, almoço e jantar.
+ *  - Domingo: café e almoço. */
 export interface TurnoConfig {
   key: Turno
   frentes: Frente[]
 }
+
+/** Rótulos e regra de cada frente de serviço. */
+export const FRENTE_INFO: Record<Frente, { label: string; qtd: number; soHomens: boolean }> = {
+  louca: { label: 'Lavar louça', qtd: 2, soHomens: true },
+  pratos: { label: 'Lavar pratos', qtd: 2, soHomens: false },
+  patio: { label: 'Limpeza do pátio', qtd: 2, soHomens: false },
+}
+
+/** Todas as frentes, na ordem de exibição. */
+export const FRENTES_TODAS: Frente[] = ['louca', 'pratos', 'patio']
 export interface DiaConfig {
   key: EscalaDia
   label: string
@@ -27,16 +39,16 @@ export const DIAS_ESCALA: DiaConfig[] = [
     key: 'sexta',
     label: 'Sexta',
     offset: 0,
-    turnos: [{ key: 'jantar', frentes: ['limp'] }],
+    turnos: [{ key: 'jantar', frentes: FRENTES_TODAS }],
   },
   {
     key: 'sabado',
     label: 'Sábado',
     offset: 1,
     turnos: [
-      { key: 'cafe', frentes: ['prep', 'limp'] },
-      { key: 'almoco', frentes: ['prep', 'limp'] },
-      { key: 'jantar', frentes: ['prep', 'limp'] },
+      { key: 'cafe', frentes: FRENTES_TODAS },
+      { key: 'almoco', frentes: FRENTES_TODAS },
+      { key: 'jantar', frentes: FRENTES_TODAS },
     ],
   },
   {
@@ -44,8 +56,8 @@ export const DIAS_ESCALA: DiaConfig[] = [
     label: 'Domingo',
     offset: 2,
     turnos: [
-      { key: 'cafe', frentes: ['prep', 'limp'] },
-      { key: 'almoco', frentes: ['prep', 'limp'] },
+      { key: 'cafe', frentes: FRENTES_TODAS },
+      { key: 'almoco', frentes: FRENTES_TODAS },
     ],
   },
 ]

@@ -5,7 +5,7 @@
 // ============================================================================
 
 import { appConfig } from '../config'
-import { DIAS_ESCALA } from '../escalaConfig'
+import { DIAS_ESCALA, FRENTE_INFO } from '../escalaConfig'
 import { fmt, stampAgora, stampDia, uid } from '../lib/format'
 import { exportPrestacaoContas } from '../services/reportExport'
 import type {
@@ -50,18 +50,14 @@ export function useActions() {
     DIAS_ESCALA.forEach((dia) => {
       dia.turnos.forEach((t) => {
         const cel = escala[dia.key][t.key]
-        if (t.frentes.includes('limp')) {
-          // Limpeza de almoço/jantar exige no mínimo 2 homens.
-          if (t.key !== 'cafe') {
-            const homens = pick(2, (s) => s.genero === 'M', [])
-            cel.limp = homens.concat(pick(2, null, homens))
-          } else {
-            cel.limp = pick(3, null, [])
-          }
-        }
-        if (t.frentes.includes('prep')) {
-          cel.prep = pick(t.key === 'cafe' ? 3 : 4, null, cel.limp)
-        }
+        // Uma pessoa não repete frente dentro da mesma refeição.
+        const usados: string[] = []
+        t.frentes.forEach((fr) => {
+          const cfg = FRENTE_INFO[fr]
+          const sel = pick(cfg.qtd, cfg.soHomens ? (s) => s.genero === 'M' : null, usados)
+          cel[fr] = sel
+          usados.push(...sel)
+        })
       })
     })
     patch({ escala })
@@ -152,6 +148,87 @@ export function useActions() {
         ? cart.map((i, k) => (k === j ? { ...i, qtd: i.qtd + 1 } : i))
         : cart.concat([{ id: p.id, nome: p.nome, valor: p.valor, qtd: 1 }])
     patch({ carrinho: c })
+  }
+
+  /** Pré-definição de quartos: agrupa cada célula (líder + seus liderados),
+   *  separando por gênero, e distribui SÓ quem ainda está sem quarto,
+   *  respeitando a capacidade. Não mexe em quem já está alocado. */
+  const preDefinirQuartos = () => {
+    const s = state
+    if (!s.quartos.length) {
+      toast('Cadastre ao menos um quarto antes de gerar a pré-definição.')
+      return
+    }
+    const ativosList = s.inscritos.filter((p) => p.statusInscricao !== 'cancelada')
+    const ocup: Record<string, number> = {}
+    s.quartos.forEach((q) => (ocup[q.id] = 0))
+    ativosList.forEach((p) => {
+      if (p.quarto && ocup[p.quarto] != null) ocup[p.quarto]++
+    })
+
+    const nomesLideres = new Set(ativosList.map((p) => p.lider).filter(Boolean))
+    const atrib: Record<string, string> = {}
+
+    ;(['M', 'F'] as const).forEach((g) => {
+      const semQuarto = ativosList.filter((p) => p.genero === g && !p.quarto)
+      const usados = new Set<string>()
+      const grupos: Inscrito[][] = []
+      // Um grupo por célula: o líder (se inscrito deste gênero) + seus liderados.
+      nomesLideres.forEach((nomeLider) => {
+        const grupo = semQuarto.filter(
+          (p) => !usados.has(p.id) && (p.lider === nomeLider || p.nome === nomeLider),
+        )
+        if (grupo.length) {
+          grupo.forEach((p) => usados.add(p.id))
+          grupos.push(grupo)
+        }
+      })
+      const resto = semQuarto.filter((p) => !usados.has(p.id))
+      if (resto.length) grupos.push(resto)
+      grupos.sort((a, b) => b.length - a.length)
+
+      const quartosG = s.quartos.filter((q) => q.genero === g)
+      const free = (qid: string) => {
+        const q = quartosG.find((x) => x.id === qid)
+        return q ? q.cap - ocup[q.id] : 0
+      }
+      grupos.forEach((grupo) => {
+        let restantes = grupo.slice()
+        while (restantes.length) {
+          const cand = quartosG.filter((q) => free(q.id) > 0).sort((a, b) => free(b.id) - free(a.id))
+          if (!cand.length) break // sem vaga para este gênero
+          // Prefere um quarto que caiba o grupo inteiro; senão, o de mais espaço.
+          const q = cand.find((x) => free(x.id) >= restantes.length) || cand[0]
+          const cabe = Math.min(free(q.id), restantes.length)
+          restantes.slice(0, cabe).forEach((p) => {
+            atrib[p.id] = q.id
+            ocup[q.id]++
+          })
+          restantes = restantes.slice(cabe)
+        }
+      })
+    })
+
+    const nAtrib = Object.keys(atrib).length
+    if (!nAtrib) {
+      toast('Nada a alocar — todos já têm quarto ou não há vagas suficientes.')
+      return
+    }
+
+    const inscritos = s.inscritos.map((x) => (atrib[x.id] ? { ...x, quarto: atrib[x.id] } : x))
+    // Marca como líder de quarto os servos que são líderes de célula presentes (até 2).
+    const quartos = s.quartos.map((q) => {
+      const membros = inscritos.filter((p) => p.statusInscricao !== 'cancelada' && p.quarto === q.id)
+      const lideres = q.lideres.slice()
+      membros
+        .filter((m) => m.tipo === 'Servo' && nomesLideres.has(m.nome))
+        .forEach((m) => {
+          if (!lideres.includes(m.id) && lideres.length < 2) lideres.push(m.id)
+        })
+      return { ...q, lideres }
+    })
+    patch({ inscritos, quartos })
+    toast(nAtrib + ' pessoa(s) alocada(s) na pré-definição.')
   }
 
   const atribuirQuarto = (pid: string, qid: string) => {
@@ -482,6 +559,7 @@ export function useActions() {
     finalizarVenda,
     addCart,
     atribuirQuarto,
+    preDefinirQuartos,
     salvarPagamento,
     confirmarCancelamento,
     salvarRetiro,

@@ -39,11 +39,8 @@ export function servosServico(state: AppState): Inscrito[] {
 }
 
 export function escalaVazia(): Escala {
-  const dia = () => ({
-    cafe: { prep: [], limp: [] },
-    almoco: { prep: [], limp: [] },
-    jantar: { prep: [], limp: [] },
-  })
+  const cel = () => ({ louca: [], pratos: [], patio: [] })
+  const dia = () => ({ cafe: cel(), almoco: cel(), jantar: cel() })
   return { sexta: dia(), sabado: dia(), domingo: dia() }
 }
 

@@ -9,7 +9,9 @@ export type StatusPagamento = 'pendente' | 'parcial' | 'confirmado'
 export type DiaServir = '' | '1º dia' | '2º dia'
 export type EscalaDia = 'sexta' | 'sabado' | 'domingo'
 export type Turno = 'cafe' | 'almoco' | 'jantar'
-export type Frente = 'prep' | 'limp'
+/** Frentes de serviço por refeição: lavar louça (2 homens), lavar pratos e
+ *  limpeza do pátio (2 pessoas cada, misto). */
+export type Frente = 'louca' | 'pratos' | 'patio'
 
 export type FormaPagamento =
   | 'Dinheiro'
