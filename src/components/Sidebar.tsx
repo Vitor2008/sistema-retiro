@@ -9,7 +9,6 @@ export function Sidebar() {
   const { state, patch } = useRetiro()
   const { user, logout } = useAuth()
   const nomeIgreja = appConfig.nomeIgreja
-  const igrejaCurta = nomeIgreja.split(' ').slice(-1)[0]
   const iniciais = (user?.nome || user?.username || 'AD')
     .trim()
     .split(/\s+/)
@@ -36,7 +35,7 @@ export function Sidebar() {
           style={{ borderRadius: 7, objectFit: 'contain', flexShrink: 0 }}
         />
         <div className="name">
-          Retiros <b>{igrejaCurta}</b>
+          Encontro com Deus <b>{nomeIgreja}</b>
         </div>
       </div>
 
