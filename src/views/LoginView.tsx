@@ -51,7 +51,7 @@ export function LoginView() {
           />
           <div>
             <div style={{ fontWeight: 700, fontSize: 16, color: 'var(--fg-strong)' }}>
-              Retiros · {appConfig.nomeIgreja}
+              Eventos · {appConfig.nomeIgreja}
             </div>
             <div style={{ fontSize: 12, color: 'var(--fg-muted)' }}>{appConfig.nomeIgrejaCompleto}</div>
           </div>

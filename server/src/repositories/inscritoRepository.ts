@@ -57,8 +57,10 @@ async function inserirPagamentos(inscritoId: string, pags: Pagamento[]) {
 }
 
 export const inscritoRepository = {
-  async list(): Promise<Inscrito[]> {
-    const rows = await db.select().from(inscritos).orderBy(asc(inscritos.id))
+  async list(retiroId?: string): Promise<Inscrito[]> {
+    const rows = retiroId
+      ? await db.select().from(inscritos).where(eq(inscritos.retiroId, retiroId)).orderBy(asc(inscritos.id))
+      : await db.select().from(inscritos).orderBy(asc(inscritos.id))
     const pags = await db.select().from(pagamentos)
     const porInscrito = new Map<string, PagamentoRow[]>()
     for (const p of pags) {
@@ -79,9 +81,10 @@ export const inscritoRepository = {
     return toDTO(row, pags)
   },
 
-  async create(dto: Inscrito): Promise<Inscrito> {
+  async create(dto: Inscrito, retiroId: string): Promise<Inscrito> {
     await db.insert(inscritos).values({
       id: dto.id,
+      retiroId,
       nome: dto.nome,
       genero: dto.genero,
       tipo: dto.tipo,

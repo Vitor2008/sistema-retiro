@@ -4,8 +4,10 @@ import { despesas } from '../db/schema.js'
 import type { Despesa } from '../types.js'
 
 export const despesaRepository = {
-  async list(): Promise<Despesa[]> {
-    return db.select().from(despesas).orderBy(asc(despesas.id))
+  async list(retiroId?: string): Promise<Despesa[]> {
+    return retiroId
+      ? db.select().from(despesas).where(eq(despesas.retiroId, retiroId)).orderBy(asc(despesas.id))
+      : db.select().from(despesas).orderBy(asc(despesas.id))
   },
 
   async get(id: string): Promise<Despesa | null> {

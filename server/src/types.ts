@@ -76,6 +76,7 @@ export interface Despesa {
 }
 
 export interface Retiro {
+  id: string
   nome: string
   inicio: string
   fim: string
@@ -87,24 +88,30 @@ export interface Retiro {
   aberto: boolean
   slug: string
   bannerId: string | null
+  criadoEm: string
 }
 
-export interface RetiroPassado {
+/** Líder de um retiro, vinculado a um prédio (nome). */
+export interface Lider {
   nome: string
-  periodo: string
-  inscritos: number
-  max: number
-  arrecadado: number
-  saldo: number
+  predio: string
+}
+
+/** Prédio persistente (edifício/igreja) e o retiro em que participa. */
+export interface Predio {
+  id: number
+  nome: string
+  retiroId: string | null
 }
 
 export type Escala = Record<string, unknown> | null
 
-/** Snapshot completo do domínio — payload de sincronização com o frontend. */
+/** Snapshot de UM retiro — payload de sincronização com o frontend.
+ *  `predios` é apenas leitura (nomes participando); prédios são gerenciados
+ *  por endpoints próprios, não pelo replace-all do snapshot. */
 export interface DomainSnapshot {
   retiro: Retiro
-  retirosPassados: RetiroPassado[]
-  lideres: string[]
+  lideres: Lider[]
   categorias: string[]
   predios: string[]
   conducoes: string[]

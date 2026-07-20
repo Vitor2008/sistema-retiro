@@ -16,8 +16,10 @@ function toDTO(row: Row): Quarto {
 }
 
 export const quartoRepository = {
-  async list(): Promise<Quarto[]> {
-    const rows = await db.select().from(quartos).orderBy(asc(quartos.id))
+  async list(retiroId?: string): Promise<Quarto[]> {
+    const rows = retiroId
+      ? await db.select().from(quartos).where(eq(quartos.retiroId, retiroId)).orderBy(asc(quartos.id))
+      : await db.select().from(quartos).orderBy(asc(quartos.id))
     return rows.map(toDTO)
   },
 

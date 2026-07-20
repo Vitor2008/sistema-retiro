@@ -9,6 +9,7 @@ export interface AuthUser {
   nome: string
   role: string
   acessos: string[]
+  predioId: number | null
 }
 
 export interface TokenPayload {
@@ -16,6 +17,7 @@ export interface TokenPayload {
   username: string
   role: string
   acessos: string[]
+  predioId: number | null
 }
 
 const EXPIRES_IN = '56h'
@@ -34,16 +36,18 @@ export const authService = {
     if (!ok) throw new Error('Usuário ou senha inválidos.')
 
     const acessos = u.acessos ?? []
+    const predioId = u.predioId ?? null
     const payload: TokenPayload = {
       sub: u.id,
       username: u.username,
       role: u.role,
       acessos,
+      predioId,
     }
     const token = jwt.sign(payload, env.jwtSecret, { expiresIn: EXPIRES_IN })
     return {
       token,
-      user: { id: u.id, username: u.username, nome: u.nome, role: u.role, acessos },
+      user: { id: u.id, username: u.username, nome: u.nome, role: u.role, acessos, predioId },
     }
   },
 

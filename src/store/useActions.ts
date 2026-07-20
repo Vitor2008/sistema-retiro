@@ -334,12 +334,14 @@ export function useActions() {
     toast('Inscrição cancelada. Vaga liberada.')
   }
 
+  /** Edição do retiro atual (a criação de novos vai por API — RetiroSelection).
+   *  Os campos editáveis sincronizam via snapshot; slug e id não mudam aqui. */
   const salvarRetiro = () => {
     const s = state
     const m = s.modal as ModalRetiro
     if (!m || m.type !== 'retiro') return
     if (!m.nome || !m.nome.trim()) {
-      toast('Informe o nome do retiro.')
+      toast('Informe o nome do evento.')
       return
     }
     patch({
@@ -353,17 +355,10 @@ export function useActions() {
         local: m.local,
         saida: m.saida,
         bannerId: m.bannerId,
-        slug: m.novo
-          ? m.nome
-              .trim()
-              .toLowerCase()
-              .replace(/[^a-z0-9]+/g, '-')
-              .slice(0, 24)
-          : s.retiro.slug,
       },
       modal: null,
     })
-    toast(m.novo ? 'Retiro criado — link público gerado.' : 'Retiro atualizado.')
+    toast('Evento atualizado.')
   }
 
   const salvarQuarto = () => {

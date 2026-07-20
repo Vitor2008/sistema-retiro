@@ -8,7 +8,6 @@ import { useRetiro } from '../store/RetiroContext'
 export function Sidebar() {
   const { state, patch } = useRetiro()
   const { user, logout } = useAuth()
-  const nomeIgreja = appConfig.nomeIgreja
   const iniciais = (user?.nome || user?.username || 'AD')
     .trim()
     .split(/\s+/)
@@ -35,7 +34,7 @@ export function Sidebar() {
           style={{ borderRadius: 7, objectFit: 'contain', flexShrink: 0 }}
         />
         <div className="name">
-          Encontro com Deus <b>{nomeIgreja}</b>
+          Igreja Metodista Livre
         </div>
       </div>
 

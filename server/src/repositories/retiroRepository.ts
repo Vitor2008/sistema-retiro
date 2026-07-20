@@ -1,58 +1,58 @@
 import { asc, eq } from 'drizzle-orm'
 import { db } from '../db/client.js'
-import { retiros, retirosPassados } from '../db/schema.js'
-import type { Retiro, RetiroPassado } from '../types.js'
+import { retiros } from '../db/schema.js'
+import type { Retiro } from '../types.js'
 
-const RETIRO_ID = 'atual'
+type Row = typeof retiros.$inferSelect
+
+function toDTO(row: Row): Retiro {
+  return {
+    id: row.id,
+    nome: row.nome,
+    inicio: row.inicio,
+    fim: row.fim,
+    valor: row.valor,
+    max: row.max,
+    oferta: row.oferta,
+    local: row.local,
+    saida: row.saida,
+    aberto: row.aberto,
+    slug: row.slug,
+    bannerId: row.bannerId,
+    criadoEm: row.criadoEm,
+  }
+}
 
 export const retiroRepository = {
-  /** Retorna o retiro atual (linha de id fixo 'atual'), ou null. */
-  async getAtual(): Promise<Retiro | null> {
-    const [row] = await db.select().from(retiros).where(eq(retiros.id, RETIRO_ID))
-    if (!row) return null
-    return {
-      nome: row.nome,
-      inicio: row.inicio,
-      fim: row.fim,
-      valor: row.valor,
-      max: row.max,
-      oferta: row.oferta,
-      local: row.local,
-      saida: row.saida,
-      aberto: row.aberto,
-      slug: row.slug,
-      bannerId: row.bannerId,
-    }
+  /** Todos os retiros, mais recentes primeiro. */
+  async list(): Promise<Retiro[]> {
+    const rows = await db.select().from(retiros).orderBy(asc(retiros.criadoEm))
+    return rows.map(toDTO).reverse()
   },
 
-  /** Upsert do retiro atual. */
-  async saveAtual(dto: Retiro): Promise<Retiro> {
-    const values = { id: RETIRO_ID, ...dto }
-    await db
-      .insert(retiros)
-      .values(values)
-      .onConflictDoUpdate({ target: retiros.id, set: dto })
+  async get(id: string): Promise<Retiro | null> {
+    const [row] = await db.select().from(retiros).where(eq(retiros.id, id))
+    return row ? toDTO(row) : null
+  },
+
+  async getBySlug(slug: string): Promise<Retiro | null> {
+    if (!slug) return null
+    const [row] = await db.select().from(retiros).where(eq(retiros.slug, slug))
+    return row ? toDTO(row) : null
+  },
+
+  async create(dto: Retiro): Promise<Retiro> {
+    await db.insert(retiros).values(dto)
     return dto
   },
 
-  async listPassados(): Promise<RetiroPassado[]> {
-    const rows = await db
-      .select()
-      .from(retirosPassados)
-      .orderBy(asc(retirosPassados.id))
-    return rows.map((r) => ({
-      nome: r.nome,
-      periodo: r.periodo,
-      inscritos: r.inscritos,
-      max: r.max,
-      arrecadado: r.arrecadado,
-      saldo: r.saldo,
-    }))
+  /** Atualiza um retiro existente (por id). */
+  async save(id: string, dto: Partial<Retiro>): Promise<void> {
+    const { id: _omit, ...set } = dto as Retiro
+    await db.update(retiros).set(set).where(eq(retiros.id, id))
   },
 
-  /** Substitui todo o histórico de retiros passados. */
-  async replacePassados(lista: RetiroPassado[]): Promise<void> {
-    await db.delete(retirosPassados)
-    if (lista.length) await db.insert(retirosPassados).values(lista)
+  async remove(id: string): Promise<void> {
+    await db.delete(retiros).where(eq(retiros.id, id))
   },
 }

@@ -119,6 +119,7 @@ export interface Despesa {
 }
 
 export interface Retiro {
+  id: string
   nome: string
   inicio: string
   fim: string
@@ -133,6 +134,13 @@ export interface Retiro {
   slug: string
   /** id do arquivo (banner) exibido no formulário público. */
   bannerId: string | null
+  criadoEm: string
+}
+
+/** Líder de um retiro, vinculado a um prédio (nome). */
+export interface Lider {
+  nome: string
+  predio: string
 }
 
 export interface RetiroPassado {
@@ -251,8 +259,7 @@ export interface AppState {
   narrow: boolean
   sbOpen: boolean
   retiro: Retiro
-  retirosPassados: RetiroPassado[]
-  lideres: string[]
+  lideres: Lider[]
   predios: string[]
   conducoes: string[]
   inscritos: Inscrito[]

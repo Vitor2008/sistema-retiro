@@ -5,7 +5,6 @@ import type { AppState } from '../../types'
  *  de fora da sincronização. */
 export interface DomainSnapshot {
   retiro: AppState['retiro']
-  retirosPassados: AppState['retirosPassados']
   lideres: AppState['lideres']
   categorias: AppState['categorias']
   predios: AppState['predios']
@@ -22,7 +21,6 @@ export interface DomainSnapshot {
 export function toSnapshot(state: AppState): DomainSnapshot {
   return {
     retiro: state.retiro,
-    retirosPassados: state.retirosPassados,
     lideres: state.lideres,
     categorias: state.categorias,
     predios: state.predios,

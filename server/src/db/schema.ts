@@ -2,6 +2,10 @@
 // Modelagem relacional (Drizzle ORM). Espelha o domínio do frontend.
 // Valores monetários usam doublePrecision por simplicidade; em produção o
 // ideal seria inteiro em centavos.
+//
+// Multi-retiro: quase tudo é escopado por `retiro_id`. O retiro deixou de ser
+// singleton ('atual'); agora há vários. Prédios são persistentes (usuários
+// pertencem a eles) e cada um participa de um retiro por vez (predios.retiroId).
 // ============================================================================
 
 import {
@@ -22,7 +26,7 @@ const bytea = customType<{ data: Buffer; driverData: Buffer }>({
   },
 })
 
-/** Retiro atual (configuração única, id fixo 'atual'). */
+/** Retiros (multi-registro). O id 'atual' legado vira o "retiro inicial". */
 export const retiros = pgTable('retiros', {
   id: text('id').primaryKey(),
   nome: text('nome').notNull(),
@@ -36,12 +40,15 @@ export const retiros = pgTable('retiros', {
   local: text('local').notNull().default(''),
   saida: text('saida').notNull().default(''),
   aberto: boolean('aberto').notNull().default(true),
+  /** Slug único para o link público de inscrição. */
   slug: text('slug').notNull().default(''),
   /** id do arquivo (bytea) usado como banner no formulário público, se houver. */
   bannerId: text('banner_id'),
+  /** Data de criação (ISO) — usada para ordenar a lista de retiros. */
+  criadoEm: text('criado_em').notNull().default(''),
 })
 
-/** Histórico de retiros passados (resumos). */
+/** Histórico de retiros passados (legado; não mais alimentado no multi-retiro). */
 export const retirosPassados = pgTable('retiros_passados', {
   id: serial('id').primaryKey(),
   nome: text('nome').notNull(),
@@ -52,30 +59,40 @@ export const retirosPassados = pgTable('retiros_passados', {
   saldo: doublePrecision('saldo').notNull().default(0),
 })
 
-export const lideres = pgTable('lideres', {
-  id: serial('id').primaryKey(),
-  nome: text('nome').notNull(),
-})
-
-export const categorias = pgTable('categorias', {
-  id: serial('id').primaryKey(),
-  nome: text('nome').notNull(),
-})
-
-/** Prédios de origem oferecidos no formulário de inscrição. */
+/** Prédios (igrejas/edifícios). Persistentes; cada um participa de um retiro
+ *  por vez (retiroId). Usuários pertencem a um prédio. */
 export const predios = pgTable('predios', {
   id: serial('id').primaryKey(),
   nome: text('nome').notNull(),
+  retiroId: text('retiro_id').references(() => retiros.id, { onDelete: 'set null' }),
 })
 
-/** Opções de condução (transporte) oferecidas no formulário de inscrição. */
+/** Líderes — por retiro e por prédio (recadastrados a cada retiro). O prédio é
+ *  guardado por nome (denormalizado), como em `inscritos.predio`. */
+export const lideres = pgTable('lideres', {
+  id: serial('id').primaryKey(),
+  nome: text('nome').notNull(),
+  retiroId: text('retiro_id').references(() => retiros.id, { onDelete: 'cascade' }),
+  predio: text('predio').notNull().default(''),
+})
+
+/** Categorias de despesa — por retiro. */
+export const categorias = pgTable('categorias', {
+  id: serial('id').primaryKey(),
+  nome: text('nome').notNull(),
+  retiroId: text('retiro_id').references(() => retiros.id, { onDelete: 'cascade' }),
+})
+
+/** Opções de condução (transporte) — por retiro. */
 export const conducoes = pgTable('conducoes', {
   id: serial('id').primaryKey(),
   nome: text('nome').notNull(),
+  retiroId: text('retiro_id').references(() => retiros.id, { onDelete: 'cascade' }),
 })
 
 export const inscritos = pgTable('inscritos', {
   id: text('id').primaryKey(),
+  retiroId: text('retiro_id').references(() => retiros.id, { onDelete: 'cascade' }),
   nome: text('nome').notNull(),
   genero: text('genero').notNull(),
   tipo: text('tipo').notNull(),
@@ -118,6 +135,7 @@ export const pagamentos = pgTable('pagamentos', {
 
 export const quartos = pgTable('quartos', {
   id: text('id').primaryKey(),
+  retiroId: text('retiro_id').references(() => retiros.id, { onDelete: 'cascade' }),
   nome: text('nome').notNull(),
   genero: text('genero').notNull(),
   cap: integer('cap').notNull().default(0),
@@ -127,6 +145,7 @@ export const quartos = pgTable('quartos', {
 
 export const produtos = pgTable('produtos', {
   id: text('id').primaryKey(),
+  retiroId: text('retiro_id').references(() => retiros.id, { onDelete: 'cascade' }),
   nome: text('nome').notNull(),
   valor: doublePrecision('valor').notNull().default(0),
   estoque: integer('estoque').notNull().default(0),
@@ -134,6 +153,7 @@ export const produtos = pgTable('produtos', {
 
 export const vendas = pgTable('vendas', {
   id: text('id').primaryKey(),
+  retiroId: text('retiro_id').references(() => retiros.id, { onDelete: 'cascade' }),
   tipo: text('tipo').notNull(),
   cliente: text('cliente').notNull().default(''),
   forma: text('forma').notNull().default(''),
@@ -155,6 +175,7 @@ export const vendaItens = pgTable('venda_itens', {
 
 export const despesas = pgTable('despesas', {
   id: text('id').primaryKey(),
+  retiroId: text('retiro_id').references(() => retiros.id, { onDelete: 'cascade' }),
   categoria: text('categoria').notNull().default(''),
   descricao: text('descricao').notNull().default(''),
   valor: doublePrecision('valor').notNull().default(0),
@@ -171,6 +192,8 @@ export const usuarios = pgTable('usuarios', {
   role: text('role').notNull().default('admin'),
   /** Tipos de acesso do usuário: adm | financeiro | cantina | quarto | servico */
   acessos: jsonb('acessos').$type<string[]>().notNull().default([]),
+  /** Prédio ao qual o usuário pertence (define o retiro que ele enxerga). */
+  predioId: integer('predio_id').references(() => predios.id, { onDelete: 'set null' }),
   criadoEm: text('criado_em').notNull().default(''),
 })
 
@@ -184,9 +207,9 @@ export const arquivos = pgTable('arquivos', {
   criadoEm: text('criado_em').notNull().default(''),
 })
 
-/** Escala de serviço (estrutura aninhada por dia/turno/frente em jsonb). */
+/** Escala de serviço por retiro (id da linha = id do retiro). Estrutura
+ *  aninhada por dia/turno/frente em jsonb. */
 export const escalas = pgTable('escalas', {
   id: text('id').primaryKey(),
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   data: jsonb('data').$type<Record<string, unknown> | null>(),
 })

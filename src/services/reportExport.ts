@@ -74,7 +74,7 @@ export async function exportPrestacaoContas(
   // Carrega o exceljs sob demanda para não pesar o bundle inicial.
   const { default: ExcelJSRuntime } = await import('exceljs')
   const wb = new ExcelJSRuntime.Workbook()
-  wb.creator = 'Sistema de Retiros'
+  wb.creator = 'Sistema de Eventos'
   wb.created = new Date()
 
   // ---------------------------------------------------------------- Resumo ---
@@ -111,7 +111,7 @@ export async function exportPrestacaoContas(
     ['Cantina — total vendido', cantina.vendido],
     ['Total de entradas', totalEntradas, 'entradas'],
     ['Total de despesas', despesasTot],
-    ['Saldo do retiro (entradas − despesas)', saldo, 'saldo'],
+    ['Saldo do evento (entradas − despesas)', saldo, 'saldo'],
   ]
   linhas.forEach(([label, v, tag]) => {
     const r = resumo.addRow([label, v])

@@ -14,17 +14,19 @@ import type { AppState } from '../types'
 type Persistable = Omit<AppState, 'modal' | 'toast' | 'dragId' | 'narrow' | 'sbOpen'>
 
 export interface StateRepository {
-  load(): Partial<AppState> | null
-  save(state: AppState): void
-  clear(): void
+  load(retiroId: string): Partial<AppState> | null
+  save(retiroId: string, state: AppState): void
+  clear(retiroId: string): void
 }
 
-const KEY = 'retiros-app-v4'
+// Cache por retiro (multi-retiro): uma chave de localStorage por retiroId.
+const PREFIX = 'retiros-app-v5:'
+const keyFor = (retiroId: string) => PREFIX + retiroId
 
 class LocalStorageStateRepository implements StateRepository {
-  load(): Partial<AppState> | null {
+  load(retiroId: string): Partial<AppState> | null {
     try {
-      const raw = localStorage.getItem(KEY)
+      const raw = localStorage.getItem(keyFor(retiroId))
       if (!raw) return null
       const parsed = JSON.parse(raw) as Partial<AppState>
       // Só consideramos válido se tiver a coleção principal.
@@ -34,7 +36,7 @@ class LocalStorageStateRepository implements StateRepository {
     }
   }
 
-  save(state: AppState): void {
+  save(retiroId: string, state: AppState): void {
     const { modal, toast, dragId, narrow, sbOpen, ...persistable } =
       state as AppState
     void modal
@@ -44,15 +46,15 @@ class LocalStorageStateRepository implements StateRepository {
     void sbOpen
     const payload: Persistable = persistable
     try {
-      localStorage.setItem(KEY, JSON.stringify(payload))
+      localStorage.setItem(keyFor(retiroId), JSON.stringify(payload))
     } catch {
       // storage cheio ou indisponível — ignora silenciosamente.
     }
   }
 
-  clear(): void {
+  clear(retiroId: string): void {
     try {
-      localStorage.removeItem(KEY)
+      localStorage.removeItem(keyFor(retiroId))
     } catch {
       /* noop */
     }

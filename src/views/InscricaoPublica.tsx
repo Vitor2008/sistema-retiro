@@ -27,7 +27,7 @@ interface RetiroPublico {
   saida: string
   slug: string
   bannerId: string | null
-  lideres: string[]
+  lideres: { nome: string; predio: string }[]
   predios: string[]
   conducoes: string[]
   aberto: boolean
@@ -205,7 +205,7 @@ export function InscricaoPublica() {
               <IconeCirculo tipo="erro">✕</IconeCirculo>
               <h3 style={{ marginTop: 8 }}>Formulário não encontrado</h3>
               <p style={{ marginTop: 8 }}>
-                O link de inscrição pode estar incorreto ou o retiro não está mais disponível.
+                O link de inscrição pode estar incorreto ou o evento não está mais disponível.
               </p>
             </div>
           </Cartao>
@@ -236,7 +236,7 @@ export function InscricaoPublica() {
               <h3 style={{ marginTop: 8 }}>Inscrição recebida!</h3>
               <p style={{ marginTop: 8 }}>
                 Sua inscrição está <b>pendente de confirmação</b>. A confirmação acontece no
-                check-in presencial do retiro.
+                check-in presencial do evento.
               </p>
               <button
                 className="btn btn-outline btn-sm"
@@ -350,10 +350,14 @@ export function InscricaoPublica() {
 
                   <Campo label="Quem lhe convidou? (líder) *" erro={erros.lider ? 'Selecione quem convidou.' : ''}>
                     <select className="input" value={form.lider} onChange={(e) => setF({ lider: e.target.value })}>
-                      <option value="">Selecione o líder…</option>
-                      {retiro.lideres.map((l) => (
-                        <option key={l} value={l}>{l}</option>
-                      ))}
+                      <option value="">
+                        {form.predio ? 'Selecione o líder…' : 'Escolha o prédio primeiro…'}
+                      </option>
+                      {retiro.lideres
+                        .filter((l) => !form.predio || l.predio === form.predio || !l.predio)
+                        .map((l) => (
+                          <option key={l.nome + '|' + l.predio} value={l.nome}>{l.nome}</option>
+                        ))}
                     </select>
                   </Campo>
 
@@ -486,7 +490,7 @@ function Hero({ bannerUrl, igreja, nome }: { bannerUrl: string | null; igreja: s
       {bannerUrl && (
         <img
           src={bannerUrl}
-          alt={nome || 'Banner do retiro'}
+          alt={nome || 'Banner do evento'}
           style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }}
         />
       )}

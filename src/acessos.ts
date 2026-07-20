@@ -15,7 +15,7 @@ export interface AcessoDef {
 
 export const ACESSOS: AcessoDef[] = [
   { id: 'adm', label: 'Administrador', descricao: 'Acesso a todas as áreas e à gestão de usuários', navKeys: [] },
-  { id: 'financeiro', label: 'Financeiro', descricao: 'Retiros, Check-in e Prestação de contas', navKeys: ['retiros', 'checkin', 'contas'] },
+  { id: 'financeiro', label: 'Financeiro', descricao: 'Eventos, Check-in e Prestação de contas', navKeys: ['retiros', 'checkin', 'contas'] },
   { id: 'cantina', label: 'Cantina', descricao: 'Aba de Cantina', navKeys: ['cantina'] },
   { id: 'quarto', label: 'Escala Quarto', descricao: 'Aba de Quartos', navKeys: ['quartos'] },
   { id: 'servico', label: 'Escala Serviço', descricao: 'Aba de Escalas de serviço', navKeys: ['escalas'] },

@@ -12,7 +12,6 @@ import {
   produtos,
   quartos,
   retiros,
-  retirosPassados,
   vendaItens,
   vendas,
 } from '../db/schema.js'
@@ -31,23 +30,19 @@ import { quartoRepository } from './quartoRepository.js'
 import { retiroRepository } from './retiroRepository.js'
 import { vendaRepository } from './vendaRepository.js'
 
-const RETIRO_ID = 'atual'
-const ESCALA_ID = 'atual'
-
-/** Remove itens com id repetido, mantendo a última ocorrência (a mais recente
- *  no array). Evita "duplicate key" caso o cliente envie ids duplicados. */
+/** Remove itens com id repetido, mantendo a última ocorrência. Evita "duplicate
+ *  key" caso o cliente envie ids duplicados (ex.: clique-duplo). */
 function dedupePorId<T extends { id: string }>(itens: T[]): T[] {
   return Array.from(new Map(itens.map((x) => [x.id, x])).values())
 }
 
 export const snapshotRepository = {
-  /** Monta o snapshot completo do domínio a partir do banco. */
-  async loadAll(): Promise<DomainSnapshot | null> {
-    const retiro = await retiroRepository.getAtual()
-    if (!retiro) return null // banco ainda não semeado
+  /** Snapshot de UM retiro. */
+  async loadAll(retiroId: string): Promise<DomainSnapshot | null> {
+    const retiro = await retiroRepository.get(retiroId)
+    if (!retiro) return null
 
     const [
-      retirosPassadosLista,
       lideresLista,
       categoriasLista,
       prediosLista,
@@ -59,22 +54,20 @@ export const snapshotRepository = {
       despesasLista,
       escala,
     ] = await Promise.all([
-      retiroRepository.listPassados(),
-      lideresRepository.list(),
-      categoriaRepository.list(),
-      predioRepository.list(),
-      conducaoRepository.list(),
-      inscritoRepository.list(),
-      quartoRepository.list(),
-      produtoRepository.list(),
-      vendaRepository.list(),
-      despesaRepository.list(),
-      escalaRepository.get(),
+      lideresRepository.list(retiroId),
+      categoriaRepository.list(retiroId),
+      predioRepository.list(retiroId),
+      conducaoRepository.list(retiroId),
+      inscritoRepository.list(retiroId),
+      quartoRepository.list(retiroId),
+      produtoRepository.list(retiroId),
+      vendaRepository.list(retiroId),
+      despesaRepository.list(retiroId),
+      escalaRepository.get(retiroId),
     ])
 
     return {
       retiro,
-      retirosPassados: retirosPassadosLista,
       lideres: lideresLista,
       categorias: categoriasLista,
       predios: prediosLista,
@@ -88,46 +81,54 @@ export const snapshotRepository = {
     }
   },
 
-  /** Substitui TODO o estado do domínio de forma transacional (last-write-wins). */
-  async replaceAll(snap: DomainSnapshot): Promise<void> {
+  /** Substitui o estado de UM retiro (transacional, last-write-wins). Prédios
+   *  NÃO são tocados aqui (são persistentes, geridos por endpoint próprio). */
+  async replaceAll(retiroId: string, snap: DomainSnapshot): Promise<void> {
     await db.transaction(async (tx) => {
-      // Limpa (filhos primeiro; FKs em cascata também cobririam).
-      // ATENÇÃO: inscritos e pagamentos NÃO são apagados aqui — eles são
-      // "merge" (upsert) mais abaixo, para nunca sobrescrever inscrições
-      // criadas pelo formulário público enquanto o admin estava offline.
-      await tx.delete(vendaItens)
-      await tx.delete(vendas)
-      await tx.delete(quartos)
-      await tx.delete(produtos)
-      await tx.delete(despesas)
-      await tx.delete(retirosPassados)
-      await tx.delete(lideres)
-      await tx.delete(categorias)
-      await tx.delete(predios)
-      await tx.delete(conducoes)
-      await tx.delete(retiros)
-      await tx.delete(escalas)
+      // Limpa apenas o que é deste retiro. vendaItens e pagamentos caem por
+      // cascata (FK) ao apagar vendas/inscritos.
+      await tx.delete(vendas).where(eq(vendas.retiroId, retiroId))
+      await tx.delete(quartos).where(eq(quartos.retiroId, retiroId))
+      await tx.delete(produtos).where(eq(produtos.retiroId, retiroId))
+      await tx.delete(despesas).where(eq(despesas.retiroId, retiroId))
+      await tx.delete(lideres).where(eq(lideres.retiroId, retiroId))
+      await tx.delete(categorias).where(eq(categorias.retiroId, retiroId))
+      await tx.delete(conducoes).where(eq(conducoes.retiroId, retiroId))
 
-      // Retiro atual
-      await tx.insert(retiros).values({ id: RETIRO_ID, ...snap.retiro })
+      // Atualiza os campos editáveis do retiro.
+      const r = snap.retiro
+      await tx
+        .update(retiros)
+        .set({
+          nome: r.nome,
+          inicio: r.inicio,
+          fim: r.fim,
+          valor: r.valor,
+          max: r.max,
+          oferta: r.oferta,
+          local: r.local,
+          saida: r.saida,
+          aberto: r.aberto,
+          slug: r.slug,
+          bannerId: r.bannerId,
+        })
+        .where(eq(retiros.id, retiroId))
 
-      if (snap.retirosPassados.length)
-        await tx.insert(retirosPassados).values(snap.retirosPassados)
       if (snap.lideres.length)
-        await tx.insert(lideres).values(snap.lideres.map((nome) => ({ nome })))
+        await tx
+          .insert(lideres)
+          .values(snap.lideres.map((l) => ({ nome: l.nome, predio: l.predio ?? '', retiroId })))
       if (snap.categorias.length)
-        await tx.insert(categorias).values(snap.categorias.map((nome) => ({ nome })))
-      if (snap.predios.length)
-        await tx.insert(predios).values(snap.predios.map((nome) => ({ nome })))
+        await tx.insert(categorias).values(snap.categorias.map((nome) => ({ nome, retiroId })))
       if (snap.conducoes.length)
-        await tx.insert(conducoes).values(snap.conducoes.map((nome) => ({ nome })))
+        await tx.insert(conducoes).values(snap.conducoes.map((nome) => ({ nome, retiroId })))
 
-      // Inscritos: MERGE (upsert). Nunca apagamos inscritos que não vieram no
-      // snapshot — assim inscrições feitas pelo formulário público (inseridas
-      // direto no banco) sobrevivem a um "save" do app do administrador.
+      // Inscritos: MERGE (upsert), escopado ao retiro. Nunca apaga inscritos que
+      // não vieram no snapshot (inscrições públicas sobrevivem a um save do admin).
       for (const p of snap.inscritos) {
         const row = {
           id: p.id,
+          retiroId,
           nome: p.nome,
           genero: p.genero,
           tipo: p.tipo,
@@ -146,7 +147,6 @@ export const snapshotRepository = {
           quarto: p.quarto,
         }
         await tx.insert(inscritos).values(row).onConflictDoUpdate({ target: inscritos.id, set: row })
-        // Substitui os pagamentos apenas deste inscrito.
         await tx.delete(pagamentos).where(eq(pagamentos.inscritoId, p.id))
       }
       const pags = snap.inscritos.flatMap((p) =>
@@ -164,22 +164,23 @@ export const snapshotRepository = {
       )
       if (pags.length) await tx.insert(pagamentos).values(pags)
 
-      // Dedupe defensivo por id: um clique-duplo no cliente pode gerar dois
-      // registros com o mesmo id (ids baseados em Date.now()); sem isso o
-      // insert falharia com "duplicate key" e travaria toda a sincronização.
       const quartosU = dedupePorId(snap.quartos)
       const produtosU = dedupePorId(snap.produtos)
       const despesasU = dedupePorId(snap.despesas)
       const vendasU = dedupePorId(snap.vendas)
 
-      if (quartosU.length) await tx.insert(quartos).values(quartosU)
-      if (produtosU.length) await tx.insert(produtos).values(produtosU)
-      if (despesasU.length) await tx.insert(despesas).values(despesasU)
+      if (quartosU.length)
+        await tx.insert(quartos).values(quartosU.map((q) => ({ ...q, retiroId })))
+      if (produtosU.length)
+        await tx.insert(produtos).values(produtosU.map((p) => ({ ...p, retiroId })))
+      if (despesasU.length)
+        await tx.insert(despesas).values(despesasU.map((d) => ({ ...d, retiroId })))
 
       if (vendasU.length) {
         await tx.insert(vendas).values(
           vendasU.map((v) => ({
             id: v.id,
+            retiroId,
             tipo: v.tipo,
             cliente: v.cliente,
             forma: v.forma,
@@ -199,7 +200,22 @@ export const snapshotRepository = {
         if (itens.length) await tx.insert(vendaItens).values(itens)
       }
 
-      await tx.insert(escalas).values({ id: ESCALA_ID, data: snap.escala ?? null })
+      // Prédios: MERGE por nome (preserva os ids → não quebra o FK dos usuários).
+      // Prédios são persistentes; aqui só ajustamos quais participam deste retiro.
+      const prediosExist = await tx.select().from(predios).where(eq(predios.retiroId, retiroId))
+      const nomesSnap = new Set(snap.predios)
+      for (const p of prediosExist) {
+        if (!nomesSnap.has(p.nome)) await tx.delete(predios).where(eq(predios.id, p.id))
+      }
+      const nomesExist = new Set(prediosExist.map((p) => p.nome))
+      const prediosNovos = snap.predios.filter((n) => !nomesExist.has(n))
+      if (prediosNovos.length)
+        await tx.insert(predios).values(prediosNovos.map((nome) => ({ nome, retiroId })))
+
+      await tx
+        .insert(escalas)
+        .values({ id: retiroId, data: snap.escala ?? null })
+        .onConflictDoUpdate({ target: escalas.id, set: { data: snap.escala ?? null } })
     })
   },
 }

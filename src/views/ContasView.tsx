@@ -69,7 +69,7 @@ export function ContasView() {
       <div className="page-head">
         <div>
           <h1>Prestação de contas — {s.retiro.nome}</h1>
-          <div className="desc">Entradas (inscrições, ofertas e cantina), despesas e saldo do retiro.</div>
+          <div className="desc">Entradas (inscrições, ofertas e cantina), despesas e saldo do evento.</div>
         </div>
         <div className="actions">
           <button className="btn btn-outline btn-sm" onClick={exportarRelatorio}>
@@ -115,7 +115,7 @@ export function ContasView() {
           <div className="meta">{s.despesas.length} lançamentos</div>
         </div>
         <div className="kpi" style={{ borderColor: saldo >= 0 ? 'var(--color-sage)' : 'var(--status-rejected-fg)' }}>
-          <div className="topline">Saldo do retiro</div>
+          <div className="topline">Saldo do evento</div>
           <div className="v" style={{ fontSize: 22, color: saldo >= 0 ? 'var(--status-final-fg)' : 'var(--status-rejected-fg)' }}>{fmt(saldo)}</div>
           <div className="meta">entradas − despesas</div>
         </div>

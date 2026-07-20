@@ -15,23 +15,21 @@ import {
   lideresRepository,
   predioRepository,
 } from '../repositories/listaRepository.js'
+import { retiroRepository } from '../repositories/retiroRepository.js'
 import { inscritoService } from '../services/inscritoService.js'
-import { retiroService } from '../services/retiroService.js'
 import type { Inscrito } from '../types.js'
 
 export const publicRoutes = Router()
 
-/** Conta inscrições que ocupam vaga (todas menos as canceladas). */
-async function ocupadas(): Promise<number> {
-  const lista = await inscritoRepository.list()
+/** Conta inscrições que ocupam vaga (todas menos as canceladas) no retiro. */
+async function ocupadas(retiroId: string): Promise<number> {
+  const lista = await inscritoRepository.list(retiroId)
   return lista.filter((i) => i.statusInscricao !== 'cancelada').length
 }
 
-/** Carrega o retiro atual só se o slug bater; senão null. */
+/** Carrega o retiro pelo slug (multi-retiro). */
 async function retiroPorSlug(slug: string) {
-  const r = await retiroService.getAtual()
-  if (!r || !r.slug || r.slug !== slug) return null
-  return r
+  return retiroRepository.getBySlug(slug)
 }
 
 // ---- Dados públicos do retiro (por slug) -----------------------------------
@@ -39,11 +37,11 @@ publicRoutes.get('/retiro/:slug', async (req, res, next) => {
   try {
     const r = await retiroPorSlug(req.params.slug)
     if (!r) return res.status(404).json({ error: 'Formulário não encontrado.' })
-    const vagasRestantes = Math.max(0, r.max - (await ocupadas()))
+    const vagasRestantes = Math.max(0, r.max - (await ocupadas(r.id)))
     const [lideres, predios, conducoes] = await Promise.all([
-      lideresRepository.list(),
-      predioRepository.list(),
-      conducaoRepository.list(),
+      lideresRepository.list(r.id),
+      predioRepository.list(r.id),
+      conducaoRepository.list(r.id),
     ])
     // Nunca devolvemos dados sensíveis — só o que a landing precisa exibir.
     res.json({
@@ -107,7 +105,7 @@ publicRoutes.post('/inscricao/:slug', async (req, res, next) => {
     const r = await retiroPorSlug(req.params.slug)
     if (!r) return res.status(404).json({ error: 'Formulário não encontrado.' })
 
-    const vagasRestantes = Math.max(0, r.max - (await ocupadas()))
+    const vagasRestantes = Math.max(0, r.max - (await ocupadas(r.id)))
     if (!r.aberto || vagasRestantes <= 0)
       return res.status(409).json({ error: 'Inscrições encerradas.' })
 
@@ -158,7 +156,7 @@ publicRoutes.post('/inscricao/:slug', async (req, res, next) => {
       quarto: null,
       pagamentos: [],
     }
-    await inscritoService.create(inscrito)
+    await inscritoService.create(inscrito, r.id)
     res.status(201).json({ ok: true, nome: inscrito.nome })
   } catch (e) {
     next(e)

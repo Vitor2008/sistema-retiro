@@ -1,15 +1,13 @@
 // ============================================================================
-// Sincronização offline-first.
+// Sincronização offline-first — POR RETIRO.
 //
-// - O localStorage é o cache imediato (fonte de verdade local; funciona offline).
-// - Cada alteração de domínio incrementa uma sequência (pendência). Havendo
-//   internet, um envio SERIALIZADO manda sempre o snapshot mais recente ao banco
-//   (PUT /snapshot). Sem internet, fica pendente; ao reconectar (evento 'online'
-//   ou retry periódico), envia.
-// - Envios são serializados (nunca concorrentes) e coalescem no estado atual, o
-//   que evita que a conclusão tardia de um push antigo apague uma pendência nova.
+// O syncManager opera sobre UM retiro por vez (configure(retiroId)). Cada retiro
+// tem sua própria pendência (meta) e cache. Ao trocar de retiro, o RetiroProvider
+// remonta e chama configure() com o novo id.
 //
-// Conflito: last-write-wins por snapshot (uso administrativo, ~1 operador).
+// - localStorage é o cache imediato; alterações incrementam uma sequência.
+// - Havendo internet, envia o snapshot mais recente para PUT /snapshot/:retiroId.
+// - Envios serializados; last-write-wins por snapshot (uso administrativo).
 // ============================================================================
 
 import { apiClient } from '../api/apiClient'
@@ -22,29 +20,32 @@ interface SyncMeta {
   lastSyncedAt: string | null
 }
 
-const META_KEY = 'retiros-sync-meta-v4'
+const META_PREFIX = 'retiros-sync-meta-v5:'
 const DEBOUNCE_MS = 800
 
-function loadMeta(): SyncMeta {
+function metaKey(retiroId: string) {
+  return META_PREFIX + retiroId
+}
+function loadMeta(retiroId: string): SyncMeta {
   try {
-    const raw = localStorage.getItem(META_KEY)
+    const raw = localStorage.getItem(metaKey(retiroId))
     if (raw) return JSON.parse(raw) as SyncMeta
   } catch {
     /* noop */
   }
   return { dirty: false, lastSyncedAt: null }
 }
-function saveMeta(m: SyncMeta) {
+function saveMeta(retiroId: string, m: SyncMeta) {
   try {
-    localStorage.setItem(META_KEY, JSON.stringify(m))
+    localStorage.setItem(metaKey(retiroId), JSON.stringify(m))
   } catch {
     /* noop */
   }
 }
 
-let meta = loadMeta()
-// Sequência: dirty <=> syncedSeq < queuedSeq.
-let queuedSeq = meta.dirty ? 1 : 0
+let currentRetiroId: string | null = null
+let meta: SyncMeta = { dirty: false, lastSyncedAt: null }
+let queuedSeq = 0
 let syncedSeq = 0
 let lastPushedJson: string | null = null
 let pushing = false
@@ -66,30 +67,30 @@ function refreshStatus() {
   setStatus(isDirty() ? 'pending' : 'synced')
 }
 function persistDirty(dirty: boolean) {
+  if (!currentRetiroId) return
   meta = { ...meta, dirty }
-  saveMeta(meta)
+  saveMeta(currentRetiroId, meta)
 }
 
-/** Envio serializado: enquanto houver pendência e internet, manda o snapshot
- *  ATUAL (coalescido) e só marca sincronizado a sequência efetivamente enviada. */
+/** Envio serializado do retiro corrente. */
 async function sync(): Promise<void> {
-  if (pushing || !navigator.onLine || !provider) return
+  if (pushing || !navigator.onLine || !provider || !currentRetiroId) return
   if (!isDirty()) {
     refreshStatus()
     return
   }
   pushing = true
   try {
-    while (isDirty() && navigator.onLine) {
+    while (isDirty() && navigator.onLine && currentRetiroId) {
       const seq = queuedSeq
       const snap = provider()
       setStatus('syncing')
-      await apiClient.put('/snapshot', snap)
+      await apiClient.put('/snapshot/' + currentRetiroId, snap)
       syncedSeq = seq
       lastPushedJson = JSON.stringify(snap)
       persistDirty(isDirty())
       meta = { ...meta, lastSyncedAt: new Date().toISOString() }
-      saveMeta(meta)
+      if (currentRetiroId) saveMeta(currentRetiroId, meta)
     }
     refreshStatus()
   } catch {
@@ -105,42 +106,55 @@ export const syncManager = {
   getMeta: () => meta,
   isOnline: () => navigator.onLine,
 
+  /** Passa a operar sobre um retiro específico (reinicia a pendência local). */
+  configure(retiroId: string) {
+    if (currentRetiroId === retiroId) return
+    currentRetiroId = retiroId
+    if (timer) {
+      clearTimeout(timer)
+      timer = null
+    }
+    meta = loadMeta(retiroId)
+    queuedSeq = meta.dirty ? 1 : 0
+    syncedSeq = 0
+    lastPushedJson = null
+    pushing = false
+    refreshStatus()
+  },
+
   subscribe(cb: (s: SyncStatus) => void): () => void {
     listeners.add(cb)
     cb(status)
     return () => listeners.delete(cb)
   },
 
-  /** O contexto informa como obter o snapshot atual do estado. */
   setSnapshotProvider(fn: () => DomainSnapshot) {
     provider = fn
   },
 
-  /** Puxa o estado do banco (null se vazio/offline). */
+  /** Puxa o estado do retiro corrente (null se vazio/offline). */
   async pull(): Promise<DomainSnapshot | null> {
-    if (!navigator.onLine) return null
+    if (!navigator.onLine || !currentRetiroId) return null
     try {
-      return await apiClient.get<DomainSnapshot | null>('/snapshot')
+      return await apiClient.get<DomainSnapshot | null>('/snapshot/' + currentRetiroId)
     } catch {
       setStatus('error')
       return null
     }
   },
 
-  /** Marca o estado atual como já sincronizado (após aplicar o do banco). */
   markSynced(snap: DomainSnapshot) {
     syncedSeq = queuedSeq
     lastPushedJson = JSON.stringify(snap)
     persistDirty(false)
     meta = { ...meta, lastSyncedAt: new Date().toISOString() }
-    saveMeta(meta)
+    if (currentRetiroId) saveMeta(currentRetiroId, meta)
     refreshStatus()
   },
 
-  /** Registra uma alteração local (chamada a cada mudança de domínio). */
   notifyChange(snap: DomainSnapshot) {
     const json = JSON.stringify(snap)
-    if (json === lastPushedJson && !isDirty()) return // nada mudou de fato
+    if (json === lastPushedJson && !isDirty()) return
     queuedSeq++
     persistDirty(true)
     setStatus(navigator.onLine ? 'pending' : 'offline')
@@ -148,6 +162,5 @@ export const syncManager = {
     if (navigator.onLine) timer = setTimeout(() => void sync(), DEBOUNCE_MS)
   },
 
-  /** Dispara o envio serializado (usado por reconexão, retry e botão manual). */
   sync,
 }

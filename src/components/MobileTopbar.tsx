@@ -14,7 +14,7 @@ export function MobileTopbar() {
         ☰ Menu
       </button>
       <div style={{ fontWeight: 700, fontSize: 15, color: 'var(--color-primary)' }}>
-        Retiros · {appConfig.nomeIgreja}
+        Eventos · {appConfig.nomeIgreja}
       </div>
     </div>
   )

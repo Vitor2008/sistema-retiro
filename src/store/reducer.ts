@@ -13,19 +13,22 @@ export function reducer(state: AppState, action: Action): AppState {
   switch (action.type) {
     case 'PATCH':
       return { ...state, ...action.patch }
-    case 'RESET':
-      return init()
+    case 'RESET': {
+      const base = seedState()
+      base.narrow = typeof window !== 'undefined' && window.innerWidth < 900
+      base.sbOpen = !base.narrow
+      return base
+    }
     default:
       return state
   }
 }
 
-/** Monta o estado inicial: seed + o que estiver salvo no repositório. */
-export function init(): AppState {
+/** Monta o estado inicial de um retiro: seed + cache local daquele retiro. */
+export function init(retiroId: string): AppState {
   const base = seedState()
-  const saved = stateRepository.load()
-  const narrow =
-    typeof window !== 'undefined' && window.innerWidth < 900
+  const saved = retiroId ? stateRepository.load(retiroId) : null
+  const narrow = typeof window !== 'undefined' && window.innerWidth < 900
   const merged: AppState = saved
     ? { ...base, ...saved, modal: null, toast: null, dragId: null, selId: null }
     : base

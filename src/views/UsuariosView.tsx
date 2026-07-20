@@ -9,6 +9,18 @@ interface Usuario {
   nome: string
   role: string
   acessos: string[]
+  predioId: number | null
+}
+
+interface Predio {
+  id: number
+  nome: string
+  retiroId: string | null
+}
+
+interface RetiroResumo {
+  id: string
+  nome: string
 }
 
 interface FormState {
@@ -17,23 +29,40 @@ interface FormState {
   nome: string
   password: string
   acessos: string[]
+  predioId: number | null
 }
 
-const vazio: FormState = { id: null, username: '', nome: '', password: '', acessos: [] }
+const vazio: FormState = { id: null, username: '', nome: '', password: '', acessos: [], predioId: null }
 
 const labelStyle: React.CSSProperties = { fontSize: 12, fontWeight: 600, display: 'block', marginBottom: 5 }
 
 export function UsuariosView() {
   const { user } = useAuth()
   const [usuarios, setUsuarios] = useState<Usuario[]>([])
+  const [predios, setPredios] = useState<Predio[]>([])
+  const [retiroNome, setRetiroNome] = useState<Record<string, string>>({})
   const [form, setForm] = useState<FormState | null>(null)
   const [erro, setErro] = useState('')
   const [carregando, setCarregando] = useState(true)
   const [salvando, setSalvando] = useState(false)
 
+  const rotuloPredio = (p: Predio) =>
+    p.nome + (p.retiroId && retiroNome[p.retiroId] ? ' — ' + retiroNome[p.retiroId] : '')
+  const nomePredio = (id: number | null) => {
+    const p = predios.find((x) => x.id === id)
+    return p ? rotuloPredio(p) : '—'
+  }
+
   const carregar = async () => {
     try {
-      setUsuarios(await apiClient.get<Usuario[]>('/usuarios'))
+      const [us, prs, rets] = await Promise.all([
+        apiClient.get<Usuario[]>('/usuarios'),
+        apiClient.get<Predio[]>('/predios'),
+        apiClient.get<RetiroResumo[]>('/retiros'),
+      ])
+      setUsuarios(us)
+      setPredios(prs)
+      setRetiroNome(Object.fromEntries(rets.map((r) => [r.id, r.nome])))
     } catch (e) {
       setErro(e instanceof ApiError ? e.message : 'Erro ao carregar usuários.')
     } finally {
@@ -51,7 +80,7 @@ export function UsuariosView() {
   }
   const abrirEdicao = (u: Usuario) => {
     setErro('')
-    setForm({ id: u.id, username: u.username, nome: u.nome, password: '', acessos: [...u.acessos] })
+    setForm({ id: u.id, username: u.username, nome: u.nome, password: '', acessos: [...u.acessos], predioId: u.predioId ?? null })
   }
 
   const toggleAcesso = (id: string) => {
@@ -75,11 +104,13 @@ export function UsuariosView() {
           nome: form.nome,
           password: form.password,
           acessos: form.acessos,
+          predioId: form.predioId,
         })
       } else {
         await apiClient.put('/usuarios/' + form.id, {
           nome: form.nome,
           acessos: form.acessos,
+          predioId: form.predioId,
           ...(form.password ? { password: form.password } : {}),
         })
       }
@@ -136,18 +167,20 @@ export function UsuariosView() {
               <tr>
                 <th>Nome</th>
                 <th>Usuário</th>
+                <th>Prédio</th>
                 <th>Acessos</th>
                 <th style={{ textAlign: 'right' }}>Ações</th>
               </tr>
             </thead>
             <tbody>
               {carregando && (
-                <tr><td colSpan={4} style={{ textAlign: 'center', color: 'var(--fg-muted)', padding: 24 }}>Carregando…</td></tr>
+                <tr><td colSpan={5} style={{ textAlign: 'center', color: 'var(--fg-muted)', padding: 24 }}>Carregando…</td></tr>
               )}
               {!carregando && usuarios.map((u) => (
                 <tr key={u.id}>
                   <td className="vaga-name">{u.nome}</td>
                   <td style={{ fontSize: 12 }}>@{u.username}</td>
+                  <td style={{ fontSize: 12 }}>{nomePredio(u.predioId)}</td>
                   <td>
                     <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
                       {u.acessos.map((a) => (
@@ -168,7 +201,7 @@ export function UsuariosView() {
                 </tr>
               ))}
               {!carregando && usuarios.length === 0 && (
-                <tr><td colSpan={4} style={{ textAlign: 'center', color: 'var(--fg-muted)', padding: 24 }}>Nenhum usuário.</td></tr>
+                <tr><td colSpan={5} style={{ textAlign: 'center', color: 'var(--fg-muted)', padding: 24 }}>Nenhum usuário.</td></tr>
               )}
             </tbody>
           </table>
@@ -204,6 +237,19 @@ export function UsuariosView() {
               <div>
                 <label style={labelStyle}>{form.id === null ? 'Senha' : 'Nova senha (deixe em branco para manter)'}</label>
                 <input className="input" type="password" value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} placeholder="mín. 6 caracteres" autoComplete="new-password" />
+              </div>
+              <div>
+                <label style={labelStyle}>Prédio (define o evento que o usuário enxerga)</label>
+                <select
+                  className="input"
+                  value={form.predioId ?? ''}
+                  onChange={(e) => setForm({ ...form, predioId: e.target.value ? Number(e.target.value) : null })}
+                >
+                  <option value="">Sem prédio (ex.: administrador — vê todos)</option>
+                  {predios.map((p) => (
+                    <option key={p.id} value={p.id}>{rotuloPredio(p)}</option>
+                  ))}
+                </select>
               </div>
               <div>
                 <label style={labelStyle}>Acessos</label>

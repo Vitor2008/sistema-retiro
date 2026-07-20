@@ -11,6 +11,7 @@ export interface UsuarioPublico {
   nome: string
   role: string
   acessos: string[]
+  predioId: number | null
 }
 
 export function toPublico(row: UsuarioRow): UsuarioPublico {
@@ -20,6 +21,7 @@ export function toPublico(row: UsuarioRow): UsuarioPublico {
     nome: row.nome,
     role: row.role,
     acessos: row.acessos ?? [],
+    predioId: row.predioId ?? null,
   }
 }
 
@@ -52,6 +54,7 @@ export const usuarioRepository = {
     senhaHash: string
     nome: string
     acessos: string[]
+    predioId?: number | null
   }): Promise<UsuarioPublico> {
     const [row] = await db
       .insert(usuarios)
@@ -61,6 +64,7 @@ export const usuarioRepository = {
         nome: u.nome,
         role: 'user',
         acessos: u.acessos,
+        predioId: u.predioId ?? null,
         criadoEm: new Date().toISOString(),
       })
       .returning()
@@ -69,7 +73,7 @@ export const usuarioRepository = {
 
   async update(
     id: number,
-    patch: { nome?: string; acessos?: string[]; senhaHash?: string },
+    patch: { nome?: string; acessos?: string[]; senhaHash?: string; predioId?: number | null },
   ): Promise<UsuarioPublico | null> {
     const [row] = await db
       .update(usuarios)

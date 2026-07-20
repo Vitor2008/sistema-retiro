@@ -23,7 +23,7 @@ export const NAV: NavItem[] = [
   {
     key: 'retiros',
     path: '/retiros',
-    label: 'Retiros',
+    label: 'Eventos',
     section: 'Administração',
     element: <RetirosView />,
     icon: (

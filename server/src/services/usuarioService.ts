@@ -23,6 +23,7 @@ export const usuarioService = {
     password: string
     nome: string
     acessos: string[]
+    predioId?: number | null
   }): Promise<UsuarioPublico> {
     const username = input.username?.trim().toLowerCase()
     if (!username) throw new Error('Informe o usuário.')
@@ -37,18 +38,20 @@ export const usuarioService = {
       senhaHash,
       nome: input.nome?.trim() || username,
       acessos,
+      predioId: input.predioId ?? null,
     })
   },
 
   async update(
     id: number,
-    input: { nome?: string; password?: string; acessos?: string[] },
+    input: { nome?: string; password?: string; acessos?: string[]; predioId?: number | null },
   ): Promise<UsuarioPublico> {
     const atual = await usuarioRepository.findById(id)
     if (!atual) throw new Error('Usuário não encontrado.')
 
-    const patch: { nome?: string; acessos?: string[]; senhaHash?: string } = {}
+    const patch: { nome?: string; acessos?: string[]; senhaHash?: string; predioId?: number | null } = {}
     if (input.nome !== undefined) patch.nome = input.nome.trim()
+    if (input.predioId !== undefined) patch.predioId = input.predioId
     if (input.acessos !== undefined) {
       const acessos = validarAcessos(input.acessos)
       // Não permitir remover o último admin do sistema.

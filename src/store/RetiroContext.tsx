@@ -32,8 +32,10 @@ interface RetiroContextValue {
 
 const RetiroContext = createContext<RetiroContextValue | null>(null)
 
-export function RetiroProvider({ children }: { children: ReactNode }) {
-  const [state, dispatch] = useReducer(reducer, undefined, init)
+export function RetiroProvider({ retiroId, children }: { retiroId: string; children: ReactNode }) {
+  const [state, dispatch] = useReducer(reducer, retiroId, init)
+  // Direciona a sincronização para o retiro selecionado (idempotente).
+  syncManager.configure(retiroId)
   const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const bootstrapped = useRef(false)
   const bootstrapStarted = useRef(false)
@@ -74,16 +76,16 @@ export function RetiroProvider({ children }: { children: ReactNode }) {
   }, [])
 
   const resetAll = useCallback(() => {
-    stateRepository.clear()
+    stateRepository.clear(retiroId)
     dispatch({ type: 'RESET' })
-  }, [])
+  }, [retiroId])
 
   // Persistência: cache local imediato a cada mudança + enfileira sync com o
   // banco (só depois do bootstrap, para não sobrescrever o que vier do banco).
   useEffect(() => {
-    stateRepository.save(state)
+    stateRepository.save(retiroId, state)
     if (bootstrapped.current) syncManager.notifyChange(toSnapshot(state))
-  }, [state])
+  }, [state, retiroId])
 
   // Assina o status da sincronização (online/pendente/sincronizado/...).
   useEffect(() => syncManager.subscribe(setSyncStatus), [])

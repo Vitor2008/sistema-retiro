@@ -37,8 +37,10 @@ async function inserirItens(vendaId: string, itens: ItemVenda[]) {
 }
 
 export const vendaRepository = {
-  async list(): Promise<Venda[]> {
-    const rows = await db.select().from(vendas).orderBy(asc(vendas.id))
+  async list(retiroId?: string): Promise<Venda[]> {
+    const rows = retiroId
+      ? await db.select().from(vendas).where(eq(vendas.retiroId, retiroId)).orderBy(asc(vendas.id))
+      : await db.select().from(vendas).orderBy(asc(vendas.id))
     const itens = await db.select().from(vendaItens)
     const porVenda = new Map<string, ItemRow[]>()
     for (const it of itens) {

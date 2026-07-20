@@ -43,7 +43,7 @@ export function CantinaView() {
       >
         <div>
           <h1>Cantina</h1>
-          <div className="desc">Vendas, estoque e contas abertas do retiro.</div>
+          <div className="desc">Vendas, estoque e contas abertas do evento.</div>
         </div>
         <div className="actions" style={narrow ? { flexWrap: 'wrap' } : undefined}>
           <div className="seg" style={narrow ? { flexWrap: 'wrap' } : undefined}>

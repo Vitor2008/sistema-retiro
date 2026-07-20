@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { FileDropField } from '../FileDropField'
 import { fileService } from '../../services/fileService'
 import { useRetiro } from '../../store/RetiroContext'
+import { useRetiroSelection } from '../../store/RetiroSelection'
 import { useActions } from '../../store/useActions'
 import type { ModalRetiro } from '../../types'
 
@@ -38,16 +39,47 @@ function BannerPreview({ bannerId }: { bannerId: string }) {
 }
 
 export function RetiroModal({ modal }: { modal: ModalRetiro }) {
-  const { patchModal, closeModal } = useRetiro()
+  const { patchModal, closeModal, toast } = useRetiro()
   const { salvarRetiro } = useActions()
+  const { criarRetiro } = useRetiroSelection()
+  const [salvando, setSalvando] = useState(false)
+
+  const onSalvar = async () => {
+    if (!modal.nome.trim()) {
+      toast('Informe o nome do evento.')
+      return
+    }
+    if (!modal.novo) {
+      salvarRetiro()
+      return
+    }
+    // Novo retiro: cria via API (isso troca o retiro selecionado e remonta o app).
+    setSalvando(true)
+    try {
+      await criarRetiro({
+        nome: modal.nome.trim(),
+        inicio: modal.inicio,
+        fim: modal.fim,
+        valor: Number(modal.valor) || 0,
+        max: Number(modal.max) || 0,
+        local: modal.local,
+        saida: modal.saida,
+        bannerId: modal.bannerId,
+      })
+      closeModal()
+    } catch (e) {
+      toast(e instanceof Error ? e.message : 'Erro ao criar evento.')
+      setSalvando(false)
+    }
+  }
 
   return (
     <div style={{ padding: '22px 24px' }}>
-      <h3 style={{ marginBottom: 16 }}>{modal.novo ? 'Criar retiro' : 'Editar retiro'}</h3>
+      <h3 style={{ marginBottom: 16 }}>{modal.novo ? 'Criar evento' : 'Editar evento'}</h3>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
         <div>
-          <label style={label}>Nome / edição do retiro</label>
-          <input className="input" value={modal.nome} onChange={(e) => patchModal({ nome: e.target.value })} placeholder="Ex.: Retiro Renovo — Edição 42" />
+          <label style={label}>Nome / edição do evento</label>
+          <input className="input" value={modal.nome} onChange={(e) => patchModal({ nome: e.target.value })} placeholder="Ex.: nome do evento" />
         </div>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
           <div>
@@ -102,12 +134,16 @@ export function RetiroModal({ modal }: { modal: ModalRetiro }) {
         </div>
 
         <div style={{ fontSize: 12, color: 'var(--fg-muted)' }}>
-          Ao salvar, um link público único de inscrição é gerado automaticamente. O link fecha sozinho quando as vagas acabarem.
+          {modal.novo
+            ? 'Ao criar, um link público único de inscrição é gerado automaticamente e categorias/conduções padrão são preparadas.'
+            : 'As alterações são sincronizadas automaticamente.'}
         </div>
       </div>
       <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, marginTop: 18 }}>
-        <button className="btn btn-default" onClick={closeModal}>Fechar</button>
-        <button className="btn btn-primary" onClick={salvarRetiro}>Salvar retiro</button>
+        <button className="btn btn-default" onClick={closeModal} disabled={salvando}>Fechar</button>
+        <button className="btn btn-primary" onClick={onSalvar} disabled={salvando}>
+          {salvando ? 'Criando…' : modal.novo ? 'Criar evento' : 'Salvar evento'}
+        </button>
       </div>
     </div>
   )
