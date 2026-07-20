@@ -1,6 +1,5 @@
 import { initials } from '../lib/format'
 import { esc, imprimirHtml } from '../lib/print'
-import { appConfig } from '../config'
 import { useRetiro } from '../store/RetiroContext'
 import { useActions } from '../store/useActions'
 import { ativos, porId } from '../store/selectors'
@@ -21,22 +20,35 @@ export function QuartosView() {
   const todosAlocados = atv.length > 0 && semQuartoAll.length === 0
 
   const imprimirAlocacao = () => {
-    let html = `<h1>Alocação de quartos — ${esc(s.retiro.nome)}</h1>`
-    html += `<div class="sub">${esc(appConfig.nomeIgrejaCompleto)}</div><div class="grid">`
-    s.quartos.forEach((q) => {
-      const membros = atv
-        .filter((p) => p.quarto === q.id)
-        .sort((a, b) => a.nome.localeCompare(b.nome))
-      html += `<div class="card"><h3><span>${esc(q.nome)} · ${q.genero === 'M' ? 'Masculino' : 'Feminino'}</span><span class="tag">${membros.length}/${q.cap}</span></h3><ul>`
-      membros.forEach((m) => {
-        const lider = q.lideres.includes(m.id)
-        html += `<li>${lider ? '★ ' : ''}${esc(m.nome)} <span class="tag">${m.tipo === 'Servo' ? 'Servo' : 'Enc.'}</span></li>`
+    // Uma folha A4 por quarto (para colar na porta), nomes grandes e centralizados.
+    // Ordem: líderes do quarto → demais servos → encontristas; alfabético dentro.
+    const papelDe = (q: (typeof s.quartos)[number], m: (typeof atv)[number]) =>
+      q.lideres.includes(m.id) ? 'Líder' : m.tipo === 'Servo' ? 'Servo' : 'Encontrista'
+    const ordem: Record<string, number> = { Líder: 0, Servo: 1, Encontrista: 2 }
+
+    const folhas = s.quartos
+      .map((q) => {
+        const membros = atv
+          .filter((p) => p.quarto === q.id)
+          .map((m) => ({ nome: m.nome, papel: papelDe(q, m) }))
+          .sort((a, b) => ordem[a.papel] - ordem[b.papel] || a.nome.localeCompare(b.nome))
+        const linhas = membros.length
+          ? membros
+              .map(
+                (m) =>
+                  `<div class="membro"><span class="papel">${esc(m.papel)}</span>${esc(m.nome)}</div>`,
+              )
+              .join('')
+          : `<div class="membro" style="color:#999">— quarto vazio —</div>`
+        return `<section class="folha">
+          <div class="titulo">${esc(q.nome)}</div>
+          <div class="subtitulo">${q.genero === 'M' ? 'Masculino' : 'Feminino'} · ${membros.length}/${q.cap}</div>
+          ${linhas}
+        </section>`
       })
-      if (!membros.length) html += `<li><i>vazio</i></li>`
-      html += `</ul></div>`
-    })
-    html += `</div>`
-    imprimirHtml('Alocação de quartos', html)
+      .join('')
+
+    imprimirHtml('Alocação de quartos', folhas)
   }
   const semQuartoG = semQuartoAll.filter((p) => p.genero === s.qGenero)
   const seg = (on: boolean) => (on ? 'on' : '')

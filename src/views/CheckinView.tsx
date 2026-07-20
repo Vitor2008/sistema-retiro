@@ -206,6 +206,28 @@ export function CheckinView() {
                           </button>
                         )}
                         <button
+                          className="btn btn-outline btn-xs"
+                          onClick={() =>
+                            setModal({
+                              type: 'editarInscricao',
+                              pid: p.id,
+                              nome: p.nome,
+                              tel: p.tel,
+                              genero: p.genero,
+                              idade: p.idade != null ? String(p.idade) : '',
+                              dataNascimento: p.dataNascimento,
+                              tipo: p.tipo,
+                              vez: p.vez,
+                              lider: p.lider,
+                              predio: p.predio,
+                              conducao: p.conducao,
+                              forma: p.forma,
+                            })
+                          }
+                        >
+                          Editar
+                        </button>
+                        <button
                           className="btn btn-default btn-xs"
                           style={{ color: 'var(--status-rejected-fg)' }}
                           onClick={() => setModal({ type: 'cancelar', pid: p.id, obs: '' })}

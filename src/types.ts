@@ -229,6 +229,21 @@ export interface ModalDetalhes {
   type: 'detalhes'
   pid: string
 }
+export interface ModalEditarInscricao {
+  type: 'editarInscricao'
+  pid: string
+  nome: string
+  tel: string
+  genero: Genero | ''
+  idade: string
+  dataNascimento: string
+  tipo: TipoInscricao
+  vez: Vez
+  lider: string
+  predio: string
+  conducao: string
+  forma: FormaPagamento
+}
 export interface ModalFecharConta {
   type: 'fecharConta'
   vid: string
@@ -250,6 +265,7 @@ export type Modal =
   | ModalDespesa
   | ModalOferta
   | ModalDetalhes
+  | ModalEditarInscricao
   | ModalFecharConta
   | ModalEditarConta
   | null

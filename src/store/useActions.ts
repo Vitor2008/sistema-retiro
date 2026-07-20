@@ -13,6 +13,7 @@ import type {
   Escala,
   Inscrito,
   ItemVenda,
+  ModalEditarInscricao,
   ModalFecharConta,
   ModalPagamento,
   ModalOferta,
@@ -461,6 +462,44 @@ export function useActions() {
     toast('Comprovante anexado.')
   }
 
+  /** Edição dos dados da inscrição (usado no check-in). Não mexe em pagamentos,
+   *  status, quarto nem comprovante. */
+  const salvarEdicaoInscricao = () => {
+    const s = state
+    const m = s.modal as ModalEditarInscricao
+    if (!m || m.type !== 'editarInscricao') return
+    if (!m.nome.trim() || m.nome.trim().split(/\s+/).length < 2) {
+      toast('Informe o nome completo.')
+      return
+    }
+    if (!m.genero) {
+      toast('Selecione o gênero.')
+      return
+    }
+    patch({
+      inscritos: s.inscritos.map((x) =>
+        x.id === m.pid
+          ? {
+              ...x,
+              nome: m.nome.trim(),
+              tel: m.tel.trim(),
+              genero: m.genero as Inscrito['genero'],
+              idade: Number(m.idade) > 0 ? Math.floor(Number(m.idade)) : null,
+              dataNascimento: m.dataNascimento,
+              tipo: m.tipo,
+              vez: m.tipo === 'Encontrista' ? m.vez : '',
+              lider: m.lider,
+              predio: m.predio,
+              conducao: m.conducao,
+              forma: m.forma,
+            }
+          : x,
+      ),
+      modal: null,
+    })
+    toast('Inscrição atualizada.')
+  }
+
   const confirmarFecharConta = () => {
     const s = state
     const m = s.modal as ModalFecharConta
@@ -563,6 +602,7 @@ export function useActions() {
     salvarDespesa,
     salvarOferta,
     anexarComprovante,
+    salvarEdicaoInscricao,
     confirmarFecharConta,
     salvarEdicaoConta,
     toggleLink,

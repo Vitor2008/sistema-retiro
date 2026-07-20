@@ -149,6 +149,28 @@ export function DetalhesModal({ modal }: { modal: ModalDetalhes }) {
         )}
         <div style={{ display: 'flex', gap: 8 }}>
           <button className="btn btn-default" onClick={closeModal}>Fechar</button>
+          <button
+            className="btn btn-outline"
+            onClick={() =>
+              setModal({
+                type: 'editarInscricao',
+                pid: p.id,
+                nome: p.nome,
+                tel: p.tel,
+                genero: p.genero,
+                idade: p.idade != null ? String(p.idade) : '',
+                dataNascimento: p.dataNascimento,
+                tipo: p.tipo,
+                vez: p.vez,
+                lider: p.lider,
+                predio: p.predio,
+                conducao: p.conducao,
+                forma: p.forma,
+              })
+            }
+          >
+            Editar inscrição
+          </button>
           {!cancelada && (
             <button
               className="btn btn-primary"
