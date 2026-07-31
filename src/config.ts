@@ -36,9 +36,8 @@ export const appConfig: AppConfig = {
     versiculoRef: 'Jeremias 33:3',
     pixChave: '09.172.041/0001-30',
     pixInfo: 'CNPJ · SICREDI',
-    // Coloque o arquivo do QR Code em /public (ex.: public/qrcode-pix.png) e
-    // ajuste o caminho abaixo. Vazio = não exibe o QR.
-    qrCodeUrl: '',
+    // Salve a imagem do QR Code em public/qrcode-pix.png. Vazio = não exibe o QR.
+    qrCodeUrl: '/qrcode-pix.png',
     // Link de pagamento por cartão (débito/crédito), se houver. Vazio = não exibe.
     linkPagamento: '',
   },

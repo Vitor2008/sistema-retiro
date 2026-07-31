@@ -417,36 +417,49 @@ export function InscricaoPublica() {
                   Investimento: <span style={{ color: 'var(--color-primary)' }}>{fmt(retiro.valor)}</span> por pessoa
                 </div>
 
-                <div style={{ background: 'var(--bg-app)', border: '1px solid var(--border-default)', borderRadius: 8, padding: '12px 14px', marginBottom: 14 }}>
-                  <div style={{ fontSize: 12, color: 'var(--fg-muted)', marginBottom: 4 }}>
-                    Chave PIX {cfg.pixInfo ? `(${cfg.pixInfo})` : ''}
-                  </div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                    <span className="mono" style={{ fontSize: 14, fontWeight: 600, flex: 1, wordBreak: 'break-all' }}>{cfg.pixChave}</span>
-                    <button className="btn btn-default btn-xs" style={{ flexShrink: 0 }} onClick={copiarPix}>
-                      {pixCopiado ? 'Copiado!' : 'Copiar'}
-                    </button>
-                  </div>
-                  {cfg.qrCodeUrl && (
-                    <div style={{ textAlign: 'center', marginTop: 12 }}>
-                      <img src={cfg.qrCodeUrl} alt="QR Code PIX" style={{ width: 180, height: 180, objectFit: 'contain' }} />
-                    </div>
-                  )}
-                  {(retiro.linkPagamento || cfg.linkPagamento) && (
-                    <a href={retiro.linkPagamento || cfg.linkPagamento} target="_blank" rel="noopener noreferrer"
-                      className="btn btn-outline btn-sm" style={{ marginTop: 12, width: '100%', justifyContent: 'center' }}>
-                      Pagar com cartão (débito/crédito)
-                    </a>
-                  )}
-                </div>
-
                 <Campo label="Forma de pagamento *" erro={erros.forma ? 'Selecione a forma de pagamento.' : ''}>
                   <div style={{ display: 'flex', gap: 8 }}>
                     <BotaoSel on={form.forma === 'Pix'} onClick={() => setF({ forma: 'Pix' })}>PIX</BotaoSel>
                     <BotaoSel on={form.forma === 'Cartão'} onClick={() => setF({ forma: 'Cartão' })}>Cartão</BotaoSel>
-                    <BotaoSel on={form.forma === 'Dinheiro'} onClick={() => setF({ forma: 'Dinheiro' })}>Dinheiro</BotaoSel>
                   </div>
                 </Campo>
+
+                {form.forma === 'Pix' && (
+                  <div style={{ background: 'var(--bg-app)', border: '1px solid var(--border-default)', borderRadius: 8, padding: '12px 14px', marginTop: 14 }}>
+                    <div style={{ fontSize: 12, color: 'var(--fg-muted)', marginBottom: 4 }}>
+                      Chave PIX {cfg.pixInfo ? `(${cfg.pixInfo})` : ''}
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <span className="mono" style={{ fontSize: 14, fontWeight: 600, flex: 1, wordBreak: 'break-all' }}>{cfg.pixChave}</span>
+                      <button className="btn btn-default btn-xs" style={{ flexShrink: 0 }} onClick={copiarPix}>
+                        {pixCopiado ? 'Copiado!' : 'Copiar'}
+                      </button>
+                    </div>
+                    {cfg.qrCodeUrl && (
+                      <div style={{ textAlign: 'center', marginTop: 12 }}>
+                        <div style={{ fontSize: 12, color: 'var(--fg-muted)', marginBottom: 6 }}>
+                          Aponte a câmera do celular para o QR Code
+                        </div>
+                        <img src={cfg.qrCodeUrl} alt="QR Code PIX" style={{ width: 200, height: 200, objectFit: 'contain' }} />
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {form.forma === 'Cartão' && (
+                  <div style={{ marginTop: 14 }}>
+                    {retiro.linkPagamento || cfg.linkPagamento ? (
+                      <a href={retiro.linkPagamento || cfg.linkPagamento} target="_blank" rel="noopener noreferrer"
+                        className="btn btn-primary" style={{ width: '100%', justifyContent: 'center', padding: 12 }}>
+                        Pagar com cartão (débito/crédito)
+                      </a>
+                    ) : (
+                      <div style={{ fontSize: 12, color: 'var(--fg-muted)', background: 'var(--bg-app)', border: '1px solid var(--border-default)', borderRadius: 8, padding: '10px 12px' }}>
+                        Link de pagamento por cartão ainda não configurado para este evento.
+                      </div>
+                    )}
+                  </div>
+                )}
 
                 <div style={{ marginTop: 14 }}>
                   <label style={{ fontSize: 12, fontWeight: 600, display: 'block', marginBottom: 5 }}>
