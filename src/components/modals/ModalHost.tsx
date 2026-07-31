@@ -17,13 +17,19 @@ export function ModalHost() {
   if (!m) return null
 
   const width =
-    m.type === 'pagamento' || m.type === 'detalhes' || m.type === 'editarInscricao'
-      ? '560px'
-      : '460px'
+    m.type === 'retiro'
+      ? '680px'
+      : m.type === 'pagamento' || m.type === 'detalhes' || m.type === 'editarInscricao'
+        ? '560px'
+        : '460px'
+
+  // O modal de evento (criar/editar) não fecha ao clicar fora — evita perder o
+  // que está sendo preenchido por engano.
+  const fechaAoClicarFora = m.type !== 'retiro'
 
   return (
     <div
-      onClick={closeModal}
+      onClick={fechaAoClicarFora ? closeModal : undefined}
       style={{ position: 'fixed', inset: 0, background: 'var(--bg-overlay)', zIndex: 100, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16, animation: 'fadeIn .15s var(--ease-default)' }}
     >
       <div

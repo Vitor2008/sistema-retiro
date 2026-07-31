@@ -85,6 +85,12 @@ export interface Retiro {
   oferta: number
   local: string
   saida: string
+  tipo: string
+  descricao: string
+  linkPagamento: string
+  mostrarLider: boolean
+  mostrarPredio: boolean
+  mostrarConducao: boolean
   aberto: boolean
   slug: string
   bannerId: string | null

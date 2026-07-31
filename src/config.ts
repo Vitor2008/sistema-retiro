@@ -1,5 +1,17 @@
 import type { AppConfig } from './types'
 
+/** Prédios (igrejas/edifícios) disponíveis. O admin seleciona quais participam
+ *  de cada evento. Lista fixa — para incluir um novo prédio, adicione aqui. */
+export const PREDIOS_DISPONIVEIS = [
+  'IMEL - Areão',
+  'IMEL - Imperial',
+  'IMEL - Leverger',
+  'IMEL - CPA',
+  'IMEL - DR. FABIO',
+  'IMEL - ALTOS DA GLORIA',
+  'IMEL - VG',
+]
+
 /** Configuração do app — equivalente aos "props" editáveis do protótipo.
  *  Centralizado aqui para facilitar virar variáveis de ambiente/tela de
  *  ajustes no futuro. */

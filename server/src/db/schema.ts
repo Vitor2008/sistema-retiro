@@ -39,6 +39,16 @@ export const retiros = pgTable('retiros', {
   /** Local do retiro e ponto de saída — exibidos no formulário público. */
   local: text('local').notNull().default(''),
   saida: text('saida').notNull().default(''),
+  /** Tipo do evento: 'retiro' (template fixo) ou 'avulso' (descrição livre). */
+  tipo: text('tipo').notNull().default('retiro'),
+  /** Descrição livre exibida no formulário quando o evento é avulso. */
+  descricao: text('descricao').notNull().default(''),
+  /** Link de pagamento (cartão/checkout) exibido no formulário público. */
+  linkPagamento: text('link_pagamento').notNull().default(''),
+  /** Controla quais campos aparecem no formulário público de inscrição. */
+  mostrarLider: boolean('mostrar_lider').notNull().default(true),
+  mostrarPredio: boolean('mostrar_predio').notNull().default(true),
+  mostrarConducao: boolean('mostrar_conducao').notNull().default(true),
   aberto: boolean('aberto').notNull().default(true),
   /** Slug único para o link público de inscrição. */
   slug: text('slug').notNull().default(''),

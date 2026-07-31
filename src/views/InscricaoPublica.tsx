@@ -25,6 +25,12 @@ interface RetiroPublico {
   max: number
   local: string
   saida: string
+  tipo: string
+  descricao: string
+  linkPagamento: string
+  mostrarLider: boolean
+  mostrarPredio: boolean
+  mostrarConducao: boolean
   slug: string
   bannerId: string | null
   lideres: { nome: string; predio: string }[]
@@ -135,10 +141,10 @@ export function InscricaoPublica() {
     if (!form.genero) e.genero = true
     if (!form.tel.trim()) e.tel = true
     if (!form.dataNascimento) e.dataNascimento = true
-    if (form.tipo === 'Encontrista' && !form.vez) e.vez = true
-    if (!form.lider.trim()) e.lider = true
-    if (!form.predio) e.predio = true
-    if (!form.conducao) e.conducao = true
+    if (retiro?.tipo !== 'avulso' && form.tipo === 'Encontrista' && !form.vez) e.vez = true
+    if (retiro?.mostrarLider !== false && !form.lider.trim()) e.lider = true
+    if (retiro?.mostrarPredio !== false && !form.predio) e.predio = true
+    if (retiro?.mostrarConducao !== false && !form.conducao) e.conducao = true
     if (!form.forma) e.forma = true
     setErros(e)
     return Object.keys(e).length === 0
@@ -258,28 +264,37 @@ export function InscricaoPublica() {
 
         {fase === 'aberto' && retiro && (
           <>
-            {/* ---- Conteúdo institucional (fixo) ---- */}
+            {/* ---- Conteúdo do evento ---- */}
             <Cartao>
-              <h2 style={{ textAlign: 'center' }}>{cfg.subtitulo}</h2>
-              <p style={{ marginTop: 12 }}>{cfg.descricao}</p>
-
-              <div style={{ marginTop: 16, display: 'flex', flexDirection: 'column', gap: 6 }}>
-                {cfg.incluidos.map((item) => (
-                  <div key={item} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 14 }}>
-                    <span style={{ color: 'var(--color-sage)' }}>✔️</span>
-                    {item}
+              {retiro.tipo === 'avulso' ? (
+                // Evento avulso: descrição livre informada pelo organizador.
+                retiro.descricao ? (
+                  <p style={{ whiteSpace: 'pre-wrap' }}>{retiro.descricao}</p>
+                ) : null
+              ) : (
+                // Retiro: template fixo (subtítulo, descrição, o que inclui).
+                <>
+                  <h2 style={{ textAlign: 'center' }}>{cfg.subtitulo}</h2>
+                  <p style={{ marginTop: 12 }}>{cfg.descricao}</p>
+                  <div style={{ marginTop: 16, display: 'flex', flexDirection: 'column', gap: 6 }}>
+                    {cfg.incluidos.map((item) => (
+                      <div key={item} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 14 }}>
+                        <span style={{ color: 'var(--color-sage)' }}>✔️</span>
+                        {item}
+                      </div>
+                    ))}
                   </div>
-                ))}
-              </div>
+                </>
+              )}
 
               <div style={{ marginTop: 16, display: 'flex', flexDirection: 'column', gap: 6, fontSize: 14 }}>
                 <InfoLinha emoji="🗓" texto={<><b>Data:</b> {periodo}</>} />
                 {retiro.local && <InfoLinha emoji="📍" texto={<><b>Local:</b> {retiro.local}</>} />}
-                {retiro.saida && <InfoLinha emoji="🚌" texto={<><b>Saída:</b> {retiro.saida}</>} />}
+                {retiro.tipo !== 'avulso' && retiro.saida && <InfoLinha emoji="🚌" texto={<><b>Saída:</b> {retiro.saida}</>} />}
                 <InfoLinha emoji="📌" texto={<><b>{retiro.vagasRestantes}</b> vagas restantes — garanta a sua!</>} />
               </div>
 
-              {cfg.versiculo && (
+              {retiro.tipo !== 'avulso' && cfg.versiculo && (
                 <blockquote style={{ marginTop: 16, padding: '10px 14px', borderLeft: '3px solid var(--color-secondary)', background: 'var(--color-secondary-tint)', borderRadius: 6, fontStyle: 'italic', fontSize: 13 }}>
                   “{cfg.versiculo}”
                   <div style={{ marginTop: 4, fontStyle: 'normal', fontWeight: 600, color: 'var(--color-secondary-hover)' }}>— {cfg.versiculoRef}</div>
@@ -327,18 +342,21 @@ export function InscricaoPublica() {
                     </Campo>
                   </div>
 
-                  <Campo label="Você está indo como? *">
-                    <div style={{ display: 'flex', gap: 8 }}>
-                      <BotaoSel on={form.tipo === 'Encontrista'} onClick={() => setF({ tipo: 'Encontrista' })}>
-                        Convidado
-                      </BotaoSel>
-                      <BotaoSel on={form.tipo === 'Servo'} onClick={() => setF({ tipo: 'Servo', vez: '' })}>
-                        Voluntário / Servo
-                      </BotaoSel>
-                    </div>
-                  </Campo>
+                  {/* "Como está indo" e "vez" não se aplicam a eventos avulsos. */}
+                  {retiro.tipo !== 'avulso' && (
+                    <Campo label="Você está indo como? *">
+                      <div style={{ display: 'flex', gap: 8 }}>
+                        <BotaoSel on={form.tipo === 'Encontrista'} onClick={() => setF({ tipo: 'Encontrista' })}>
+                          Convidado
+                        </BotaoSel>
+                        <BotaoSel on={form.tipo === 'Servo'} onClick={() => setF({ tipo: 'Servo', vez: '' })}>
+                          Voluntário / Servo
+                        </BotaoSel>
+                      </div>
+                    </Campo>
+                  )}
 
-                  {form.tipo === 'Encontrista' && (
+                  {retiro.tipo !== 'avulso' && form.tipo === 'Encontrista' && (
                     <Campo label="Se convidado, é a sua… *" erro={erros.vez ? 'Selecione uma opção.' : ''}>
                       <div style={{ display: 'flex', gap: 8 }}>
                         <BotaoSel on={form.vez === '1ª Vez'} onClick={() => setF({ vez: '1ª Vez' })}>1ª Vez</BotaoSel>
@@ -348,37 +366,45 @@ export function InscricaoPublica() {
                     </Campo>
                   )}
 
-                  <Campo label="Quem lhe convidou? (líder) *" erro={erros.lider ? 'Selecione quem convidou.' : ''}>
-                    <select className="input" value={form.lider} onChange={(e) => setF({ lider: e.target.value })}>
-                      <option value="">
-                        {form.predio ? 'Selecione o líder…' : 'Escolha o prédio primeiro…'}
-                      </option>
-                      {retiro.lideres
-                        .filter((l) => !form.predio || l.predio === form.predio || !l.predio)
-                        .map((l) => (
-                          <option key={l.nome + '|' + l.predio} value={l.nome}>{l.nome}</option>
-                        ))}
-                    </select>
-                  </Campo>
+                  {retiro.mostrarLider && (
+                    <Campo label="Quem lhe convidou? (líder) *" erro={erros.lider ? 'Selecione quem convidou.' : ''}>
+                      <select className="input" value={form.lider} onChange={(e) => setF({ lider: e.target.value })}>
+                        <option value="">
+                          {!retiro.mostrarPredio || form.predio ? 'Selecione o líder…' : 'Escolha o prédio primeiro…'}
+                        </option>
+                        {retiro.lideres
+                          .filter((l) => !form.predio || l.predio === form.predio || !l.predio)
+                          .map((l) => (
+                            <option key={l.nome + '|' + l.predio} value={l.nome}>{l.nome}</option>
+                          ))}
+                      </select>
+                    </Campo>
+                  )}
 
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-                    <Campo label="Qual prédio? *" erro={erros.predio ? 'Selecione o prédio.' : ''}>
-                      <select className="input" value={form.predio} onChange={(e) => setF({ predio: e.target.value })}>
-                        <option value="">Selecione…</option>
-                        {retiro.predios.map((p) => (
-                          <option key={p} value={p}>{p}</option>
-                        ))}
-                      </select>
-                    </Campo>
-                    <Campo label="Como pretende ir? *" erro={erros.conducao ? 'Selecione a condução.' : ''}>
-                      <select className="input" value={form.conducao} onChange={(e) => setF({ conducao: e.target.value })}>
-                        <option value="">Selecione…</option>
-                        {retiro.conducoes.map((c) => (
-                          <option key={c} value={c}>{c}</option>
-                        ))}
-                      </select>
-                    </Campo>
-                  </div>
+                  {(retiro.mostrarPredio || retiro.mostrarConducao) && (
+                    <div style={{ display: 'grid', gridTemplateColumns: retiro.mostrarPredio && retiro.mostrarConducao ? '1fr 1fr' : '1fr', gap: 12 }}>
+                      {retiro.mostrarPredio && (
+                        <Campo label="Qual prédio? *" erro={erros.predio ? 'Selecione o prédio.' : ''}>
+                          <select className="input" value={form.predio} onChange={(e) => setF({ predio: e.target.value })}>
+                            <option value="">Selecione…</option>
+                            {retiro.predios.map((p) => (
+                              <option key={p} value={p}>{p}</option>
+                            ))}
+                          </select>
+                        </Campo>
+                      )}
+                      {retiro.mostrarConducao && (
+                        <Campo label="Como pretende ir? *" erro={erros.conducao ? 'Selecione a condução.' : ''}>
+                          <select className="input" value={form.conducao} onChange={(e) => setF({ conducao: e.target.value })}>
+                            <option value="">Selecione…</option>
+                            {retiro.conducoes.map((c) => (
+                              <option key={c} value={c}>{c}</option>
+                            ))}
+                          </select>
+                        </Campo>
+                      )}
+                    </div>
+                  )}
                 </div>
               </Cartao>
             </div>
@@ -406,8 +432,8 @@ export function InscricaoPublica() {
                       <img src={cfg.qrCodeUrl} alt="QR Code PIX" style={{ width: 180, height: 180, objectFit: 'contain' }} />
                     </div>
                   )}
-                  {cfg.linkPagamento && (
-                    <a href={cfg.linkPagamento} target="_blank" rel="noopener noreferrer"
+                  {(retiro.linkPagamento || cfg.linkPagamento) && (
+                    <a href={retiro.linkPagamento || cfg.linkPagamento} target="_blank" rel="noopener noreferrer"
                       className="btn btn-outline btn-sm" style={{ marginTop: 12, width: '100%', justifyContent: 'center' }}>
                       Pagar com cartão (débito/crédito)
                     </a>

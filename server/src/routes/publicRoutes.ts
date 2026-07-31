@@ -52,6 +52,12 @@ publicRoutes.get('/retiro/:slug', async (req, res, next) => {
       max: r.max,
       local: r.local,
       saida: r.saida,
+      tipo: r.tipo,
+      descricao: r.descricao,
+      linkPagamento: r.linkPagamento,
+      mostrarLider: r.mostrarLider,
+      mostrarPredio: r.mostrarPredio,
+      mostrarConducao: r.mostrarConducao,
       slug: r.slug,
       bannerId: r.bannerId,
       lideres,
@@ -130,10 +136,11 @@ publicRoutes.post('/inscricao/:slug', async (req, res, next) => {
     if (!genero) return res.status(400).json({ error: 'Selecione o gênero.' })
     if (!tel) return res.status(400).json({ error: 'Informe o telefone.' })
     if (!dataNascimento) return res.status(400).json({ error: 'Informe a data de nascimento.' })
-    if (tipo === 'Encontrista' && !vez) return res.status(400).json({ error: 'Selecione se é a 1ª, 2ª ou mais vezes.' })
-    if (!lider) return res.status(400).json({ error: 'Informe quem convidou.' })
-    if (!predio) return res.status(400).json({ error: 'Selecione o prédio.' })
-    if (!conducao) return res.status(400).json({ error: 'Selecione a condução.' })
+    if (r.tipo !== 'avulso' && tipo === 'Encontrista' && !vez) return res.status(400).json({ error: 'Selecione se é a 1ª, 2ª ou mais vezes.' })
+    // Campos condicionais: só são obrigatórios se o evento os exibe.
+    if (r.mostrarLider && !lider) return res.status(400).json({ error: 'Informe quem convidou.' })
+    if (r.mostrarPredio && !predio) return res.status(400).json({ error: 'Selecione o prédio.' })
+    if (r.mostrarConducao && !conducao) return res.status(400).json({ error: 'Selecione a condução.' })
     if (!forma) return res.status(400).json({ error: 'Selecione a forma de pagamento.' })
 
     const inscrito: Inscrito = {

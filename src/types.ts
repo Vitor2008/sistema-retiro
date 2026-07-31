@@ -3,6 +3,7 @@
 // ============================================================================
 
 export type Genero = 'M' | 'F'
+export type TipoEvento = 'retiro' | 'avulso'
 export type TipoInscricao = 'Encontrista' | 'Servo'
 export type StatusInscricao = 'pendente' | 'confirmada' | 'cancelada'
 export type StatusPagamento = 'pendente' | 'parcial' | 'confirmado'
@@ -130,6 +131,15 @@ export interface Retiro {
   /** Local do retiro e ponto de saída — exibidos no formulário público. */
   local: string
   saida: string
+  /** 'retiro' usa o template fixo; 'avulso' usa a descrição livre. */
+  tipo: TipoEvento
+  descricao: string
+  /** Link de pagamento (cartão/checkout) exibido no formulário público. */
+  linkPagamento: string
+  /** Controlam quais campos aparecem no formulário público de inscrição. */
+  mostrarLider: boolean
+  mostrarPredio: boolean
+  mostrarConducao: boolean
   aberto: boolean
   slug: string
   /** id do arquivo (banner) exibido no formulário público. */
@@ -199,6 +209,9 @@ export interface ModalRetiro {
   max: string
   local: string
   saida: string
+  tipoEvento: TipoEvento
+  descricao: string
+  linkPagamento: string
   bannerId: string | null
 }
 export interface ModalQuarto {

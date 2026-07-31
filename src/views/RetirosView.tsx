@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { PREDIOS_DISPONIVEIS } from '../config'
 import { fmt, fmtData } from '../lib/format'
 import { useRetiro } from '../store/RetiroContext'
 import { useRetiroSelection } from '../store/RetiroSelection'
@@ -18,7 +19,6 @@ export function RetirosView() {
   const { retiros, select } = useRetiroSelection()
   const [novoLiderNome, setNovoLiderNome] = useState('')
   const [novoLiderPredio, setNovoLiderPredio] = useState('')
-  const [novoPredio, setNovoPredio] = useState('')
   const [novaConducao, setNovaConducao] = useState('')
 
   const valor = state.retiro.valor
@@ -52,18 +52,14 @@ export function RetirosView() {
   const removeLider = (idx: number) =>
     patch({ lideres: state.lideres.filter((_, i) => i !== idx) })
 
-  const addPredio = () => {
-    const nome = novoPredio.trim()
-    if (!nome) return
-    if (state.predios.some((p) => p.toLowerCase() === nome.toLowerCase())) {
-      toast('Esse prédio já está cadastrado.')
-      return
-    }
-    patch({ predios: [...state.predios, nome] })
-    setNovoPredio('')
-  }
-  const removePredio = (nome: string) =>
-    patch({ predios: state.predios.filter((p) => p !== nome) })
+  // Prédios: lista fixa; o admin marca quais participam do evento.
+  const prediosOpcoes = Array.from(new Set([...PREDIOS_DISPONIVEIS, ...state.predios]))
+  const togglePredio = (nome: string) =>
+    patch({
+      predios: state.predios.includes(nome)
+        ? state.predios.filter((p) => p !== nome)
+        : [...state.predios, nome],
+    })
 
   const addConducao = () => {
     const nome = novaConducao.trim()
@@ -79,7 +75,7 @@ export function RetirosView() {
     patch({ conducoes: state.conducoes.filter((c) => c !== nome) })
 
   const abrirNovoRetiro = () =>
-    setModal({ type: 'retiro', novo: true, nome: '', inicio: '', fim: '', valor: '260', max: '45', local: '', saida: '', bannerId: null })
+    setModal({ type: 'retiro', novo: true, nome: '', inicio: '', fim: '', valor: '260', max: '45', local: '', saida: '', tipoEvento: 'retiro', descricao: '', linkPagamento: '', bannerId: null })
 
   const editarRetiro = () =>
     setModal({
@@ -92,6 +88,9 @@ export function RetirosView() {
       max: String(state.retiro.max),
       local: state.retiro.local,
       saida: state.retiro.saida,
+      tipoEvento: state.retiro.tipo,
+      descricao: state.retiro.descricao,
+      linkPagamento: state.retiro.linkPagamento,
       bannerId: state.retiro.bannerId,
     })
 
@@ -222,7 +221,13 @@ export function RetirosView() {
       <div className="tbl-wrap" style={{ marginTop: 8 }}>
         <div className="tbl-head-bar">
           <h3>Líderes</h3>
-          <span style={{ fontSize: 12, color: 'var(--fg-muted)' }}>{state.lideres.length} cadastrado(s)</span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+            <ToggleMostrar
+              on={state.retiro.mostrarLider}
+              onChange={(v) => patch({ retiro: { ...state.retiro, mostrarLider: v } })}
+            />
+            <span style={{ fontSize: 12, color: 'var(--fg-muted)' }}>{state.lideres.length} cadastrado(s)</span>
+          </div>
         </div>
         <div style={{ padding: '14px 16px' }}>
           <div style={{ fontSize: 12, color: 'var(--fg-muted)', marginBottom: 10 }}>
@@ -278,17 +283,38 @@ export function RetirosView() {
         </div>
       </div>
 
-      <ListaChips
-        titulo="Prédios"
-        descricao="Prédios participando deste evento (campo “Qual prédio?” do formulário)."
-        itens={state.predios}
-        valor={novoPredio}
-        setValor={setNovoPredio}
-        onAdd={addPredio}
-        onRemove={removePredio}
-        placeholder="Nome do prédio"
-        vazio="Nenhum prédio cadastrado ainda."
-      />
+      {/* Prédios — lista fixa; marque os participantes deste evento */}
+      <div className="tbl-wrap" style={{ marginTop: 8 }}>
+        <div className="tbl-head-bar">
+          <h3>Prédios participantes</h3>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+            <ToggleMostrar
+              on={state.retiro.mostrarPredio}
+              onChange={(v) => patch({ retiro: { ...state.retiro, mostrarPredio: v } })}
+            />
+            <span style={{ fontSize: 12, color: 'var(--fg-muted)' }}>{state.predios.length} selecionado(s)</span>
+          </div>
+        </div>
+        <div style={{ padding: '14px 16px' }}>
+          <div style={{ fontSize: 12, color: 'var(--fg-muted)', marginBottom: 10 }}>
+            Marque os prédios que participam deste evento (campo “Qual prédio?” do formulário).
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: 8 }}>
+            {prediosOpcoes.map((nome) => {
+              const on = state.predios.includes(nome)
+              return (
+                <label
+                  key={nome}
+                  style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, cursor: 'pointer', padding: '7px 10px', borderRadius: 8, border: '1px solid ' + (on ? 'var(--color-primary)' : 'var(--border-default)'), background: on ? 'var(--color-primary-tint)' : '#fff' }}
+                >
+                  <input type="checkbox" checked={on} onChange={() => togglePredio(nome)} style={{ width: 16, height: 16, accentColor: 'var(--color-primary)' }} />
+                  {nome}
+                </label>
+              )
+            })}
+          </div>
+        </div>
+      </div>
 
       <ListaChips
         titulo="Conduções"
@@ -300,8 +326,23 @@ export function RetirosView() {
         onRemove={removeConducao}
         placeholder="Ex.: Ônibus do Encontro"
         vazio="Nenhuma condução cadastrada ainda."
+        mostrar={state.retiro.mostrarConducao}
+        onToggleMostrar={(v) => patch({ retiro: { ...state.retiro, mostrarConducao: v } })}
       />
     </div>
+  )
+}
+
+/** Alterna se o campo aparece no formulário público. */
+function ToggleMostrar({ on, onChange }: { on: boolean; onChange: (v: boolean) => void }) {
+  return (
+    <label
+      style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12, cursor: 'pointer', color: on ? 'var(--color-primary)' : 'var(--fg-muted)', fontWeight: 600 }}
+      title="Mostrar/ocultar este campo no formulário de inscrição"
+    >
+      <input type="checkbox" checked={on} onChange={(e) => onChange(e.target.checked)} style={{ width: 15, height: 15, accentColor: 'var(--color-primary)' }} />
+      {on ? 'Exibindo no formulário' : 'Oculto no formulário'}
+    </label>
   )
 }
 
@@ -316,6 +357,8 @@ function ListaChips({
   onRemove,
   placeholder,
   vazio,
+  mostrar,
+  onToggleMostrar,
 }: {
   titulo: string
   descricao: string
@@ -326,12 +369,17 @@ function ListaChips({
   onRemove: (nome: string) => void
   placeholder: string
   vazio: string
+  mostrar?: boolean
+  onToggleMostrar?: (v: boolean) => void
 }) {
   return (
     <div className="tbl-wrap" style={{ marginTop: 8 }}>
       <div className="tbl-head-bar">
         <h3>{titulo}</h3>
-        <span style={{ fontSize: 12, color: 'var(--fg-muted)' }}>{itens.length} cadastrado(s)</span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+          {onToggleMostrar && <ToggleMostrar on={!!mostrar} onChange={onToggleMostrar} />}
+          <span style={{ fontSize: 12, color: 'var(--fg-muted)' }}>{itens.length} cadastrado(s)</span>
+        </div>
       </div>
       <div style={{ padding: '14px 16px' }}>
         <div style={{ fontSize: 12, color: 'var(--fg-muted)', marginBottom: 10 }}>{descricao}</div>

@@ -1,0 +1,1 @@
+ALTER TABLE "retiros" ADD COLUMN "link_pagamento" text DEFAULT '' NOT NULL;

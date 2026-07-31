@@ -64,6 +64,9 @@ export function RetiroModal({ modal }: { modal: ModalRetiro }) {
         max: Number(modal.max) || 0,
         local: modal.local,
         saida: modal.saida,
+        tipo: modal.tipoEvento,
+        descricao: modal.descricao,
+        linkPagamento: modal.linkPagamento,
         bannerId: modal.bannerId,
       })
       closeModal()
@@ -80,6 +83,27 @@ export function RetiroModal({ modal }: { modal: ModalRetiro }) {
         <div>
           <label style={label}>Nome / edição do evento</label>
           <input className="input" value={modal.nome} onChange={(e) => patchModal({ nome: e.target.value })} placeholder="Ex.: nome do evento" />
+        </div>
+        <div>
+          <label style={label}>Tipo de evento</label>
+          <div style={{ display: 'flex', gap: 8 }}>
+            <button
+              type="button"
+              className={'btn btn-sm ' + (modal.tipoEvento === 'retiro' ? 'btn-primary' : 'btn-default')}
+              style={{ flex: 1, justifyContent: 'center' }}
+              onClick={() => patchModal({ tipoEvento: 'retiro' })}
+            >
+              Retiro (template fixo)
+            </button>
+            <button
+              type="button"
+              className={'btn btn-sm ' + (modal.tipoEvento === 'avulso' ? 'btn-primary' : 'btn-default')}
+              style={{ flex: 1, justifyContent: 'center' }}
+              onClick={() => patchModal({ tipoEvento: 'avulso' })}
+            >
+              Avulso (descrição livre)
+            </button>
+          </div>
         </div>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
           <div>
@@ -105,10 +129,28 @@ export function RetiroModal({ modal }: { modal: ModalRetiro }) {
           <label style={label}>Local (exibido no formulário público)</label>
           <input className="input" value={modal.local} onChange={(e) => patchModal({ local: e.target.value })} placeholder="Ex.: Chácara da Igreja (detalhes enviados após a inscrição)" />
         </div>
-        <div>
-          <label style={label}>Ponto e horário de saída</label>
-          <input className="input" value={modal.saida} onChange={(e) => patchModal({ saida: e.target.value })} placeholder="Ex.: Sexta-feira, 20h, no Prédio do Areão" />
-        </div>
+        {modal.tipoEvento !== 'avulso' && (
+          <div>
+            <label style={label}>Ponto e horário de saída</label>
+            <input className="input" value={modal.saida} onChange={(e) => patchModal({ saida: e.target.value })} placeholder="Ex.: Sexta-feira, 20h, no Prédio do Areão" />
+          </div>
+        )}
+
+        {modal.tipoEvento === 'avulso' && (
+          <div>
+            <label style={label}>Descrição do evento (exibida no formulário público)</label>
+            <textarea
+              className="input"
+              style={{ minHeight: 130, resize: 'vertical', fontFamily: 'inherit' }}
+              value={modal.descricao}
+              onChange={(e) => patchModal({ descricao: e.target.value })}
+              placeholder={'Escreva a descrição do evento.\nPode usar várias linhas — o que inclui, horários, orientações, etc.'}
+            />
+            <div style={{ fontSize: 11, color: 'var(--fg-muted)', marginTop: 4 }}>
+              Para eventos avulsos, este texto substitui o template fixo do retiro no formulário.
+            </div>
+          </div>
+        )}
 
         <div>
           <label style={label}>Banner do formulário público (imagem)</label>
@@ -131,6 +173,20 @@ export function RetiroModal({ modal }: { modal: ModalRetiro }) {
               Remover banner
             </button>
           )}
+        </div>
+
+        <div>
+          <label style={label}>Link de pagamento (cartão/checkout) — opcional</label>
+          <input
+            className="input"
+            type="url"
+            value={modal.linkPagamento}
+            onChange={(e) => patchModal({ linkPagamento: e.target.value })}
+            placeholder="https://..."
+          />
+          <div style={{ fontSize: 11, color: 'var(--fg-muted)', marginTop: 4 }}>
+            Se preenchido, aparece como botão “Pagar com cartão” no formulário público.
+          </div>
         </div>
 
         <div style={{ fontSize: 12, color: 'var(--fg-muted)' }}>
