@@ -6,6 +6,31 @@ import { useActions } from '../../store/useActions'
 import { ofertado, pago, porId, statusPag } from '../../store/selectors'
 import type { ModalDetalhes } from '../../types'
 
+/** 'YYYY-MM-DD' → 'DD/MM/AAAA'. */
+function dataBR(s: string): string {
+  if (!s) return ''
+  const [y, m, d] = s.slice(0, 10).split('-')
+  return d && m && y ? `${d}/${m}/${y}` : s
+}
+/** ISO → 'DD/MM/AAAA HH:mm' (fuso local). */
+function dataHoraBR(iso: string): string {
+  if (!iso) return ''
+  const dt = new Date(iso)
+  if (isNaN(dt.getTime())) return ''
+  return dt.toLocaleString('pt-BR', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  })
+}
+/** Fallback: extrai o timestamp do id da inscrição pública ('p' + Date.now()). */
+function isoDoId(id: string): string {
+  const m = /^p(\d{13})/.exec(id)
+  return m ? new Date(Number(m[1])).toISOString() : ''
+}
+
 const pagInfo: Record<string, [string, string]> = {
   confirmado: ['chip-approved', 'Pago'],
   parcial: ['chip-progress', 'Parcial'],
@@ -43,6 +68,9 @@ export function DetalhesModal({ modal }: { modal: ModalDetalhes }) {
   const sp = statusPag(state, p)
   const cancelada = p.statusInscricao === 'cancelada'
   const genero = p.genero === 'M' ? 'Homem' : p.genero === 'F' ? 'Mulher' : '—'
+  const avulso = state.retiro.tipo === 'avulso'
+  const dataInscricao = dataHoraBR(p.criadoEm || isoDoId(p.id))
+  const quitado = p.statusInscricao === 'confirmada' && sp === 'confirmado'
 
   return (
     <div style={{ padding: '22px 24px' }}>
@@ -52,9 +80,11 @@ export function DetalhesModal({ modal }: { modal: ModalDetalhes }) {
         <div style={{ flex: 1 }}>
           <h3>{p.nome}</h3>
           <div style={{ display: 'flex', gap: 6, marginTop: 4, flexWrap: 'wrap' }}>
-            <span className="chip-mini" style={{ background: p.tipo === 'Servo' ? 'var(--color-primary-tint)' : 'var(--color-secondary-tint)', color: p.tipo === 'Servo' ? 'var(--color-primary)' : 'var(--color-secondary-hover)' }}>
-              {p.tipo === 'Servo' ? 'Voluntário / Servo' : 'Convidado'}
-            </span>
+            {!avulso && (
+              <span className="chip-mini" style={{ background: p.tipo === 'Servo' ? 'var(--color-primary-tint)' : 'var(--color-secondary-tint)', color: p.tipo === 'Servo' ? 'var(--color-primary)' : 'var(--color-secondary-hover)' }}>
+                {p.tipo === 'Servo' ? 'Voluntário / Servo' : 'Convidado'}
+              </span>
+            )}
             <span className={'chip-mini ' + (insInfo[p.statusInscricao]?.[0] ?? '')}>{insInfo[p.statusInscricao]?.[1] ?? p.statusInscricao}</span>
             <span className={'chip-mini ' + (pagInfo[sp]?.[0] ?? '')}>{pagInfo[sp]?.[1] ?? sp}</span>
           </div>
@@ -66,13 +96,14 @@ export function DetalhesModal({ modal }: { modal: ModalDetalhes }) {
         <Campo label="Telefone / WhatsApp" valor={p.tel} />
         <Campo label="Gênero" valor={genero} />
         <Campo label="Idade" valor={p.idade != null ? String(p.idade) : ''} />
-        <Campo label="Data de nascimento" valor={p.dataNascimento} />
-        {p.tipo === 'Encontrista' && <Campo label="Participação" valor={p.vez} />}
+        <Campo label="Data de nascimento" valor={dataBR(p.dataNascimento)} />
+        {!avulso && p.tipo === 'Encontrista' && <Campo label="Participação" valor={p.vez} />}
         <Campo label="Quem convidou / líder" valor={p.lider} />
         <Campo label="Prédio" valor={p.predio} />
         <Campo label="Condução" valor={p.conducao} />
         <Campo label="Forma de pagamento" valor={p.forma} />
         {p.quarto && <Campo label="Quarto" valor={p.quarto} />}
+        <Campo label="Inscrição feita em" valor={dataInscricao} />
       </div>
 
       {cancelada && p.cancelInfo && (
@@ -171,7 +202,7 @@ export function DetalhesModal({ modal }: { modal: ModalDetalhes }) {
           >
             Editar inscrição
           </button>
-          {!cancelada && (
+          {!cancelada && !quitado && (
             <button
               className="btn btn-primary"
               onClick={() =>

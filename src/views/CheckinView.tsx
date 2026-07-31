@@ -30,6 +30,8 @@ export function CheckinView() {
 
   const s = state
   const valor = s.retiro.valor
+  // Eventos avulsos não têm o conceito de Convidado/Servo → oculta a coluna Tipo.
+  const avulso = s.retiro.tipo === 'avulso'
   const atv = ativos(s)
   const narrow = s.narrow
   const compacto = appConfig.modoCompacto
@@ -118,7 +120,7 @@ export function CheckinView() {
           <thead>
             <tr>
               <th>Inscrito</th>
-              <th>Tipo</th>
+              {!avulso && <th>Tipo</th>}
               <th>Líder</th>
               <th>Prédio</th>
               <th>Pagamento</th>
@@ -154,17 +156,19 @@ export function CheckinView() {
                       </div>
                     </div>
                   </td>
-                  <td>
-                    <span
-                      className="chip-mini"
-                      style={{
-                        background: p.tipo === 'Servo' ? 'var(--color-primary-tint)' : 'var(--color-secondary-tint)',
-                        color: p.tipo === 'Servo' ? 'var(--color-primary)' : 'var(--color-secondary-hover)',
-                      }}
-                    >
-                      {p.tipo}
-                    </span>
-                  </td>
+                  {!avulso && (
+                    <td>
+                      <span
+                        className="chip-mini"
+                        style={{
+                          background: p.tipo === 'Servo' ? 'var(--color-primary-tint)' : 'var(--color-secondary-tint)',
+                          color: p.tipo === 'Servo' ? 'var(--color-primary)' : 'var(--color-secondary-hover)',
+                        }}
+                      >
+                        {p.tipo}
+                      </span>
+                    </td>
+                  )}
                   <td style={{ fontSize: 12 }}>{p.lider}</td>
                   <td style={{ fontSize: 12 }}>{p.predio || '—'}</td>
                   <td style={{ fontSize: 12 }}>

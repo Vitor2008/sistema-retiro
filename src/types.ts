@@ -68,6 +68,8 @@ export interface Inscrito {
   /** id do arquivo de comprovante no backend (bytea), se houver. */
   comprovanteId: string | null
   quarto: string | null
+  /** Data/hora (ISO) em que a inscrição foi feita. */
+  criadoEm: string
 }
 
 export interface Quarto {

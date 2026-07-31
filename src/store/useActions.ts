@@ -275,6 +275,12 @@ export function useActions() {
       toast('Informe um valor pago, marque como oferta ou defina a data prevista para pagar.')
       return
     }
+    // Ao registrar um pagamento em dinheiro, o comprovante é obrigatório (novo
+    // anexo ou já existente na inscrição).
+    if (vp > 0 && !m.comprovante && !mp.comprovanteId) {
+      toast('Anexe o comprovante do pagamento.')
+      return
+    }
     const lanc = {
       valor: vp,
       oferta: ofertaV,

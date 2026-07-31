@@ -128,10 +128,18 @@ export function PagamentoModal({ modal }: { modal: ModalPagamento }) {
       </div>
 
       <div style={{ marginBottom: 16 }}>
+        <label style={{ fontSize: 12, fontWeight: 600, display: 'block', marginBottom: 5 }}>
+          Comprovante de pagamento {valorPagoN > 0 ? '*' : ''}
+        </label>
         <FileDropField
-          label={attachLabel(modal.comprovante, mp.comprovante ? 'Comprovante já enviado no formulário — anexar adicional' : 'Anexar comprovante de pagamento')}
+          label={attachLabel(modal.comprovante, mp.comprovanteId ? 'Comprovante já anexado — anexar outro (opcional)' : 'Anexar comprovante de pagamento')}
           onFile={(a) => patchModal({ comprovante: a })}
         />
+        {valorPagoN > 0 && !modal.comprovante && !mp.comprovanteId && (
+          <div style={{ fontSize: 11, color: 'var(--fg-muted)', marginTop: 4 }}>
+            Obrigatório ao registrar um pagamento.
+          </div>
+        )}
       </div>
 
       <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8 }}>
