@@ -161,6 +161,7 @@ publicRoutes.post('/inscricao/:slug', async (req, res, next) => {
       comprovante: !!comprovanteId,
       comprovanteId,
       quarto: null,
+      criadoEm: new Date().toISOString(),
       pagamentos: [],
     }
     await inscritoService.create(inscrito, r.id)

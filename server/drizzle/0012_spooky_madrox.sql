@@ -1,0 +1,1 @@
+ALTER TABLE "inscritos" ADD COLUMN "criado_em" text DEFAULT '' NOT NULL;

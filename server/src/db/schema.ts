@@ -125,6 +125,8 @@ export const inscritos = pgTable('inscritos', {
   comprovante: boolean('comprovante').notNull().default(false),
   comprovanteId: text('comprovante_id'),
   quarto: text('quarto'),
+  /** Data/hora (ISO) em que a inscrição foi feita. */
+  criadoEm: text('criado_em').notNull().default(''),
 })
 
 /** Lançamentos de pagamento (filhos de inscritos). */

@@ -151,8 +151,11 @@ export const snapshotRepository = {
           comprovante: p.comprovante,
           comprovanteId: p.comprovanteId,
           quarto: p.quarto,
+          criadoEm: p.criadoEm || new Date().toISOString(),
         }
-        await tx.insert(inscritos).values(row).onConflictDoUpdate({ target: inscritos.id, set: row })
+        // No update, NÃO sobrescreve criadoEm (preserva a data original da inscrição).
+        const { criadoEm: _ce, ...setSemCriadoEm } = row
+        await tx.insert(inscritos).values(row).onConflictDoUpdate({ target: inscritos.id, set: setSemCriadoEm })
         await tx.delete(pagamentos).where(eq(pagamentos.inscritoId, p.id))
       }
       const pags = snap.inscritos.flatMap((p) =>

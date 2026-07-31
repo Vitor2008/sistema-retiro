@@ -25,6 +25,7 @@ function toDTO(row: InscritoRow, pags: PagamentoRow[]): Inscrito {
     comprovante: row.comprovante,
     comprovanteId: row.comprovanteId,
     quarto: row.quarto,
+    criadoEm: row.criadoEm,
     pagamentos: pags
       .sort((a, b) => a.ordem - b.ordem)
       .map((p) => ({
@@ -101,6 +102,7 @@ export const inscritoRepository = {
       comprovante: dto.comprovante,
       comprovanteId: dto.comprovanteId,
       quarto: dto.quarto,
+      criadoEm: dto.criadoEm || new Date().toISOString(),
     })
     await inserirPagamentos(dto.id, dto.pagamentos)
     return dto

@@ -31,6 +31,7 @@ export interface Inscrito {
   comprovante: boolean
   comprovanteId: string | null
   quarto: string | null
+  criadoEm: string
   pagamentos: Pagamento[]
 }
 
