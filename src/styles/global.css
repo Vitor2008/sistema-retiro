@@ -2,6 +2,18 @@
    Os tokens de cor/tipografia e classes de componente vêm do design system
    (colors_and_type.css + dashboard.css). */
 
+/* Fonte um pouco maior, escopada ao formulário público de inscrição. */
+.form-inscricao .input {
+  font-size: 15px;
+  padding: 10px 12px;
+}
+.form-inscricao .btn-sm {
+  font-size: 14px;
+}
+.form-inscricao p {
+  font-size: 15px;
+}
+
 html,
 body {
   margin: 0;

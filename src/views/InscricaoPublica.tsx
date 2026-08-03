@@ -194,7 +194,7 @@ export function InscricaoPublica() {
   }, [retiro])
 
   return (
-    <div style={{ minHeight: '100vh', background: 'var(--bg-app)', padding: '32px 16px 64px' }}>
+    <div className="form-inscricao" style={{ minHeight: '100vh', background: 'var(--bg-app)', padding: '32px 16px 64px' }}>
       <div style={{ maxWidth: 640, margin: '0 auto' }}>
         {/* ---- Hero / banner ---- */}
         <Hero bannerUrl={bannerUrl} igreja={appConfig.nomeIgreja} nome={retiro?.nome} />
@@ -316,7 +316,7 @@ export function InscricaoPublica() {
                       onChange={(e) => setF({ nome: e.target.value })} />
                   </Campo>
 
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 200px), 1fr))', gap: 12 }}>
                     <Campo label="Idade *" erro={erros.idade ? 'Informe a idade.' : ''}>
                       <input className="input" type="number" min="0" inputMode="numeric" value={form.idade}
                         placeholder="Somente número" onChange={(e) => setF({ idade: e.target.value })} />
@@ -331,7 +331,7 @@ export function InscricaoPublica() {
                     </Campo>
                   </div>
 
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 200px), 1fr))', gap: 12 }}>
                     <Campo label="Telefone / WhatsApp *" erro={erros.tel ? 'Informe o telefone.' : ''}>
                       <input className="input" value={form.tel} placeholder="(65) 99999-9999"
                         onChange={(e) => setF({ tel: e.target.value })} />
@@ -350,7 +350,7 @@ export function InscricaoPublica() {
                           Convidado
                         </BotaoSel>
                         <BotaoSel on={form.tipo === 'Servo'} onClick={() => setF({ tipo: 'Servo', vez: '' })}>
-                          Voluntário / Servo
+                          Servo
                         </BotaoSel>
                       </div>
                     </Campo>
@@ -382,7 +382,7 @@ export function InscricaoPublica() {
                   )}
 
                   {(retiro.mostrarPredio || retiro.mostrarConducao) && (
-                    <div style={{ display: 'grid', gridTemplateColumns: retiro.mostrarPredio && retiro.mostrarConducao ? '1fr 1fr' : '1fr', gap: 12 }}>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 200px), 1fr))', gap: 12 }}>
                       {retiro.mostrarPredio && (
                         <Campo label="Qual prédio? *" erro={erros.predio ? 'Selecione o prédio.' : ''}>
                           <select className="input" value={form.predio} onChange={(e) => setF({ predio: e.target.value })}>
@@ -462,7 +462,7 @@ export function InscricaoPublica() {
                 )}
 
                 <div style={{ marginTop: 14 }}>
-                  <label style={{ fontSize: 12, fontWeight: 600, display: 'block', marginBottom: 5 }}>
+                  <label style={{ fontSize: 13, fontWeight: 600, display: 'block', marginBottom: 5 }}>
                     Comprovante de pagamento (imagem ou PDF)
                   </label>
                   <label style={{ display: 'flex', alignItems: 'center', gap: 10, border: '1px dashed var(--border-strong)', borderRadius: 8, padding: '10px 12px', cursor: 'pointer', background: 'var(--bg-app)' }}>
@@ -569,7 +569,7 @@ function InfoLinha({ emoji, texto }: { emoji: string; texto: React.ReactNode }) 
 function Campo({ label, erro, children }: { label: string; erro?: string; children: React.ReactNode }) {
   return (
     <div>
-      <label style={{ fontSize: 12, fontWeight: 600, display: 'block', marginBottom: 5 }}>{label}</label>
+      <label style={{ fontSize: 13, fontWeight: 600, display: 'block', marginBottom: 5 }}>{label}</label>
       {children}
       {erro ? <div style={{ fontSize: 11, color: 'var(--status-rejected-fg)', marginTop: 3 }}>{erro}</div> : null}
     </div>

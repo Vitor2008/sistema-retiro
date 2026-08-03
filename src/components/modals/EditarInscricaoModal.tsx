@@ -53,7 +53,7 @@ export function EditarInscricaoModal({ modal }: { modal: ModalEditarInscricao })
             <label style={label}>Tipo</label>
             <select className="input" value={modal.tipo} onChange={(e) => set({ tipo: e.target.value as TipoInscricao })}>
               <option value="Encontrista">Convidado</option>
-              <option value="Servo">Voluntário / Servo</option>
+              <option value="Servo">Servo</option>
             </select>
           </div>
           {modal.tipo === 'Encontrista' && (

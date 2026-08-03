@@ -82,7 +82,7 @@ export function DetalhesModal({ modal }: { modal: ModalDetalhes }) {
           <div style={{ display: 'flex', gap: 6, marginTop: 4, flexWrap: 'wrap' }}>
             {!avulso && (
               <span className="chip-mini" style={{ background: p.tipo === 'Servo' ? 'var(--color-primary-tint)' : 'var(--color-secondary-tint)', color: p.tipo === 'Servo' ? 'var(--color-primary)' : 'var(--color-secondary-hover)' }}>
-                {p.tipo === 'Servo' ? 'Voluntário / Servo' : 'Convidado'}
+                {p.tipo === 'Servo' ? 'Servo' : 'Convidado'}
               </span>
             )}
             <span className={'chip-mini ' + (insInfo[p.statusInscricao]?.[0] ?? '')}>{insInfo[p.statusInscricao]?.[1] ?? p.statusInscricao}</span>
