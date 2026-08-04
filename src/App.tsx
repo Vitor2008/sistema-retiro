@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
 import { canAccess } from './acessos'
 import { EventoTopbar } from './components/EventoTopbar'
+import { Loader } from './components/Loader'
 import { MobileTopbar } from './components/MobileTopbar'
 import { Sidebar } from './components/Sidebar'
 import { SyncBadge } from './components/SyncBadge'
@@ -98,13 +99,7 @@ function SemRetiro() {
 
 function ShellGate() {
   const { loading, selectedId } = useRetiroSelection()
-  if (loading) {
-    return (
-      <div className="card" style={{ maxWidth: 300, margin: '80px auto', textAlign: 'center', padding: 32 }}>
-        <p className="dim">Carregando eventos…</p>
-      </div>
-    )
-  }
+  if (loading) return <Loader texto="Carregando eventos…" fullscreen />
   if (!selectedId) return <SemRetiro />
   // key força remontar (e reconfigurar a sincronização) ao trocar de retiro.
   return (

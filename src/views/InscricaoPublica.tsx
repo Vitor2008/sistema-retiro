@@ -10,6 +10,7 @@
 
 import { useEffect, useMemo, useState } from 'react'
 import { useParams } from 'react-router-dom'
+import { Loader } from '../components/Loader'
 import { appConfig } from '../config'
 import { fmt, fmtData } from '../lib/format'
 import type { FormaPagamento, Genero, TipoInscricao, Vez } from '../types'
@@ -201,7 +202,7 @@ export function InscricaoPublica() {
 
         {fase === 'carregando' && (
           <Cartao>
-            <p className="dim" style={{ textAlign: 'center' }}>Carregando…</p>
+            <Loader />
           </Cartao>
         )}
 

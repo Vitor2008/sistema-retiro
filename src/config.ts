@@ -18,7 +18,7 @@ export const PREDIOS_DISPONIVEIS = [
 export const appConfig: AppConfig = {
   nomeIgreja: 'IMEL',
   nomeIgrejaCompleto: 'Igreja Metodista Livre — Cuiabá',
-  logoUrl: '/logo.jpg',
+  logoUrl: '/logo.png',
   modoCompacto: false,
   // Conteúdo fixo do formulário público (texto institucional + pagamento).
   formulario: {
