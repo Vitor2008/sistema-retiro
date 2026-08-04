@@ -3,7 +3,7 @@
 // Cada acesso libera um conjunto fixo de páginas (keys da navegação).
 // ============================================================================
 
-export type Acesso = 'adm' | 'financeiro' | 'cantina' | 'quarto' | 'servico'
+export type Acesso = 'adm' | 'financeiro' | 'checkin' | 'cantina' | 'quarto' | 'servico'
 
 export interface AcessoDef {
   id: Acesso
@@ -16,6 +16,7 @@ export interface AcessoDef {
 export const ACESSOS: AcessoDef[] = [
   { id: 'adm', label: 'Administrador', descricao: 'Acesso a todas as áreas e à gestão de usuários', navKeys: [] },
   { id: 'financeiro', label: 'Financeiro', descricao: 'Eventos, Check-in e Prestação de contas', navKeys: ['retiros', 'checkin', 'contas'] },
+  { id: 'checkin', label: 'Check-in', descricao: 'Apenas a aba de Check-in (fazer check-in das inscrições)', navKeys: ['checkin'] },
   { id: 'cantina', label: 'Cantina', descricao: 'Aba de Cantina', navKeys: ['cantina'] },
   { id: 'quarto', label: 'Escala Quarto', descricao: 'Aba de Quartos', navKeys: ['quartos'] },
   { id: 'servico', label: 'Escala Serviço', descricao: 'Aba de Escalas de serviço', navKeys: ['escalas'] },

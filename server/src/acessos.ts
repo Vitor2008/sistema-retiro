@@ -3,6 +3,7 @@
 export const ACESSOS_VALIDOS = [
   'adm',
   'financeiro',
+  'checkin',
   'cantina',
   'quarto',
   'servico',

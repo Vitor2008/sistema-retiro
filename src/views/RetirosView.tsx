@@ -418,14 +418,16 @@ export function RetirosView() {
                 <button className="btn btn-default" disabled={excluindo} onClick={() => setExcluirAberto(false)}>
                   {podeExcluir ? 'Cancelar' : 'Fechar'}
                 </button>
-                <button
-                  className="btn"
-                  style={{ background: 'var(--status-rejected-fg)', color: '#fff' }}
-                  disabled={excluindo || !podeExcluir}
-                  onClick={confirmarExclusao}
-                >
-                  {excluindo ? 'Excluindo…' : 'Excluir evento'}
-                </button>
+                {podeExcluir && (
+                  <button
+                    className="btn"
+                    style={{ background: 'var(--status-rejected-fg)', color: '#fff' }}
+                    disabled={excluindo}
+                    onClick={confirmarExclusao}
+                  >
+                    {excluindo ? 'Excluindo…' : 'Excluir evento'}
+                  </button>
+                )}
               </div>
             </div>
           </div>
