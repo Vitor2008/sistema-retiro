@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { AttachmentLink } from '../AttachmentLink'
 import { FileDropField } from '../FileDropField'
 import { fmt, initials } from '../../lib/format'
@@ -44,6 +45,41 @@ const insInfo: Record<string, [string, string]> = {
 
 const labelStyle: React.CSSProperties = { fontSize: 11, color: 'var(--fg-muted)' }
 const valorStyle: React.CSSProperties = { fontSize: 13, fontWeight: 500 }
+
+/** Monta o link wa.me a partir do telefone digitado. Remove máscara e prefixa
+ *  o DDI 55 (Brasil) quando o número vier só com DDD + número. Retorna '' se
+ *  não houver dígitos suficientes para um número válido. */
+function whatsappHref(tel: string): string {
+  const dig = (tel || '').replace(/\D/g, '')
+  if (dig.length < 10) return ''
+  const comDDI = dig.startsWith('55') && dig.length >= 12 ? dig : '55' + dig
+  return 'https://wa.me/' + comDDI
+}
+
+/** Telefone como link para abrir a conversa no WhatsApp. Cor padrão do texto;
+ *  fica verde só no hover. Ícone à direita. */
+function TelefoneWhatsApp({ tel }: { tel: string }) {
+  const [hover, setHover] = useState(false)
+  const href = whatsappHref(tel)
+  if (!tel) return <>—</>
+  if (!href) return <>{tel}</>
+  return (
+    <a
+      href={href}
+      target="_blank"
+      rel="noopener noreferrer"
+      onMouseEnter={() => setHover(true)}
+      onMouseLeave={() => setHover(false)}
+      style={{ display: 'inline-flex', alignItems: 'center', gap: 6, color: hover ? '#25D366' : 'inherit', textDecoration: 'none' }}
+      title="Abrir conversa no WhatsApp"
+    >
+      {tel}
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+        <path d="M17.5 14.4c-.3-.15-1.7-.85-2-.95-.26-.1-.46-.15-.65.15-.2.3-.75.94-.92 1.13-.17.2-.34.22-.63.08-.3-.15-1.25-.46-2.38-1.47-.88-.78-1.47-1.75-1.65-2.05-.17-.3-.02-.46.13-.6.13-.13.3-.34.45-.5.15-.18.2-.3.3-.5.1-.2.05-.37-.03-.52-.07-.15-.65-1.57-.9-2.15-.24-.57-.48-.5-.65-.5l-.56-.01c-.2 0-.5.07-.77.37-.26.3-1 .98-1 2.4 0 1.4 1.02 2.76 1.17 2.96.14.2 2 3.05 4.85 4.28.68.3 1.2.47 1.62.6.68.22 1.3.19 1.78.11.54-.08 1.7-.69 1.94-1.36.24-.67.24-1.24.17-1.36-.07-.12-.26-.2-.56-.34zM12 2a10 10 0 0 0-8.6 15.06L2 22l5.06-1.33A10 10 0 1 0 12 2zm0 18.2a8.2 8.2 0 0 1-4.18-1.14l-.3-.18-3 .79.8-2.93-.2-.3A8.2 8.2 0 1 1 12 20.2z"/>
+      </svg>
+    </a>
+  )
+}
 
 function Campo({ label, valor }: { label: string; valor: React.ReactNode }) {
   return (
@@ -93,7 +129,7 @@ export function DetalhesModal({ modal }: { modal: ModalDetalhes }) {
 
       {/* Dados da inscrição */}
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 16 }}>
-        <Campo label="Telefone / WhatsApp" valor={p.tel} />
+        <Campo label="Telefone / WhatsApp" valor={<TelefoneWhatsApp tel={p.tel} />} />
         <Campo label="Gênero" valor={genero} />
         <Campo label="Idade" valor={p.idade != null ? String(p.idade) : ''} />
         <Campo label="Data de nascimento" valor={dataBR(p.dataNascimento)} />
