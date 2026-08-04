@@ -8,7 +8,6 @@ import {
   inscritos,
   lideres,
   pagamentos,
-  predios,
   produtos,
   quartos,
   retiros,
@@ -23,7 +22,6 @@ import {
   categoriaRepository,
   conducaoRepository,
   lideresRepository,
-  predioRepository,
 } from './listaRepository.js'
 import { produtoRepository } from './produtoRepository.js'
 import { quartoRepository } from './quartoRepository.js'
@@ -45,7 +43,6 @@ export const snapshotRepository = {
     const [
       lideresLista,
       categoriasLista,
-      prediosLista,
       conducoesLista,
       inscritosLista,
       quartosLista,
@@ -53,10 +50,10 @@ export const snapshotRepository = {
       vendasLista,
       despesasLista,
       escala,
+      retRow,
     ] = await Promise.all([
       lideresRepository.list(retiroId),
       categoriaRepository.list(retiroId),
-      predioRepository.list(retiroId),
       conducaoRepository.list(retiroId),
       inscritoRepository.list(retiroId),
       quartoRepository.list(retiroId),
@@ -64,7 +61,9 @@ export const snapshotRepository = {
       vendaRepository.list(retiroId),
       despesaRepository.list(retiroId),
       escalaRepository.get(retiroId),
+      db.select({ p: retiros.prediosParticipantes }).from(retiros).where(eq(retiros.id, retiroId)),
     ])
+    const prediosLista = retRow[0]?.p ?? []
 
     return {
       retiro,
@@ -114,6 +113,7 @@ export const snapshotRepository = {
           mostrarLider: r.mostrarLider,
           mostrarPredio: r.mostrarPredio,
           mostrarConducao: r.mostrarConducao,
+          prediosParticipantes: snap.predios ?? [],
           aberto: r.aberto,
           slug: r.slug,
           bannerId: r.bannerId,
@@ -209,17 +209,8 @@ export const snapshotRepository = {
         if (itens.length) await tx.insert(vendaItens).values(itens)
       }
 
-      // Prédios: MERGE por nome (preserva os ids → não quebra o FK dos usuários).
-      // Prédios são persistentes; aqui só ajustamos quais participam deste retiro.
-      const prediosExist = await tx.select().from(predios).where(eq(predios.retiroId, retiroId))
-      const nomesSnap = new Set(snap.predios)
-      for (const p of prediosExist) {
-        if (!nomesSnap.has(p.nome)) await tx.delete(predios).where(eq(predios.id, p.id))
-      }
-      const nomesExist = new Set(prediosExist.map((p) => p.nome))
-      const prediosNovos = snap.predios.filter((n) => !nomesExist.has(n))
-      if (prediosNovos.length)
-        await tx.insert(predios).values(prediosNovos.map((nome) => ({ nome, retiroId })))
+      // Prédios participantes já foram gravados no update do retiro acima
+      // (retiros.predios_participantes). O catálogo de prédios é gerido à parte.
 
       await tx
         .insert(escalas)

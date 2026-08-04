@@ -1,6 +1,6 @@
-import { useState } from 'react'
-import { PREDIOS_DISPONIVEIS } from '../config'
+import { useEffect, useState } from 'react'
 import { fmt, fmtData } from '../lib/format'
+import { apiClient, ApiError } from '../services/api/apiClient'
 import { useRetiro } from '../store/RetiroContext'
 import { useRetiroSelection } from '../store/RetiroSelection'
 import { useActions } from '../store/useActions'
@@ -16,10 +16,22 @@ import type { Lider } from '../types'
 export function RetirosView() {
   const { state, patch, toast } = useRetiro()
   const { toggleLink, setModal } = useActions()
-  const { retiros, select } = useRetiroSelection()
+  const { retiros, select, reload } = useRetiroSelection()
   const [novoLiderNome, setNovoLiderNome] = useState('')
   const [novoLiderPredio, setNovoLiderPredio] = useState('')
   const [novaConducao, setNovaConducao] = useState('')
+  // Exclusão do evento atual.
+  const [excluirAberto, setExcluirAberto] = useState(false)
+  const [excluindo, setExcluindo] = useState(false)
+  const [erroExcluir, setErroExcluir] = useState('')
+  // Catálogo global de prédios (gerido na tela Prédios), usado para marcar os participantes.
+  const [catalogoPredios, setCatalogoPredios] = useState<string[]>([])
+  useEffect(() => {
+    apiClient
+      .get<{ id: number; nome: string }[]>('/predios')
+      .then((lista) => setCatalogoPredios(lista.map((p) => p.nome)))
+      .catch(() => setCatalogoPredios([]))
+  }, [])
 
   const valor = state.retiro.valor
   const atv = ativos(state)
@@ -33,6 +45,29 @@ export function RetirosView() {
     toast('Link copiado: ' + link)
   }
   const abrirFormulario = () => window.open(link, '_blank', 'noopener')
+
+  // Só pode excluir com o link de inscrição fechado e nenhuma inscrição ativa
+  // (todas canceladas). Usa o flag real `aberto`, não o "efetivo" (que fica
+  // fechado só por lotação).
+  const motivosBloqueio: string[] = []
+  if (state.retiro.aberto) motivosBloqueio.push('Feche o link de inscrição.')
+  if (atv.length > 0)
+    motivosBloqueio.push(`Cancele todas as inscrições (há ${atv.length} ativa(s)).`)
+  const podeExcluir = motivosBloqueio.length === 0
+  const confirmarExclusao = async () => {
+    setErroExcluir('')
+    setExcluindo(true)
+    try {
+      await apiClient.delete('/retiros/' + state.retiro.id)
+      setExcluirAberto(false)
+      toast('Evento excluído.')
+      await reload()
+    } catch (e) {
+      setErroExcluir(e instanceof ApiError ? e.message : 'Erro ao excluir evento.')
+    } finally {
+      setExcluindo(false)
+    }
+  }
   const pctIns =
     state.retiro.max > 0
       ? Math.min(100, Math.round((atv.length / state.retiro.max) * 100))
@@ -52,8 +87,8 @@ export function RetirosView() {
   const removeLider = (idx: number) =>
     patch({ lideres: state.lideres.filter((_, i) => i !== idx) })
 
-  // Prédios: lista fixa; o admin marca quais participam do evento.
-  const prediosOpcoes = Array.from(new Set([...PREDIOS_DISPONIVEIS, ...state.predios]))
+  // Prédios: catálogo global; o admin marca quais participam do evento.
+  const prediosOpcoes = Array.from(new Set([...catalogoPredios, ...state.predios]))
   const togglePredio = (nome: string) =>
     patch({
       predios: state.predios.includes(nome)
@@ -181,6 +216,14 @@ export function RetirosView() {
               <button className="btn btn-default btn-sm" onClick={abrirFormulario}>
                 Ver formulário
               </button>
+              <button
+                className="btn btn-default btn-sm"
+                style={{ color: 'var(--status-rejected-fg)' }}
+                title="Excluir este evento"
+                onClick={() => { setErroExcluir(''); setExcluirAberto(true) }}
+              >
+                Excluir evento
+              </button>
               {state.retiro.aberto && vagasRest === 0 && (
                 <span className="chip chip-rejected">
                   Vagas esgotadas — link fechado automaticamente
@@ -283,7 +326,7 @@ export function RetirosView() {
         </div>
       </div>
 
-      {/* Prédios — lista fixa; marque os participantes deste evento */}
+      {/* Prédios — marque os participantes deste evento (catálogo gerido em "Prédios") */}
       <div className="tbl-wrap" style={{ marginTop: 8 }}>
         <div className="tbl-head-bar">
           <h3>Prédios participantes</h3>
@@ -298,7 +341,13 @@ export function RetirosView() {
         <div style={{ padding: '14px 16px' }}>
           <div style={{ fontSize: 12, color: 'var(--fg-muted)', marginBottom: 10 }}>
             Marque os prédios que participam deste evento (campo “Qual prédio?” do formulário).
+            O catálogo de prédios é gerenciado na tela <b>Prédios</b>.
           </div>
+          {prediosOpcoes.length === 0 && (
+            <div style={{ fontSize: 12, color: 'var(--fg-muted)', marginBottom: 10 }}>
+              Nenhum prédio no catálogo ainda — cadastre em <b>Prédios</b>.
+            </div>
+          )}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: 8 }}>
             {prediosOpcoes.map((nome) => {
               const on = state.predios.includes(nome)
@@ -329,6 +378,59 @@ export function RetirosView() {
         mostrar={state.retiro.mostrarConducao}
         onToggleMostrar={(v) => patch({ retiro: { ...state.retiro, mostrarConducao: v } })}
       />
+
+      {excluirAberto && (
+        <div
+          onClick={() => !excluindo && setExcluirAberto(false)}
+          style={{ position: 'fixed', inset: 0, background: 'var(--bg-overlay)', zIndex: 100, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16, animation: 'fadeIn .15s var(--ease-default)' }}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            style={{ background: '#fff', borderRadius: 10, boxShadow: 'var(--shadow-lg)', width: '100%', maxWidth: 460, animation: 'popIn .18s var(--ease-default)' }}
+          >
+            <div style={{ padding: '22px 24px' }}>
+              <h3 style={{ marginBottom: 6 }}>Excluir evento</h3>
+              {podeExcluir ? (
+                <p style={{ fontSize: 13, marginBottom: 12 }}>
+                  Tem certeza que deseja excluir o evento <b>{state.retiro.nome}</b>? Todos os dados
+                  do evento (inscrições canceladas, líderes, quartos, despesas, escala) serão
+                  removidos permanentemente. Esta ação não pode ser desfeita.
+                </p>
+              ) : (
+                <>
+                  <p style={{ fontSize: 13, marginBottom: 10 }}>
+                    Este evento ainda não pode ser excluído. Para liberar a exclusão de{' '}
+                    <b>{state.retiro.nome}</b>:
+                  </p>
+                  <ul style={{ fontSize: 13, margin: '0 0 12px', paddingLeft: 20, color: 'var(--status-rejected-fg)' }}>
+                    {motivosBloqueio.map((m) => (
+                      <li key={m} style={{ marginBottom: 4 }}>{m}</li>
+                    ))}
+                  </ul>
+                </>
+              )}
+              {erroExcluir && (
+                <div style={{ fontSize: 13, color: 'var(--status-rejected-fg)', background: 'var(--status-rejected-bg)', borderRadius: 8, padding: '10px 14px', marginBottom: 14 }}>
+                  {erroExcluir}
+                </div>
+              )}
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
+                <button className="btn btn-default" disabled={excluindo} onClick={() => setExcluirAberto(false)}>
+                  {podeExcluir ? 'Cancelar' : 'Fechar'}
+                </button>
+                <button
+                  className="btn"
+                  style={{ background: 'var(--status-rejected-fg)', color: '#fff' }}
+                  disabled={excluindo || !podeExcluir}
+                  onClick={confirmarExclusao}
+                >
+                  {excluindo ? 'Excluindo…' : 'Excluir evento'}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

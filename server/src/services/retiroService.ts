@@ -37,14 +37,14 @@ export const retiroService = {
   list: () => retiroRepository.list(),
   get: (id: string) => retiroRepository.get(id),
 
-  /** Retiros visíveis para o usuário: adm vê todos; demais só o do seu prédio. */
+  /** Retiros visíveis para o usuário: adm vê todos; demais só os eventos em que
+   *  o prédio dele participa. */
   async listForUser(user: TokenPayload): Promise<Retiro[]> {
     if (user.acessos?.includes('adm')) return retiroRepository.list()
     if (!user.predioId) return []
     const predio = await predioRepository.getById(user.predioId)
-    if (!predio?.retiroId) return []
-    const r = await retiroRepository.get(predio.retiroId)
-    return r ? [r] : []
+    if (!predio) return []
+    return retiroRepository.listByPredio(predio.nome)
   },
 
   /** Cria um retiro e semeia as listas padrão (categorias e conduções). */
@@ -86,5 +86,18 @@ export const retiroService = {
     return (await retiroRepository.get(id))!
   },
 
-  remove: (id: string) => retiroRepository.remove(id),
+  /** Exclui um evento — só permitido com o link de inscrição fechado E todas as
+   *  inscrições canceladas (nenhuma ativa). Remove em cascata os dados do evento. */
+  async remove(id: string): Promise<void> {
+    const retiro = await retiroRepository.get(id)
+    if (!retiro) throw new Error('Evento não encontrado.')
+    if (retiro.aberto)
+      throw new Error('Feche o link de inscrição antes de excluir o evento.')
+    const ativas = await retiroRepository.countInscricoesAtivas(id)
+    if (ativas > 0)
+      throw new Error(
+        'Não é possível excluir: há inscrições ativas. Cancele todas as inscrições antes.',
+      )
+    await retiroRepository.remove(id)
+  },
 }

@@ -49,6 +49,8 @@ export const retiros = pgTable('retiros', {
   mostrarLider: boolean('mostrar_lider').notNull().default(true),
   mostrarPredio: boolean('mostrar_predio').notNull().default(true),
   mostrarConducao: boolean('mostrar_conducao').notNull().default(true),
+  /** Nomes dos prédios (do catálogo) que participam deste evento. */
+  prediosParticipantes: jsonb('predios_participantes').$type<string[]>().notNull().default([]),
   aberto: boolean('aberto').notNull().default(true),
   /** Slug único para o link público de inscrição. */
   slug: text('slug').notNull().default(''),

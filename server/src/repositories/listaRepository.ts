@@ -1,6 +1,6 @@
-import { and, asc, eq } from 'drizzle-orm'
+import { asc, eq } from 'drizzle-orm'
 import { db } from '../db/client.js'
-import { categorias, conducoes, lideres, predios } from '../db/schema.js'
+import { categorias, conducoes, inscritos, lideres, predios, retiros } from '../db/schema.js'
 import type { Lider, Predio } from '../types.js'
 
 /** Categorias de despesa padrão (semeadas ao criar um retiro). */
@@ -77,41 +77,37 @@ export const conducaoRepository = {
   },
 }
 
-// ---- Prédios (persistentes; participam de um retiro por vez) ---------------
+// ---- Prédios: CATÁLOGO GLOBAL (compartilhado entre eventos) -----------------
 export const predioRepository = {
-  /** Nomes dos prédios participando de um retiro (para formulário/UI). */
-  async list(retiroId: string): Promise<string[]> {
-    const rows = await db
-      .select()
-      .from(predios)
-      .where(eq(predios.retiroId, retiroId))
-      .orderBy(asc(predios.id))
-    return rows.map((r) => r.nome)
-  },
-  /** Todos os prédios (gestão). */
-  async listAll(): Promise<Predio[]> {
-    const rows = await db.select().from(predios).orderBy(asc(predios.id))
+  /** Todos os prédios do catálogo (ordem alfabética). */
+  async listCatalogo(): Promise<Predio[]> {
+    const rows = await db.select().from(predios).orderBy(asc(predios.nome))
     return rows.map((r) => ({ id: r.id, nome: r.nome, retiroId: r.retiroId }))
   },
   async getById(id: number): Promise<Predio | null> {
     const [row] = await db.select().from(predios).where(eq(predios.id, id))
     return row ? { id: row.id, nome: row.nome, retiroId: row.retiroId } : null
   },
-  async getByNomeRetiro(nome: string, retiroId: string): Promise<Predio | null> {
-    const [row] = await db
-      .select()
-      .from(predios)
-      .where(and(eq(predios.nome, nome), eq(predios.retiroId, retiroId)))
+  async getByNome(nome: string): Promise<Predio | null> {
+    const [row] = await db.select().from(predios).where(eq(predios.nome, nome))
     return row ? { id: row.id, nome: row.nome, retiroId: row.retiroId } : null
   },
-  async create(nome: string, retiroId: string | null): Promise<Predio> {
-    const [row] = await db.insert(predios).values({ nome, retiroId }).returning()
+  async create(nome: string): Promise<Predio> {
+    const [row] = await db.insert(predios).values({ nome, retiroId: null }).returning()
     return { id: row.id, nome: row.nome, retiroId: row.retiroId }
   },
-  async setRetiro(id: number, retiroId: string | null): Promise<void> {
-    await db.update(predios).set({ retiroId }).where(eq(predios.id, id))
+  async rename(id: number, nome: string): Promise<void> {
+    await db.update(predios).set({ nome }).where(eq(predios.id, id))
   },
   async remove(id: number): Promise<void> {
     await db.delete(predios).where(eq(predios.id, id))
+  },
+  /** Prédio está em uso se algum evento o tem como participante ou há inscrito
+   *  vinculado a ele. */
+  async emUso(nome: string): Promise<boolean> {
+    const rets = await db.select({ p: retiros.prediosParticipantes }).from(retiros)
+    if (rets.some((r) => (r.p ?? []).includes(nome))) return true
+    const [insc] = await db.select({ id: inscritos.id }).from(inscritos).where(eq(inscritos.predio, nome)).limit(1)
+    return !!insc
   },
 }

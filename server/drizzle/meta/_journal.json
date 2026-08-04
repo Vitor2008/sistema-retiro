@@ -92,6 +92,13 @@
       "when": 1785524000078,
       "tag": "0012_spooky_madrox",
       "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "7",
+      "when": 1785851457251,
+      "tag": "0013_abandoned_giant_man",
+      "breakpoints": true
     }
   ]
 }

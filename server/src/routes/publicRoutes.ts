@@ -10,11 +10,7 @@
 import express, { Router } from 'express'
 import { arquivoService } from '../services/arquivoService.js'
 import { inscritoRepository } from '../repositories/inscritoRepository.js'
-import {
-  conducaoRepository,
-  lideresRepository,
-  predioRepository,
-} from '../repositories/listaRepository.js'
+import { conducaoRepository, lideresRepository } from '../repositories/listaRepository.js'
 import { retiroRepository } from '../repositories/retiroRepository.js'
 import { inscritoService } from '../services/inscritoService.js'
 import type { Inscrito } from '../types.js'
@@ -40,7 +36,7 @@ publicRoutes.get('/retiro/:slug', async (req, res, next) => {
     const vagasRestantes = Math.max(0, r.max - (await ocupadas(r.id)))
     const [lideres, predios, conducoes] = await Promise.all([
       lideresRepository.list(r.id),
-      predioRepository.list(r.id),
+      retiroRepository.getPredios(r.id),
       conducaoRepository.list(r.id),
     ])
     // Nunca devolvemos dados sensíveis — só o que a landing precisa exibir.
