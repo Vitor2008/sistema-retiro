@@ -19,6 +19,10 @@ function normFotos(f: unknown): string[] {
   return Array.isArray(f) ? f.map(String).slice(0, 4) : []
 }
 
+function normConta(c: unknown): LojaProduto['conta'] {
+  return c === 'outra' ? 'outra' : 'imel'
+}
+
 // ---- Produtos --------------------------------------------------------------
 lojaRoutes.get('/produtos/:retiroId', async (req, res, next) => {
   try {
@@ -45,6 +49,9 @@ lojaRoutes.post('/produtos', async (req, res) => {
     const retiroId = String(b.retiroId || '').trim()
     if (!nome) throw new Error('Informe o nome do produto.')
     if (!retiroId) throw new Error('Evento não informado.')
+    const conta = normConta(b.conta)
+    const pixChave = String(b.pixChave || '').trim()
+    if (conta === 'outra' && !pixChave) throw new Error('Informe a chave PIX do recebedor.')
     const produto: LojaProduto = {
       id: uid('lp'),
       retiroId,
@@ -52,6 +59,8 @@ lojaRoutes.post('/produtos', async (req, res) => {
       nome,
       descricao: String(b.descricao || '').trim(),
       valor: Math.max(0, Number(b.valor) || 0),
+      conta,
+      pixChave: conta === 'outra' ? pixChave : '',
       linkPagamento: String(b.linkPagamento || '').trim(),
       fotos: normFotos(b.fotos),
       ativo: b.ativo !== false,
@@ -71,6 +80,11 @@ lojaRoutes.put('/produtos/:id', async (req, res) => {
     if (b.nome !== undefined) patch.nome = String(b.nome).trim()
     if (b.descricao !== undefined) patch.descricao = String(b.descricao).trim()
     if (b.valor !== undefined) patch.valor = Math.max(0, Number(b.valor) || 0)
+    const contaIn = b.conta !== undefined ? normConta(b.conta) : undefined
+    if (contaIn !== undefined) patch.conta = contaIn
+    if (b.pixChave !== undefined) patch.pixChave = String(b.pixChave).trim()
+    if (contaIn === 'imel') patch.pixChave = ''
+    if (contaIn === 'outra' && !patch.pixChave) throw new Error('Informe a chave PIX do recebedor.')
     if (b.linkPagamento !== undefined) patch.linkPagamento = String(b.linkPagamento).trim()
     if (b.fotos !== undefined) patch.fotos = normFotos(b.fotos)
     if (b.ativo !== undefined) patch.ativo = !!b.ativo

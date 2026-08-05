@@ -3,6 +3,7 @@ import { AttachmentLink } from '../components/AttachmentLink'
 import { fmt } from '../lib/format'
 import { apiClient, ApiError } from '../services/api/apiClient'
 import { fileService } from '../services/fileService'
+import { exportPedidosLoja } from '../services/lojaReport'
 import { useRetiro } from '../store/RetiroContext'
 import type { LojaCategoria, LojaPedido, LojaProduto } from '../types'
 
@@ -31,6 +32,8 @@ interface ProdutoForm {
   nome: string
   descricao: string
   valor: string
+  conta: 'imel' | 'outra'
+  pixChave: string
   linkPagamento: string
   fotos: string[]
   ativo: boolean
@@ -41,6 +44,8 @@ const formVazio: ProdutoForm = {
   nome: '',
   descricao: '',
   valor: '',
+  conta: 'imel',
+  pixChave: '',
   linkPagamento: '',
   fotos: [],
   ativo: true,
@@ -92,7 +97,7 @@ export function LojaView() {
   const abrirNovo = () => { setErro(''); setForm({ ...formVazio }) }
   const abrirEdicao = (p: LojaProduto) => {
     setErro('')
-    setForm({ id: p.id, categoria: p.categoria, nome: p.nome, descricao: p.descricao, valor: String(p.valor), linkPagamento: p.linkPagamento, fotos: [...p.fotos], ativo: p.ativo })
+    setForm({ id: p.id, categoria: p.categoria, nome: p.nome, descricao: p.descricao, valor: String(p.valor), conta: p.conta, pixChave: p.pixChave, linkPagamento: p.linkPagamento, fotos: [...p.fotos], ativo: p.ativo })
   }
 
   const anexarFoto = async (file: File) => {
@@ -113,6 +118,7 @@ export function LojaView() {
   const salvar = async () => {
     if (!form || salvando) return
     if (!form.nome.trim()) { setErro('Informe o nome do produto.'); return }
+    if (form.conta === 'outra' && !form.pixChave.trim()) { setErro('Informe a chave PIX do recebedor (conta externa).'); return }
     setErro('')
     setSalvando(true)
     const payload = {
@@ -121,6 +127,8 @@ export function LojaView() {
       nome: form.nome.trim(),
       descricao: form.descricao.trim(),
       valor: Number(form.valor) || 0,
+      conta: form.conta,
+      pixChave: form.conta === 'outra' ? form.pixChave.trim() : '',
       linkPagamento: form.linkPagamento.trim(),
       fotos: form.fotos,
       ativo: form.ativo,
@@ -189,9 +197,23 @@ export function LojaView() {
           <h1>Loja — {state.retiro.nome}</h1>
           <div className="desc">Cadastre produtos à venda (camisetas etc.) e acompanhe os pedidos. Cada produto tem um link público próprio.</div>
         </div>
-        {aba === 'produtos' && (
+        {aba === 'produtos' ? (
           <div className="actions">
             <button className="btn btn-primary" onClick={abrirNovo}>+ Novo produto</button>
+          </div>
+        ) : (
+          <div className="actions">
+            <button
+              className="btn btn-outline"
+              disabled={pedidos.length === 0}
+              onClick={() => {
+                exportPedidosLoja(pedidos, state.retiro.nome, state.retiro.slug).catch(() =>
+                  toast('Não foi possível gerar o relatório.'),
+                )
+              }}
+            >
+              Exportar relatório
+            </button>
           </div>
         )}
       </div>
@@ -249,10 +271,28 @@ export function LojaView() {
                 </div>
 
                 <div>
-                  <label style={labelStyle}>Link de pagamento (cartão)</label>
+                  <label style={labelStyle}>Conta de recebimento</label>
+                  <select className="input" value={form.conta} onChange={(e) => setForm({ ...form, conta: e.target.value as 'imel' | 'outra' })}>
+                    <option value="imel">IMEL (igreja) — padrão</option>
+                    <option value="outra">Outra conta (recebedor externo)</option>
+                  </select>
+                </div>
+
+                {form.conta === 'outra' && (
+                  <div>
+                    <label style={labelStyle}>Chave PIX do recebedor</label>
+                    <input className="input" value={form.pixChave} onChange={(e) => setForm({ ...form, pixChave: e.target.value })} placeholder="CPF, CNPJ, e-mail, telefone ou chave aleatória" />
+                    <div style={{ fontSize: 11, color: 'var(--fg-muted)', marginTop: 4 }}>
+                      Exibida no formulário público quando o comprador escolher PIX (no lugar da chave do IMEL).
+                    </div>
+                  </div>
+                )}
+
+                <div>
+                  <label style={labelStyle}>Link de pagamento (cartão){form.conta === 'outra' ? ' — recebedor' : ''}</label>
                   <input className="input" value={form.linkPagamento} onChange={(e) => setForm({ ...form, linkPagamento: e.target.value })} placeholder="https://… (exibido quando o comprador escolher Cartão)" />
                   <div style={{ fontSize: 11, color: 'var(--fg-muted)', marginTop: 4 }}>
-                    Opcional. Se vazio, usa o link de pagamento do evento.
+                    Opcional. {form.conta === 'outra' ? 'Link de pagamento por cartão do recebedor externo.' : 'Se vazio, usa o link de pagamento do evento.'}
                   </div>
                 </div>
 

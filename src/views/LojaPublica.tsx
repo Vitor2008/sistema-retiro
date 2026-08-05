@@ -29,6 +29,8 @@ interface ProdutoPublico {
   descricao: string
   valor: number
   fotos: string[]
+  conta: 'imel' | 'outra'
+  pixChave: string
   linkPagamento: string
   eventoNome: string
   bannerId: string | null
@@ -77,6 +79,11 @@ export function LojaPublica() {
 
   const vestimenta = produto?.categoria === 'vestimenta'
   const total = (produto?.valor ?? 0) * quantidade
+  // PIX: conta externa usa a chave do recebedor (sem o QR do IMEL).
+  const contaOutra = produto?.conta === 'outra'
+  const pixChaveExibida = contaOutra ? produto?.pixChave || '' : cfg.pixChave
+  const pixInfoExibida = contaOutra ? '' : cfg.pixInfo
+  const mostrarQr = !contaOutra && !!cfg.qrCodeUrl
 
   const uploadComprovante = async (file: File) => {
     setErroEnvio(null)
@@ -96,7 +103,7 @@ export function LojaPublica() {
   }
 
   const copiarPix = () => {
-    navigator.clipboard?.writeText(cfg.pixChave).catch(() => {})
+    navigator.clipboard?.writeText(pixChaveExibida).catch(() => {})
     setPixCopiado(true)
     setTimeout(() => setPixCopiado(false), 2000)
   }
@@ -293,12 +300,14 @@ export function LojaPublica() {
 
                 {forma === 'Pix' && (
                   <div style={{ background: 'var(--bg-app)', border: '1px solid var(--border-default)', borderRadius: 8, padding: '12px 14px', marginTop: 14 }}>
-                    <div style={{ fontSize: 12, color: 'var(--fg-muted)', marginBottom: 4 }}>Chave PIX {cfg.pixInfo ? `(${cfg.pixInfo})` : ''}</div>
+                    <div style={{ fontSize: 12, color: 'var(--fg-muted)', marginBottom: 4 }}>
+                      Chave PIX {contaOutra ? 'do recebedor' : pixInfoExibida ? `(${pixInfoExibida})` : ''}
+                    </div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                      <span className="mono" style={{ fontSize: 14, fontWeight: 600, flex: 1, wordBreak: 'break-all' }}>{cfg.pixChave}</span>
+                      <span className="mono" style={{ fontSize: 14, fontWeight: 600, flex: 1, wordBreak: 'break-all' }}>{pixChaveExibida}</span>
                       <button className="btn btn-default btn-xs" style={{ flexShrink: 0 }} onClick={copiarPix}>{pixCopiado ? 'Copiado!' : 'Copiar'}</button>
                     </div>
-                    {cfg.qrCodeUrl && (
+                    {mostrarQr && (
                       <div style={{ textAlign: 'center', marginTop: 12 }}>
                         <div style={{ fontSize: 12, color: 'var(--fg-muted)', marginBottom: 6 }}>Aponte a câmera do celular para o QR Code</div>
                         <img src={cfg.qrCodeUrl} alt="QR Code PIX" style={{ width: 200, height: 200, objectFit: 'contain' }} />

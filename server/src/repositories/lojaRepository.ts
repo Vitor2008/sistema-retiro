@@ -14,6 +14,8 @@ function toProduto(r: ProdutoRow): LojaProduto {
     nome: r.nome,
     descricao: r.descricao,
     valor: r.valor,
+    conta: r.conta === 'outra' ? 'outra' : 'imel',
+    pixChave: r.pixChave,
     linkPagamento: r.linkPagamento,
     fotos: r.fotos ?? [],
     ativo: r.ativo,
@@ -67,6 +69,8 @@ export const lojaRepository = {
       nome: dto.nome,
       descricao: dto.descricao,
       valor: dto.valor,
+      conta: dto.conta,
+      pixChave: dto.pixChave,
       linkPagamento: dto.linkPagamento,
       fotos: dto.fotos,
       ativo: dto.ativo,
@@ -81,6 +85,8 @@ export const lojaRepository = {
     if (patch.nome !== undefined) set.nome = patch.nome
     if (patch.descricao !== undefined) set.descricao = patch.descricao
     if (patch.valor !== undefined) set.valor = patch.valor
+    if (patch.conta !== undefined) set.conta = patch.conta
+    if (patch.pixChave !== undefined) set.pixChave = patch.pixChave
     if (patch.linkPagamento !== undefined) set.linkPagamento = patch.linkPagamento
     if (patch.fotos !== undefined) set.fotos = patch.fotos
     if (patch.ativo !== undefined) set.ativo = patch.ativo

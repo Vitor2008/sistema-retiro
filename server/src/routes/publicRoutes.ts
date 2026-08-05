@@ -79,6 +79,7 @@ publicRoutes.get('/loja/:id', async (req, res, next) => {
     const p = await lojaRepository.getProduto(req.params.id)
     if (!p || !p.ativo) return res.status(404).json({ error: 'Produto não encontrado.' })
     const evento = p.retiroId ? await retiroRepository.get(p.retiroId) : null
+    const contaOutra = p.conta === 'outra'
     res.json({
       id: p.id,
       categoria: p.categoria,
@@ -86,8 +87,11 @@ publicRoutes.get('/loja/:id', async (req, res, next) => {
       descricao: p.descricao,
       valor: p.valor,
       fotos: p.fotos,
-      // Preferência: link do próprio produto; fallback para o link do evento.
-      linkPagamento: p.linkPagamento || evento?.linkPagamento || '',
+      conta: p.conta,
+      // Chave PIX do recebedor só quando a conta é externa.
+      pixChave: contaOutra ? p.pixChave : '',
+      // Conta externa usa só o link do produto; conta IMEL faz fallback p/ o evento.
+      linkPagamento: contaOutra ? p.linkPagamento : p.linkPagamento || evento?.linkPagamento || '',
       eventoNome: evento?.nome ?? '',
       bannerId: evento?.bannerId ?? null,
     })

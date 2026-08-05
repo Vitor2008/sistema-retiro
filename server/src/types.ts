@@ -124,6 +124,10 @@ export interface LojaProduto {
   nome: string
   descricao: string
   valor: number
+  /** 'imel' (conta padrão da igreja) ou 'outra' (recebedor externo). */
+  conta: 'imel' | 'outra'
+  /** Chave PIX do recebedor externo (quando conta = 'outra'). */
+  pixChave: string
   linkPagamento: string
   fotos: string[]
   ativo: boolean
