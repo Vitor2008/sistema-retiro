@@ -140,6 +140,7 @@ export const snapshotRepository = {
           tipo: p.tipo,
           idade: p.idade,
           dataNascimento: p.dataNascimento,
+          valor: p.valor ?? null,
           vez: p.vez,
           lider: p.lider,
           predio: p.predio,

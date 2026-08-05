@@ -146,6 +146,7 @@ publicRoutes.post('/inscricao/:slug', async (req, res, next) => {
       tipo,
       idade,
       dataNascimento,
+      valor: r.valor,
       vez,
       lider,
       predio,

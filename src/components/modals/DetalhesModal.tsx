@@ -1,10 +1,12 @@
 import { useState } from 'react'
+import { isAdmin } from '../../acessos'
 import { AttachmentLink } from '../AttachmentLink'
 import { FileDropField } from '../FileDropField'
 import { fmt, initials } from '../../lib/format'
+import { useAuth } from '../../store/AuthContext'
 import { useRetiro } from '../../store/RetiroContext'
 import { useActions } from '../../store/useActions'
-import { ofertado, pago, porId, statusPag } from '../../store/selectors'
+import { ofertado, pago, porId, statusPag, valorInscricao } from '../../store/selectors'
 import type { ModalDetalhes } from '../../types'
 
 /** 'YYYY-MM-DD' → 'DD/MM/AAAA'. */
@@ -93,11 +95,13 @@ function Campo({ label, valor }: { label: string; valor: React.ReactNode }) {
 export function DetalhesModal({ modal }: { modal: ModalDetalhes }) {
   const { state, setModal, closeModal } = useRetiro()
   const { anexarComprovante } = useActions()
+  const { user } = useAuth()
+  const admin = isAdmin(user?.acessos)
 
   const p = porId(state)[modal.pid]
   if (!p) return null
 
-  const valor = state.retiro.valor
+  const valor = valorInscricao(state, p)
   const pg = pago(p)
   const of = ofertado(p)
   const saldo = Math.max(0, valor - pg - of)
@@ -227,6 +231,7 @@ export function DetalhesModal({ modal }: { modal: ModalDetalhes }) {
                 genero: p.genero,
                 idade: p.idade != null ? String(p.idade) : '',
                 dataNascimento: p.dataNascimento,
+                valor: String(valorInscricao(state, p)),
                 tipo: p.tipo,
                 vez: p.vez,
                 lider: p.lider,
@@ -238,6 +243,21 @@ export function DetalhesModal({ modal }: { modal: ModalDetalhes }) {
           >
             Editar inscrição
           </button>
+          {admin && p.pagamentos.length > 0 && (
+            <button
+              className="btn btn-outline"
+              title="Corrigir os lançamentos de pagamento (somente administrador)"
+              onClick={() =>
+                setModal({
+                  type: 'editarPagamento',
+                  pid: p.id,
+                  linhas: p.pagamentos.map((h) => ({ ...h })),
+                })
+              }
+            >
+              Editar pagamento
+            </button>
+          )}
           {!cancelada && !quitado && (
             <button
               className="btn btn-primary"

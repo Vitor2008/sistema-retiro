@@ -20,6 +20,9 @@ export interface Inscrito {
   tipo: 'Encontrista' | 'Servo'
   idade: number | null
   dataNascimento: string
+  /** Valor da inscrição travado no momento em que a pessoa se inscreveu
+   *  (preços por lote). Null em inscrições antigas → usa o valor atual do evento. */
+  valor?: number | null
   vez: string
   lider: string
   predio: string

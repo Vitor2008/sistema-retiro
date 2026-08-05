@@ -14,6 +14,7 @@ import type {
   Inscrito,
   ItemVenda,
   ModalEditarInscricao,
+  ModalEditarPagamento,
   ModalFecharConta,
   ModalPagamento,
   ModalOferta,
@@ -24,7 +25,7 @@ import type {
   Venda,
 } from '../types'
 import { useRetiro } from './RetiroContext'
-import { escalaVazia, ofertado, pago, porId, servosServico } from './selectors'
+import { escalaVazia, ofertado, pago, porId, servosServico, valorInscricao } from './selectors'
 
 export function useActions() {
   const { state, patch, setModal, toast } = useRetiro()
@@ -266,7 +267,7 @@ export function useActions() {
     const byId = porId(s)
     const mp = byId[m.pid]
     if (!mp) return
-    const mRestanteV = Math.max(0, s.retiro.valor - pago(mp) - ofertado(mp))
+    const mRestanteV = Math.max(0, valorInscricao(s, mp) - pago(mp) - ofertado(mp))
     const vp = Number(m.valorPago) || 0
     const ofertaV = m.oferta ? Math.max(0, mRestanteV - vp) : 0
     // Permite confirmar a inscrição SEM pagamento, desde que informe a data
@@ -495,6 +496,7 @@ export function useActions() {
               genero: m.genero as Inscrito['genero'],
               idade: Number(m.idade) > 0 ? Math.floor(Number(m.idade)) : null,
               dataNascimento: m.dataNascimento,
+              valor: m.valor.trim() !== '' && Number(m.valor) >= 0 ? Number(m.valor) : x.valor ?? null,
               tipo: m.tipo,
               vez: m.tipo === 'Encontrista' ? m.vez : '',
               lider: m.lider,
@@ -578,6 +580,30 @@ export function useActions() {
     toast('Conta atualizada.')
   }
 
+  /** Salva a edição dos lançamentos de pagamento de uma inscrição (ADM).
+   *  Substitui o histórico pelo conjunto editado; pago/oferta/status são
+   *  recalculados a partir dos lançamentos. */
+  const salvarEdicaoPagamento = () => {
+    const s = state
+    const m = s.modal as ModalEditarPagamento
+    if (!m || m.type !== 'editarPagamento') return
+    const linhas = m.linhas
+      .map((l) => ({
+        ...l,
+        valor: Math.max(0, Number(l.valor) || 0),
+        oferta: Math.max(0, Number(l.oferta) || 0),
+      }))
+      // Descarta linhas zeradas (valor e oferta = 0), tratando-as como removidas.
+      .filter((l) => l.valor > 0 || l.oferta > 0)
+    patch({
+      inscritos: s.inscritos.map((x) =>
+        x.id === m.pid ? { ...x, pagamentos: linhas } : x,
+      ),
+      modal: null,
+    })
+    toast('Pagamento atualizado.')
+  }
+
   const toggleLink = () => {
     const s = state
     patch({ retiro: { ...s.retiro, aberto: !s.retiro.aberto } })
@@ -612,6 +638,7 @@ export function useActions() {
     salvarOferta,
     anexarComprovante,
     salvarEdicaoInscricao,
+    salvarEdicaoPagamento,
     confirmarFecharConta,
     salvarEdicaoConta,
     toggleLink,

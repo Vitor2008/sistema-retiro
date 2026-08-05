@@ -16,6 +16,7 @@ import {
   pago,
   periodo,
   statusPag,
+  valorInscricao,
 } from '../store/selectors'
 
 const BRAND = 'FF3E7CB0' // azul IMEL (logo)
@@ -56,13 +57,12 @@ export async function exportPrestacaoContas(
   state: AppState,
   config: AppConfig,
 ): Promise<void> {
-  const valor = state.retiro.valor
   const atv = ativos(state)
   const confirmados = atv.filter((p) => p.statusInscricao === 'confirmada')
 
   const arrecadado = state.inscritos.reduce((a, p) => a + pago(p), 0)
   const aReceber = atv.reduce(
-    (a, p) => a + Math.max(0, valor - pago(p) - ofertado(p)),
+    (a, p) => a + Math.max(0, valorInscricao(state, p) - pago(p) - ofertado(p)),
     0,
   )
   const ofertas = state.inscritos.reduce((a, p) => a + ofertado(p), 0)
@@ -203,7 +203,7 @@ export async function exportPrestacaoContas(
     .sort((a, b) => a.nome.localeCompare(b.nome))
     .forEach((p) => {
       const sp = statusPag(state, p)
-      const rest = Math.max(0, valor - pago(p) - ofertado(p))
+      const rest = Math.max(0, valorInscricao(state, p) - pago(p) - ofertado(p))
       const obs = p.pagamentos.map((x) => x.obs).filter(Boolean).slice(-1)[0] || ''
       const r = checkin.addRow([
         p.nome,

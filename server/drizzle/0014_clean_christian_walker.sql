@@ -1,0 +1,1 @@
+ALTER TABLE "inscritos" ADD COLUMN "valor" double precision;

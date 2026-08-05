@@ -2,16 +2,16 @@ import { FileDropField } from '../FileDropField'
 import { attachLabel, fmt, initials } from '../../lib/format'
 import { useRetiro } from '../../store/RetiroContext'
 import { useActions } from '../../store/useActions'
-import { ofertado, pago, porId } from '../../store/selectors'
+import { ofertado, pago, porId, valorInscricao } from '../../store/selectors'
 import type { ModalPagamento } from '../../types'
 
 export function PagamentoModal({ modal }: { modal: ModalPagamento }) {
   const { state, patchModal, setModal, closeModal } = useRetiro()
   const { salvarPagamento } = useActions()
 
-  const valor = state.retiro.valor
   const mp = porId(state)[modal.pid]
   if (!mp) return null
+  const valor = valorInscricao(state, mp)
   const mRestanteV = Math.max(0, valor - pago(mp) - ofertado(mp))
   const valorPagoN = Number(modal.valorPago) || 0
   const mostraDataPrevista = !modal.oferta && valorPagoN < mRestanteV

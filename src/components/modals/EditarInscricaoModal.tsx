@@ -110,6 +110,21 @@ export function EditarInscricaoModal({ modal }: { modal: ModalEditarInscricao })
             </select>
           </div>
         </div>
+
+        <div>
+          <label style={label}>Valor da inscrição (R$)</label>
+          <input
+            className="input"
+            type="number"
+            min="0"
+            step="0.01"
+            value={modal.valor}
+            onChange={(e) => set({ valor: e.target.value })}
+          />
+          <div style={{ fontSize: 11, color: 'var(--fg-muted)', marginTop: 4 }}>
+            Valor travado nesta inscrição. Alterar o valor do evento não muda inscrições já feitas.
+          </div>
+        </div>
       </div>
 
       <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, marginTop: 18 }}>

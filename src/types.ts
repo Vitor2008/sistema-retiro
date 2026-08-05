@@ -53,6 +53,9 @@ export interface Inscrito {
   tipo: TipoInscricao
   idade: number | null
   dataNascimento: string
+  /** Valor da inscrição travado no momento do cadastro (preços por lote). Null
+   *  em inscrições antigas → o app usa o valor atual do evento como fallback. */
+  valor?: number | null
   /** Para convidados: 1ª, 2ª ou + de 2 vezes. */
   vez: Vez
   lider: string
@@ -252,6 +255,7 @@ export interface ModalEditarInscricao {
   genero: Genero | ''
   idade: string
   dataNascimento: string
+  valor: string
   tipo: TipoInscricao
   vez: Vez
   lider: string
@@ -259,6 +263,13 @@ export interface ModalEditarInscricao {
   conducao: string
   forma: FormaPagamento
 }
+/** Edição dos lançamentos de pagamento de uma inscrição (somente ADM). */
+export interface ModalEditarPagamento {
+  type: 'editarPagamento'
+  pid: string
+  linhas: Pagamento[]
+}
+
 export interface ModalFecharConta {
   type: 'fecharConta'
   vid: string
@@ -281,6 +292,7 @@ export type Modal =
   | ModalOferta
   | ModalDetalhes
   | ModalEditarInscricao
+  | ModalEditarPagamento
   | ModalFecharConta
   | ModalEditarConta
   | null

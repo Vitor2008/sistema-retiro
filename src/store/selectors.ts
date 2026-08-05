@@ -14,9 +14,15 @@ export function ofertado(p: Inscrito): number {
   return p.pagamentos.reduce((a, x) => a + (x.oferta || 0), 0)
 }
 
+/** Valor da inscrição da pessoa: o preço travado no cadastro (preços por lote)
+ *  ou, se a inscrição não tiver um (legada), o valor atual do evento. */
+export function valorInscricao(state: AppState, p: Inscrito): number {
+  return p.valor != null ? p.valor : state.retiro.valor
+}
+
 export function statusPag(state: AppState, p: Inscrito): StatusPagamento {
   const t = pago(p) + ofertado(p)
-  if (t >= state.retiro.valor) return 'confirmado'
+  if (t >= valorInscricao(state, p)) return 'confirmado'
   if (t > 0) return 'parcial'
   return 'pendente'
 }

@@ -4,7 +4,7 @@ import { appConfig } from '../config'
 import { fmt, initials } from '../lib/format'
 import { useRetiro } from '../store/RetiroContext'
 import { useActions } from '../store/useActions'
-import { ativos, ofertado, pago, statusPag } from '../store/selectors'
+import { ativos, ofertado, pago, statusPag, valorInscricao } from '../store/selectors'
 import type { StatusInscricao, StatusPagamento } from '../types'
 
 const pagInfo: Record<StatusPagamento, [string, string]> = {
@@ -29,7 +29,6 @@ export function CheckinView() {
   }, [])
 
   const s = state
-  const valor = s.retiro.valor
   // Eventos avulsos não têm o conceito de Convidado/Servo → oculta a coluna Tipo.
   const avulso = s.retiro.tipo === 'avulso'
   const atv = ativos(s)
@@ -49,7 +48,7 @@ export function CheckinView() {
   })
 
   const arrecadadoTot = s.inscritos.reduce((a, p) => a + pago(p), 0)
-  const aReceberTot = atv.reduce((a, p) => a + Math.max(0, valor - pago(p) - ofertado(p)), 0)
+  const aReceberTot = atv.reduce((a, p) => a + Math.max(0, valorInscricao(s, p) - pago(p) - ofertado(p)), 0)
 
   return (
     <div data-screen-label="Check-in">
@@ -123,6 +122,7 @@ export function CheckinView() {
               {!avulso && <th>Tipo</th>}
               <th>Líder</th>
               <th>Prédio</th>
+              <th>Valor inscrição</th>
               <th>Pagamento</th>
               <th>Status pgto.</th>
               <th>Inscrição</th>
@@ -134,11 +134,12 @@ export function CheckinView() {
               const sp = statusPag(s, p)
               const pg = pago(p)
               const of = ofertado(p)
+              const vInsc = valorInscricao(s, p)
               const cancelada = p.statusInscricao === 'cancelada'
               let resumo = ''
-              if (of >= valor) resumo = 'abatido como oferta'
+              if (of >= vInsc) resumo = 'abatido como oferta'
               else if (pg > 0)
-                resumo = fmt(pg) + ' pago' + (of ? ' + oferta' : '') + (sp === 'parcial' ? ' · resta ' + fmt(valor - pg - of) : '')
+                resumo = fmt(pg) + ' pago' + (of ? ' + oferta' : '') + (sp === 'parcial' ? ' · resta ' + fmt(vInsc - pg - of) : '')
               else resumo = 'nada recebido'
 
               return (
@@ -171,6 +172,7 @@ export function CheckinView() {
                   )}
                   <td style={{ fontSize: 12 }}>{p.lider}</td>
                   <td style={{ fontSize: 12 }}>{p.predio || '—'}</td>
+                  <td style={{ fontSize: 12, fontWeight: 600 }}>{fmt(vInsc)}</td>
                   <td style={{ fontSize: 12 }}>
                     {p.forma}
                     <div className="vaga-id">{cancelada ? '—' : resumo}</div>
@@ -187,61 +189,12 @@ export function CheckinView() {
                     <span className={'chip-mini ' + insInfo[p.statusInscricao][0]}>{insInfo[p.statusInscricao][1]}</span>
                   </td>
                   <td style={{ textAlign: 'right', whiteSpace: 'nowrap' }}>
-                    {!cancelada ? (
-                      <div style={{ display: 'inline-flex', gap: 6 }} onClick={(e) => e.stopPropagation()}>
-                        {/* Já confirmada e totalmente paga: nada a confirmar. */}
-                        {!(p.statusInscricao === 'confirmada' && sp === 'confirmado') && (
-                          <button
-                            className="btn btn-primary btn-xs"
-                            onClick={() =>
-                              setModal({
-                                type: 'pagamento',
-                                pid: p.id,
-                                valorPago: String(Math.max(0, valor - pg - of)),
-                                forma: p.forma,
-                                obs: '',
-                                oferta: false,
-                                dataPrevista: '',
-                                comprovante: null,
-                              })
-                            }
-                          >
-                            Confirmar inscrição
-                          </button>
-                        )}
-                        <button
-                          className="btn btn-outline btn-xs"
-                          onClick={() =>
-                            setModal({
-                              type: 'editarInscricao',
-                              pid: p.id,
-                              nome: p.nome,
-                              tel: p.tel,
-                              genero: p.genero,
-                              idade: p.idade != null ? String(p.idade) : '',
-                              dataNascimento: p.dataNascimento,
-                              tipo: p.tipo,
-                              vez: p.vez,
-                              lider: p.lider,
-                              predio: p.predio,
-                              conducao: p.conducao,
-                              forma: p.forma,
-                            })
-                          }
-                        >
-                          Editar
-                        </button>
-                        <button
-                          className="btn btn-default btn-xs"
-                          style={{ color: 'var(--status-rejected-fg)' }}
-                          onClick={() => setModal({ type: 'cancelar', pid: p.id, obs: '' })}
-                        >
-                          Cancelar
-                        </button>
-                      </div>
-                    ) : (
-                      <span style={{ fontSize: 11, color: 'var(--fg-muted)' }}>{p.cancelInfo}</span>
-                    )}
+                    <button
+                      className="btn btn-outline btn-xs"
+                      onClick={() => setModal({ type: 'detalhes', pid: p.id })}
+                    >
+                      Ver detalhes
+                    </button>
                   </td>
                 </tr>
               )

@@ -99,6 +99,13 @@
       "when": 1785851457251,
       "tag": "0013_abandoned_giant_man",
       "breakpoints": true
+    },
+    {
+      "idx": 14,
+      "version": "7",
+      "when": 1785937390800,
+      "tag": "0014_clean_christian_walker",
+      "breakpoints": true
     }
   ]
 }

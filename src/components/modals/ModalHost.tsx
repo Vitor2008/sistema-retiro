@@ -8,6 +8,7 @@ import { DespesaModal } from './DespesaModal'
 import { OfertaModal } from './OfertaModal'
 import { DetalhesModal } from './DetalhesModal'
 import { EditarInscricaoModal } from './EditarInscricaoModal'
+import { EditarPagamentoModal } from './EditarPagamentoModal'
 import { FecharContaModal } from './FecharContaModal'
 import { EditarContaModal } from './EditarContaModal'
 
@@ -17,11 +18,13 @@ export function ModalHost() {
   if (!m) return null
 
   const width =
-    m.type === 'retiro'
-      ? '680px'
-      : m.type === 'pagamento' || m.type === 'detalhes' || m.type === 'editarInscricao'
-        ? '560px'
-        : '460px'
+    m.type === 'detalhes'
+      ? '760px'
+      : m.type === 'retiro'
+        ? '680px'
+        : m.type === 'pagamento' || m.type === 'editarInscricao' || m.type === 'editarPagamento'
+          ? '560px'
+          : '460px'
 
   // O modal de evento (criar/editar) não fecha ao clicar fora — evita perder o
   // que está sendo preenchido por engano.
@@ -45,6 +48,7 @@ export function ModalHost() {
         {m.type === 'oferta' && <OfertaModal modal={m} />}
         {m.type === 'detalhes' && <DetalhesModal modal={m} />}
         {m.type === 'editarInscricao' && <EditarInscricaoModal modal={m} />}
+        {m.type === 'editarPagamento' && <EditarPagamentoModal modal={m} />}
         {m.type === 'fecharConta' && <FecharContaModal modal={m} />}
         {m.type === 'editarConta' && <EditarContaModal modal={m} />}
       </div>

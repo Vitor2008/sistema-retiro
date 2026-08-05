@@ -111,6 +111,9 @@ export const inscritos = pgTable('inscritos', {
   /** Idade e data de nascimento informadas na inscrição. */
   idade: integer('idade'),
   dataNascimento: text('data_nascimento').notNull().default(''),
+  /** Valor da inscrição no momento do cadastro (preços por lote). Nulo em
+   *  inscrições legadas → o app usa o valor atual do evento como fallback. */
+  valor: doublePrecision('valor'),
   /** Para convidados: 1ª vez, 2ª vez ou + de 2. */
   vez: text('vez').notNull().default(''),
   lider: text('lider').notNull().default(''),

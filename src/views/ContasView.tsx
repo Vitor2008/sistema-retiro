@@ -2,7 +2,7 @@ import { AttachmentLink } from '../components/AttachmentLink'
 import { fmt, initials } from '../lib/format'
 import { useRetiro } from '../store/RetiroContext'
 import { useActions } from '../store/useActions'
-import { ativos, cantinaTotais, ofertado, pago, statusPag } from '../store/selectors'
+import { ativos, cantinaTotais, ofertado, pago, statusPag, valorInscricao } from '../store/selectors'
 import { useViewport } from '../hooks/useViewport'
 import type { StatusPagamento } from '../types'
 
@@ -18,13 +18,12 @@ export function ContasView() {
   const { mid } = useViewport()
 
   const s = state
-  const valor = s.retiro.valor
   const narrow = s.narrow
   const atv = ativos(s)
   const confirmados = atv.filter((p) => p.statusInscricao === 'confirmada')
 
   const arrecadadoTot = s.inscritos.reduce((a, p) => a + pago(p), 0)
-  const aReceberTot = atv.reduce((a, p) => a + Math.max(0, valor - pago(p) - ofertado(p)), 0)
+  const aReceberTot = atv.reduce((a, p) => a + Math.max(0, valorInscricao(s, p) - pago(p) - ofertado(p)), 0)
   const ofertaUtilizada = s.inscritos.reduce((a, p) => a + ofertado(p), 0)
   const ofertaRecebida = s.retiro.oferta || 0
   const ofertaDisponivel = ofertaRecebida - ofertaUtilizada
@@ -40,7 +39,7 @@ export function ContasView() {
     .sort((a, b) => a.nome.localeCompare(b.nome))
     .map((p) => {
       const sp = statusPag(s, p)
-      const rest = Math.max(0, valor - pago(p) - ofertado(p))
+      const rest = Math.max(0, valorInscricao(s, p) - pago(p) - ofertado(p))
       const obs = p.pagamentos.map((x) => x.obs).filter(Boolean).slice(-1)[0] || ''
       return {
         id: p.id,
@@ -49,6 +48,7 @@ export function ContasView() {
         lider: p.lider,
         cls: pagInfo[sp][0],
         label: pagInfo[sp][1],
+        valorInscricao: fmt(valorInscricao(s, p)),
         pago: fmt(pago(p)),
         oferta: ofertado(p) ? fmt(ofertado(p)) : '—',
         saldo: rest ? fmt(rest) : '—',
@@ -213,6 +213,7 @@ export function ContasView() {
                 <th>Tipo</th>
                 <th>Líder</th>
                 <th>Status pgto.</th>
+                <th style={{ textAlign: 'right' }}>Valor inscrição</th>
                 <th style={{ textAlign: 'right' }}>Pago</th>
                 <th style={{ textAlign: 'right' }}>Oferta</th>
                 <th style={{ textAlign: 'right' }}>Saldo</th>
@@ -238,6 +239,7 @@ export function ContasView() {
                   <td>
                     <span className={'chip-mini ' + r.cls}>{r.label}</span>
                   </td>
+                  <td style={{ textAlign: 'right', fontWeight: 600 }}>{r.valorInscricao}</td>
                   <td style={{ textAlign: 'right', fontWeight: 600 }}>{r.pago}</td>
                   <td style={{ textAlign: 'right', color: 'var(--color-sage)' }}>{r.oferta}</td>
                   <td style={{ textAlign: 'right', color: r.saldoColor, fontWeight: r.saldoBold ? 700 : 400 }}>{r.saldo}</td>
