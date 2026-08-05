@@ -311,6 +311,9 @@ export interface LojaProduto {
   conta: 'imel' | 'outra'
   /** Chave PIX do recebedor externo (quando conta = 'outra'). */
   pixChave: string
+  /** Nome e banco do recebedor externo (quando conta = 'outra'). */
+  pixNome: string
+  pixBanco: string
   /** Link de pagamento (cartão) exibido quando o comprador escolhe Cartão. */
   linkPagamento: string
   /** ids de arquivos (fotos do produto, até 4). */

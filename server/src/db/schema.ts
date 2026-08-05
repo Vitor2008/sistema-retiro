@@ -244,6 +244,9 @@ export const lojaProdutos = pgTable('loja_produtos', {
   conta: text('conta').notNull().default('imel'),
   /** Chave PIX do recebedor externo (usada quando conta = 'outra'). */
   pixChave: text('pix_chave').notNull().default(''),
+  /** Nome e banco do recebedor externo (exibidos no PIX do formulário público). */
+  pixNome: text('pix_nome').notNull().default(''),
+  pixBanco: text('pix_banco').notNull().default(''),
   /** Link de pagamento (cartão/checkout) exibido quando o comprador escolhe Cartão. */
   linkPagamento: text('link_pagamento').notNull().default(''),
   /** ids de arquivos (bytea) usados como fotos do produto (até 4). */

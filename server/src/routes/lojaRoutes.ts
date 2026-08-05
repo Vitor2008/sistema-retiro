@@ -61,6 +61,8 @@ lojaRoutes.post('/produtos', async (req, res) => {
       valor: Math.max(0, Number(b.valor) || 0),
       conta,
       pixChave: conta === 'outra' ? pixChave : '',
+      pixNome: conta === 'outra' ? String(b.pixNome || '').trim() : '',
+      pixBanco: conta === 'outra' ? String(b.pixBanco || '').trim() : '',
       linkPagamento: String(b.linkPagamento || '').trim(),
       fotos: normFotos(b.fotos),
       ativo: b.ativo !== false,
@@ -83,7 +85,9 @@ lojaRoutes.put('/produtos/:id', async (req, res) => {
     const contaIn = b.conta !== undefined ? normConta(b.conta) : undefined
     if (contaIn !== undefined) patch.conta = contaIn
     if (b.pixChave !== undefined) patch.pixChave = String(b.pixChave).trim()
-    if (contaIn === 'imel') patch.pixChave = ''
+    if (b.pixNome !== undefined) patch.pixNome = String(b.pixNome).trim()
+    if (b.pixBanco !== undefined) patch.pixBanco = String(b.pixBanco).trim()
+    if (contaIn === 'imel') { patch.pixChave = ''; patch.pixNome = ''; patch.pixBanco = '' }
     if (contaIn === 'outra' && !patch.pixChave) throw new Error('Informe a chave PIX do recebedor.')
     if (b.linkPagamento !== undefined) patch.linkPagamento = String(b.linkPagamento).trim()
     if (b.fotos !== undefined) patch.fotos = normFotos(b.fotos)

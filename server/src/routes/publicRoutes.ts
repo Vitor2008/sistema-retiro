@@ -88,8 +88,10 @@ publicRoutes.get('/loja/:id', async (req, res, next) => {
       valor: p.valor,
       fotos: p.fotos,
       conta: p.conta,
-      // Chave PIX do recebedor só quando a conta é externa.
+      // Dados do recebedor só quando a conta é externa.
       pixChave: contaOutra ? p.pixChave : '',
+      pixNome: contaOutra ? p.pixNome : '',
+      pixBanco: contaOutra ? p.pixBanco : '',
       // Conta externa usa só o link do produto; conta IMEL faz fallback p/ o evento.
       linkPagamento: contaOutra ? p.linkPagamento : p.linkPagamento || evento?.linkPagamento || '',
       eventoNome: evento?.nome ?? '',

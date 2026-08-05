@@ -31,6 +31,8 @@ interface ProdutoPublico {
   fotos: string[]
   conta: 'imel' | 'outra'
   pixChave: string
+  pixNome: string
+  pixBanco: string
   linkPagamento: string
   eventoNome: string
   bannerId: string | null
@@ -82,6 +84,9 @@ export function LojaPublica() {
   // PIX: conta externa usa a chave do recebedor (sem o QR do IMEL).
   const contaOutra = produto?.conta === 'outra'
   const pixChaveExibida = contaOutra ? produto?.pixChave || '' : cfg.pixChave
+  const recebedorInfo = contaOutra
+    ? [produto?.pixNome, produto?.pixBanco].filter(Boolean).join(' · ')
+    : ''
   const pixInfoExibida = contaOutra ? '' : cfg.pixInfo
   const mostrarQr = !contaOutra && !!cfg.qrCodeUrl
 
@@ -307,6 +312,11 @@ export function LojaPublica() {
                       <span className="mono" style={{ fontSize: 14, fontWeight: 600, flex: 1, wordBreak: 'break-all' }}>{pixChaveExibida}</span>
                       <button className="btn btn-default btn-xs" style={{ flexShrink: 0 }} onClick={copiarPix}>{pixCopiado ? 'Copiado!' : 'Copiar'}</button>
                     </div>
+                    {contaOutra && recebedorInfo && (
+                      <div style={{ fontSize: 12, color: 'var(--fg-default)', marginTop: 6 }}>
+                        Recebedor: <b>{recebedorInfo}</b>
+                      </div>
+                    )}
                     {mostrarQr && (
                       <div style={{ textAlign: 'center', marginTop: 12 }}>
                         <div style={{ fontSize: 12, color: 'var(--fg-muted)', marginBottom: 6 }}>Aponte a câmera do celular para o QR Code</div>

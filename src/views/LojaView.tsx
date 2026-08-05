@@ -34,6 +34,8 @@ interface ProdutoForm {
   valor: string
   conta: 'imel' | 'outra'
   pixChave: string
+  pixNome: string
+  pixBanco: string
   linkPagamento: string
   fotos: string[]
   ativo: boolean
@@ -46,6 +48,8 @@ const formVazio: ProdutoForm = {
   valor: '',
   conta: 'imel',
   pixChave: '',
+  pixNome: '',
+  pixBanco: '',
   linkPagamento: '',
   fotos: [],
   ativo: true,
@@ -97,7 +101,7 @@ export function LojaView() {
   const abrirNovo = () => { setErro(''); setForm({ ...formVazio }) }
   const abrirEdicao = (p: LojaProduto) => {
     setErro('')
-    setForm({ id: p.id, categoria: p.categoria, nome: p.nome, descricao: p.descricao, valor: String(p.valor), conta: p.conta, pixChave: p.pixChave, linkPagamento: p.linkPagamento, fotos: [...p.fotos], ativo: p.ativo })
+    setForm({ id: p.id, categoria: p.categoria, nome: p.nome, descricao: p.descricao, valor: String(p.valor), conta: p.conta, pixChave: p.pixChave, pixNome: p.pixNome, pixBanco: p.pixBanco, linkPagamento: p.linkPagamento, fotos: [...p.fotos], ativo: p.ativo })
   }
 
   const anexarFoto = async (file: File) => {
@@ -129,6 +133,8 @@ export function LojaView() {
       valor: Number(form.valor) || 0,
       conta: form.conta,
       pixChave: form.conta === 'outra' ? form.pixChave.trim() : '',
+      pixNome: form.conta === 'outra' ? form.pixNome.trim() : '',
+      pixBanco: form.conta === 'outra' ? form.pixBanco.trim() : '',
       linkPagamento: form.linkPagamento.trim(),
       fotos: form.fotos,
       ativo: form.ativo,
@@ -279,13 +285,25 @@ export function LojaView() {
                 </div>
 
                 {form.conta === 'outra' && (
-                  <div>
-                    <label style={labelStyle}>Chave PIX do recebedor</label>
-                    <input className="input" value={form.pixChave} onChange={(e) => setForm({ ...form, pixChave: e.target.value })} placeholder="CPF, CNPJ, e-mail, telefone ou chave aleatória" />
-                    <div style={{ fontSize: 11, color: 'var(--fg-muted)', marginTop: 4 }}>
-                      Exibida no formulário público quando o comprador escolher PIX (no lugar da chave do IMEL).
+                  <>
+                    <div>
+                      <label style={labelStyle}>Chave PIX do recebedor</label>
+                      <input className="input" value={form.pixChave} onChange={(e) => setForm({ ...form, pixChave: e.target.value })} placeholder="CPF, CNPJ, e-mail, telefone ou chave aleatória" />
+                      <div style={{ fontSize: 11, color: 'var(--fg-muted)', marginTop: 4 }}>
+                        Exibida no formulário público quando o comprador escolher PIX (no lugar da chave do IMEL).
+                      </div>
                     </div>
-                  </div>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                      <div>
+                        <label style={labelStyle}>Nome recebedor</label>
+                        <input className="input" value={form.pixNome} onChange={(e) => setForm({ ...form, pixNome: e.target.value })} placeholder="Nome de quem recebe" />
+                      </div>
+                      <div>
+                        <label style={labelStyle}>Banco recebedor</label>
+                        <input className="input" value={form.pixBanco} onChange={(e) => setForm({ ...form, pixBanco: e.target.value })} placeholder="Ex.: Nubank, Sicredi…" />
+                      </div>
+                    </div>
+                  </>
                 )}
 
                 <div>
