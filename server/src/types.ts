@@ -116,6 +116,39 @@ export interface Predio {
 
 export type Escala = Record<string, unknown> | null
 
+/** Produto da loja (por evento). */
+export interface LojaProduto {
+  id: string
+  retiroId: string | null
+  categoria: 'vestimenta' | 'outros'
+  nome: string
+  descricao: string
+  valor: number
+  fotos: string[]
+  ativo: boolean
+  criadoEm: string
+}
+
+/** Pedido da loja (feito pelo público). */
+export interface LojaPedido {
+  id: string
+  retiroId: string | null
+  produtoId: string | null
+  produtoNome: string
+  categoria: 'vestimenta' | 'outros'
+  nome: string
+  genero: string
+  tamanho: string
+  quantidade: number
+  valorUnit: number
+  valorTotal: number
+  forma: string
+  comprovante: boolean
+  comprovanteId: string | null
+  status: string
+  criadoEm: string
+}
+
 /** Snapshot de UM retiro — payload de sincronização com o frontend.
  *  `predios` é apenas leitura (nomes participando); prédios são gerenciados
  *  por endpoints próprios, não pelo replace-all do snapshot. */

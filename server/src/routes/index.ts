@@ -2,6 +2,7 @@ import { Router } from 'express'
 import { arquivoRoutes } from './arquivoRoutes.js'
 import { requireAuth } from './authMiddleware.js'
 import { authRoutes } from './authRoutes.js'
+import { lojaRoutes } from './lojaRoutes.js'
 import { predioRoutes } from './predioRoutes.js'
 import { publicRoutes } from './publicRoutes.js'
 import { retiroRoutes } from './retiroRoutes.js'
@@ -34,3 +35,6 @@ apiRouter.use('/arquivos', arquivoRoutes)
 
 // Gestão de usuários (somente ADM)
 apiRouter.use('/usuarios', usuarioRoutes)
+
+// Loja por evento (produtos e pedidos)
+apiRouter.use('/loja', lojaRoutes)

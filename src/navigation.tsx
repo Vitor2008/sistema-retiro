@@ -3,6 +3,7 @@ import { CantinaView } from './views/CantinaView'
 import { CheckinView } from './views/CheckinView'
 import { ContasView } from './views/ContasView'
 import { EscalasView } from './views/EscalasView'
+import { LojaView } from './views/LojaView'
 import { PrediosView } from './views/PrediosView'
 import { QuartosView } from './views/QuartosView'
 import { RetirosView } from './views/RetirosView'
@@ -48,6 +49,21 @@ export const NAV: NavItem[] = [
         <path d="M9 21v-4h6v4"></path>
         <line x1="9" y1="10" x2="9" y2="10"></line>
         <line x1="15" y1="10" x2="15" y2="10"></line>
+      </svg>
+    ),
+  },
+  {
+    key: 'loja',
+    path: '/loja',
+    label: 'Loja',
+    element: <LojaView />,
+    icon: (
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M3 9l1.5-5h15L21 9"></path>
+        <path d="M4 9v10a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1V9"></path>
+        <path d="M9 9a3 3 0 0 1-6 0"></path>
+        <path d="M15 9a3 3 0 0 1-6 0"></path>
+        <path d="M21 9a3 3 0 0 1-6 0"></path>
       </svg>
     ),
   },

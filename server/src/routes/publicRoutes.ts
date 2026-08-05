@@ -11,11 +11,16 @@ import express, { Router } from 'express'
 import { arquivoService } from '../services/arquivoService.js'
 import { inscritoRepository } from '../repositories/inscritoRepository.js'
 import { conducaoRepository, lideresRepository } from '../repositories/listaRepository.js'
+import { lojaRepository } from '../repositories/lojaRepository.js'
 import { retiroRepository } from '../repositories/retiroRepository.js'
 import { inscritoService } from '../services/inscritoService.js'
-import type { Inscrito } from '../types.js'
+import type { Inscrito, LojaPedido } from '../types.js'
 
 export const publicRoutes = Router()
+
+function uid(prefix: string): string {
+  return prefix + Date.now().toString(36) + Math.random().toString(36).slice(2, 7)
+}
 
 /** Conta inscrições que ocupam vaga (todas menos as canceladas) no retiro. */
 async function ocupadas(retiroId: string): Promise<number> {
@@ -63,6 +68,95 @@ publicRoutes.get('/retiro/:slug', async (req, res, next) => {
       aberto: r.aberto && vagasRestantes > 0,
       vagasRestantes,
     })
+  } catch (e) {
+    next(e)
+  }
+})
+
+// ---- Loja: detalhes públicos de um produto (por id) ------------------------
+publicRoutes.get('/loja/:id', async (req, res, next) => {
+  try {
+    const p = await lojaRepository.getProduto(req.params.id)
+    if (!p || !p.ativo) return res.status(404).json({ error: 'Produto não encontrado.' })
+    const evento = p.retiroId ? await retiroRepository.get(p.retiroId) : null
+    res.json({
+      id: p.id,
+      categoria: p.categoria,
+      nome: p.nome,
+      descricao: p.descricao,
+      valor: p.valor,
+      fotos: p.fotos,
+      linkPagamento: evento?.linkPagamento ?? '',
+      eventoNome: evento?.nome ?? '',
+      bannerId: evento?.bannerId ?? null,
+    })
+  } catch (e) {
+    next(e)
+  }
+})
+
+// ---- Loja: upload de comprovante do pedido ---------------------------------
+publicRoutes.post(
+  '/loja/:id/arquivo',
+  express.raw({ type: () => true, limit: '15mb' }),
+  async (req, res, next) => {
+    try {
+      const p = await lojaRepository.getProduto(req.params.id)
+      if (!p || !p.ativo) return res.status(404).json({ error: 'Produto não encontrado.' })
+      const nome = decodeURIComponent(String(req.header('x-file-name') || 'comprovante'))
+      const mime = req.header('content-type') || 'application/octet-stream'
+      const dados = req.body as Buffer
+      const meta = await arquivoService.upload({ nome, mime, dados })
+      res.status(201).json(meta)
+    } catch (e) {
+      next(e)
+    }
+  },
+)
+
+// ---- Loja: envio do pedido -------------------------------------------------
+publicRoutes.post('/loja/:id/pedido', async (req, res, next) => {
+  try {
+    const p = await lojaRepository.getProduto(req.params.id)
+    if (!p || !p.ativo) return res.status(404).json({ error: 'Produto não encontrado.' })
+
+    const b = req.body ?? {}
+    const quantidade = Math.max(1, Math.floor(Number(b.quantidade) || 0))
+    const forma = String(b.forma || '').trim()
+    const comprovanteId = b.comprovanteId ? String(b.comprovanteId) : null
+    const vestimenta = p.categoria === 'vestimenta'
+    const nome = String(b.nome || '').trim()
+    const genero = b.genero === 'M' || b.genero === 'F' ? b.genero : ''
+    const tamanho = String(b.tamanho || '').trim()
+
+    if (!(quantidade >= 1)) return res.status(400).json({ error: 'Informe a quantidade.' })
+    if (!forma) return res.status(400).json({ error: 'Selecione a forma de pagamento.' })
+    if (vestimenta) {
+      if (nome.split(/\s+/).length < 2) return res.status(400).json({ error: 'Informe o nome completo.' })
+      if (!genero) return res.status(400).json({ error: 'Selecione o gênero.' })
+      if (!tamanho) return res.status(400).json({ error: 'Selecione o tamanho.' })
+    }
+
+    const pedido: LojaPedido = {
+      id: uid('lo'),
+      retiroId: p.retiroId,
+      produtoId: p.id,
+      produtoNome: p.nome,
+      categoria: p.categoria,
+      nome: vestimenta ? nome : '',
+      genero: vestimenta ? genero : '',
+      tamanho: vestimenta ? tamanho : '',
+      quantidade,
+      valorUnit: p.valor,
+      valorTotal: p.valor * quantidade,
+      forma,
+      comprovante: !!comprovanteId,
+      comprovanteId,
+      status: 'pendente',
+      criadoEm: new Date().toISOString(),
+    }
+    await lojaRepository.createPedido(pedido)
+    res.status(201).json({ ok: true, produto: p.nome, total: pedido.valorTotal })
   } catch (e) {
     next(e)
   }

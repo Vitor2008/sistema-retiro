@@ -13,6 +13,7 @@ import { AuthProvider, useAuth } from './store/AuthContext'
 import { RetiroProvider, useRetiro } from './store/RetiroContext'
 import { RetiroSelectionProvider, useRetiroSelection } from './store/RetiroSelection'
 import { InscricaoPublica } from './views/InscricaoPublica'
+import { LojaPublica } from './views/LojaPublica'
 import { LoginView } from './views/LoginView'
 
 function SemAcesso() {
@@ -126,6 +127,8 @@ export default function App() {
       <Routes>
         {/* Formulário público de inscrição — fora do login e da sincronização. */}
         <Route path="/inscricao/:slug" element={<InscricaoPublica />} />
+        {/* Loja pública — link avulso por produto. */}
+        <Route path="/loja/:id" element={<LojaPublica />} />
         {/* Todo o restante é o app autenticado. */}
         <Route
           path="*"

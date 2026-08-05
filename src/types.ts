@@ -297,6 +297,41 @@ export type Modal =
   | ModalEditarConta
   | null
 
+// ---- Loja (por evento) ------------------------------------------------------
+export type LojaCategoria = 'vestimenta' | 'outros'
+
+export interface LojaProduto {
+  id: string
+  retiroId: string | null
+  categoria: LojaCategoria
+  nome: string
+  descricao: string
+  valor: number
+  /** ids de arquivos (fotos do produto, até 4). */
+  fotos: string[]
+  ativo: boolean
+  criadoEm: string
+}
+
+export interface LojaPedido {
+  id: string
+  retiroId: string | null
+  produtoId: string | null
+  produtoNome: string
+  categoria: LojaCategoria
+  nome: string
+  genero: string
+  tamanho: string
+  quantidade: number
+  valorUnit: number
+  valorTotal: number
+  forma: string
+  comprovante: boolean
+  comprovanteId: string | null
+  status: string
+  criadoEm: string
+}
+
 /** Estado global da aplicação. */
 export interface AppState {
   narrow: boolean

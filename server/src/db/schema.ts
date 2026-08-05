@@ -230,3 +230,39 @@ export const escalas = pgTable('escalas', {
   id: text('id').primaryKey(),
   data: jsonb('data').$type<Record<string, unknown> | null>(),
 })
+
+/** Loja — produtos à venda por evento (camisetas etc.). Categoria define o
+ *  formulário público: 'vestimenta' pede nome/gênero/tamanho; 'outros' não. */
+export const lojaProdutos = pgTable('loja_produtos', {
+  id: text('id').primaryKey(),
+  retiroId: text('retiro_id').references(() => retiros.id, { onDelete: 'cascade' }),
+  categoria: text('categoria').notNull().default('outros'),
+  nome: text('nome').notNull(),
+  descricao: text('descricao').notNull().default(''),
+  valor: doublePrecision('valor').notNull().default(0),
+  /** ids de arquivos (bytea) usados como fotos do produto (até 4). */
+  fotos: jsonb('fotos').$type<string[]>().notNull().default([]),
+  ativo: boolean('ativo').notNull().default(true),
+  criadoEm: text('criado_em').notNull().default(''),
+})
+
+/** Loja — pedidos feitos pelo público. Dados do produto são denormalizados
+ *  para preservar o histórico mesmo se o produto for excluído. */
+export const lojaPedidos = pgTable('loja_pedidos', {
+  id: text('id').primaryKey(),
+  retiroId: text('retiro_id').references(() => retiros.id, { onDelete: 'cascade' }),
+  produtoId: text('produto_id').references(() => lojaProdutos.id, { onDelete: 'set null' }),
+  produtoNome: text('produto_nome').notNull().default(''),
+  categoria: text('categoria').notNull().default('outros'),
+  nome: text('nome').notNull().default(''),
+  genero: text('genero').notNull().default(''),
+  tamanho: text('tamanho').notNull().default(''),
+  quantidade: integer('quantidade').notNull().default(1),
+  valorUnit: doublePrecision('valor_unit').notNull().default(0),
+  valorTotal: doublePrecision('valor_total').notNull().default(0),
+  forma: text('forma').notNull().default(''),
+  comprovante: boolean('comprovante').notNull().default(false),
+  comprovanteId: text('comprovante_id'),
+  status: text('status').notNull().default('pendente'),
+  criadoEm: text('criado_em').notNull().default(''),
+})
