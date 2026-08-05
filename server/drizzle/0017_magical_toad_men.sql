@@ -1,0 +1,1 @@
+ALTER TABLE "loja_pedidos" ADD COLUMN "tipo_camiseta" text DEFAULT '' NOT NULL;

@@ -31,6 +31,7 @@ interface ProdutoForm {
   nome: string
   descricao: string
   valor: string
+  linkPagamento: string
   fotos: string[]
   ativo: boolean
 }
@@ -40,6 +41,7 @@ const formVazio: ProdutoForm = {
   nome: '',
   descricao: '',
   valor: '',
+  linkPagamento: '',
   fotos: [],
   ativo: true,
 }
@@ -90,7 +92,7 @@ export function LojaView() {
   const abrirNovo = () => { setErro(''); setForm({ ...formVazio }) }
   const abrirEdicao = (p: LojaProduto) => {
     setErro('')
-    setForm({ id: p.id, categoria: p.categoria, nome: p.nome, descricao: p.descricao, valor: String(p.valor), fotos: [...p.fotos], ativo: p.ativo })
+    setForm({ id: p.id, categoria: p.categoria, nome: p.nome, descricao: p.descricao, valor: String(p.valor), linkPagamento: p.linkPagamento, fotos: [...p.fotos], ativo: p.ativo })
   }
 
   const anexarFoto = async (file: File) => {
@@ -119,6 +121,7 @@ export function LojaView() {
       nome: form.nome.trim(),
       descricao: form.descricao.trim(),
       valor: Number(form.valor) || 0,
+      linkPagamento: form.linkPagamento.trim(),
       fotos: form.fotos,
       ativo: form.ativo,
     }
@@ -243,6 +246,14 @@ export function LojaView() {
                 <div>
                   <label style={labelStyle}>Descrição</label>
                   <textarea className="input" rows={3} style={{ resize: 'vertical', fontFamily: 'var(--font-sans)' }} value={form.descricao} onChange={(e) => setForm({ ...form, descricao: e.target.value })} placeholder="Detalhes do produto (tecido, cores, observações)…" />
+                </div>
+
+                <div>
+                  <label style={labelStyle}>Link de pagamento (cartão)</label>
+                  <input className="input" value={form.linkPagamento} onChange={(e) => setForm({ ...form, linkPagamento: e.target.value })} placeholder="https://… (exibido quando o comprador escolher Cartão)" />
+                  <div style={{ fontSize: 11, color: 'var(--fg-muted)', marginTop: 4 }}>
+                    Opcional. Se vazio, usa o link de pagamento do evento.
+                  </div>
                 </div>
 
                 <div>
@@ -388,7 +399,10 @@ function PedidosTab({ pedidos, total, onStatus, onAnexar }: {
                   <span style={{ color: 'var(--fg-muted)' }}>—</span>
                 )}
               </td>
-              <td style={{ fontSize: 12 }}>{p.tamanho || '—'}</td>
+              <td style={{ fontSize: 12 }}>
+                {p.tamanho || '—'}
+                {p.tipoCamiseta && <div className="vaga-id">{p.tipoCamiseta}</div>}
+              </td>
               <td style={{ fontSize: 12, textAlign: 'center' }}>{p.quantidade}</td>
               <td style={{ fontSize: 12, textAlign: 'right', fontWeight: 600 }}>{fmt(p.valorTotal)}</td>
               <td style={{ fontSize: 12 }}>{p.forma}</td>

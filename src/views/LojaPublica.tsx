@@ -14,7 +14,13 @@ import type { Genero } from '../types'
 const BASE_URL =
   (import.meta.env.VITE_API_URL as string | undefined) ?? 'http://localhost:3001/api'
 
-const TAMANHOS = ['P', 'M', 'G', 'GG']
+/** Tipos de camiseta e seus tamanhos (medidas aproximadas ALT/LARG). */
+const TIPOS_CAMISETA = ['Infantil', 'Baby Look', 'Normal'] as const
+const TAMANHOS_POR_TIPO: Record<string, string[]> = {
+  Infantil: ['01A', '02A', '04A', '06A', '08A', '10A', '12A', '14A (PP)', '16A (P)'],
+  'Baby Look': ['PP', 'P', 'M', 'G', 'GG', 'XG', 'XXG', '3XG', '4XG'],
+  Normal: ['PP', 'P', 'M', 'G', 'GG', 'XG', 'XXG', '3XG', '4XG'],
+}
 
 interface ProdutoPublico {
   id: string
@@ -39,6 +45,7 @@ export function LojaPublica() {
 
   const [nome, setNome] = useState('')
   const [genero, setGenero] = useState<Genero | ''>('')
+  const [tipoCamiseta, setTipoCamiseta] = useState('')
   const [tamanho, setTamanho] = useState('')
   const [quantidade, setQuantidade] = useState(1)
   const [forma, setForma] = useState<'Pix' | 'Cartão' | ''>('')
@@ -101,6 +108,7 @@ export function LojaPublica() {
     if (vestimenta) {
       if (!nome.trim() || nome.trim().split(/\s+/).length < 2) e.nome = true
       if (!genero) e.genero = true
+      if (!tipoCamiseta) e.tipoCamiseta = true
       if (!tamanho) e.tamanho = true
     }
     setErros(e)
@@ -121,6 +129,7 @@ export function LojaPublica() {
         body: JSON.stringify({
           nome: nome.trim(),
           genero,
+          tipoCamiseta,
           tamanho,
           quantidade,
           forma,
@@ -140,7 +149,7 @@ export function LojaPublica() {
   }
 
   const resetForm = () => {
-    setNome(''); setGenero(''); setTamanho(''); setQuantidade(1); setForma('')
+    setNome(''); setGenero(''); setTipoCamiseta(''); setTamanho(''); setQuantidade(1); setForma('')
     setComprovanteId(null); setComprovanteNome(''); setErros({}); setErroEnvio(null)
     setFase('aberto')
   }
@@ -229,13 +238,28 @@ export function LojaPublica() {
                             <option value="F">Mulher</option>
                           </select>
                         </Campo>
-                        <Campo label="Tamanho da camisa *" erro={erros.tamanho ? 'Selecione o tamanho.' : ''}>
-                          <select className="input" value={tamanho} onChange={(e) => setTamanho(e.target.value)}>
+                        <Campo label="Tipo de camiseta *" erro={erros.tipoCamiseta ? 'Selecione o tipo.' : ''}>
+                          <select
+                            className="input"
+                            value={tipoCamiseta}
+                            onChange={(e) => { setTipoCamiseta(e.target.value); setTamanho('') }}
+                          >
                             <option value="">Selecione…</option>
-                            {TAMANHOS.map((t) => <option key={t} value={t}>{t}</option>)}
+                            {TIPOS_CAMISETA.map((t) => <option key={t} value={t}>{t}</option>)}
                           </select>
                         </Campo>
                       </div>
+                      <Campo label="Tamanho da camisa *" erro={erros.tamanho ? 'Selecione o tamanho.' : ''}>
+                        <select
+                          className="input"
+                          value={tamanho}
+                          disabled={!tipoCamiseta}
+                          onChange={(e) => setTamanho(e.target.value)}
+                        >
+                          <option value="">{tipoCamiseta ? 'Selecione…' : 'Escolha o tipo primeiro…'}</option>
+                          {(TAMANHOS_POR_TIPO[tipoCamiseta] ?? []).map((t) => <option key={t} value={t}>{t}</option>)}
+                        </select>
+                      </Campo>
                     </>
                   )}
 

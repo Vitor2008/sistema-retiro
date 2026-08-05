@@ -240,6 +240,8 @@ export const lojaProdutos = pgTable('loja_produtos', {
   nome: text('nome').notNull(),
   descricao: text('descricao').notNull().default(''),
   valor: doublePrecision('valor').notNull().default(0),
+  /** Link de pagamento (cartão/checkout) exibido quando o comprador escolhe Cartão. */
+  linkPagamento: text('link_pagamento').notNull().default(''),
   /** ids de arquivos (bytea) usados como fotos do produto (até 4). */
   fotos: jsonb('fotos').$type<string[]>().notNull().default([]),
   ativo: boolean('ativo').notNull().default(true),
@@ -256,6 +258,8 @@ export const lojaPedidos = pgTable('loja_pedidos', {
   categoria: text('categoria').notNull().default('outros'),
   nome: text('nome').notNull().default(''),
   genero: text('genero').notNull().default(''),
+  /** Tipo da camiseta (vestimenta): Infantil | Baby Look | Normal. */
+  tipoCamiseta: text('tipo_camiseta').notNull().default(''),
   tamanho: text('tamanho').notNull().default(''),
   quantidade: integer('quantidade').notNull().default(1),
   valorUnit: doublePrecision('valor_unit').notNull().default(0),

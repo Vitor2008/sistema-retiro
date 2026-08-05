@@ -86,7 +86,8 @@ publicRoutes.get('/loja/:id', async (req, res, next) => {
       descricao: p.descricao,
       valor: p.valor,
       fotos: p.fotos,
-      linkPagamento: evento?.linkPagamento ?? '',
+      // Preferência: link do próprio produto; fallback para o link do evento.
+      linkPagamento: p.linkPagamento || evento?.linkPagamento || '',
       eventoNome: evento?.nome ?? '',
       bannerId: evento?.bannerId ?? null,
     })
@@ -127,6 +128,7 @@ publicRoutes.post('/loja/:id/pedido', async (req, res, next) => {
     const vestimenta = p.categoria === 'vestimenta'
     const nome = String(b.nome || '').trim()
     const genero = b.genero === 'M' || b.genero === 'F' ? b.genero : ''
+    const tipoCamiseta = String(b.tipoCamiseta || '').trim()
     const tamanho = String(b.tamanho || '').trim()
 
     if (!(quantidade >= 1)) return res.status(400).json({ error: 'Informe a quantidade.' })
@@ -134,6 +136,7 @@ publicRoutes.post('/loja/:id/pedido', async (req, res, next) => {
     if (vestimenta) {
       if (nome.split(/\s+/).length < 2) return res.status(400).json({ error: 'Informe o nome completo.' })
       if (!genero) return res.status(400).json({ error: 'Selecione o gênero.' })
+      if (!tipoCamiseta) return res.status(400).json({ error: 'Selecione o tipo de camiseta.' })
       if (!tamanho) return res.status(400).json({ error: 'Selecione o tamanho.' })
     }
 
@@ -145,6 +148,7 @@ publicRoutes.post('/loja/:id/pedido', async (req, res, next) => {
       categoria: p.categoria,
       nome: vestimenta ? nome : '',
       genero: vestimenta ? genero : '',
+      tipoCamiseta: vestimenta ? tipoCamiseta : '',
       tamanho: vestimenta ? tamanho : '',
       quantidade,
       valorUnit: p.valor,

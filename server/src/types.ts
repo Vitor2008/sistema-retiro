@@ -124,6 +124,7 @@ export interface LojaProduto {
   nome: string
   descricao: string
   valor: number
+  linkPagamento: string
   fotos: string[]
   ativo: boolean
   criadoEm: string
@@ -138,6 +139,7 @@ export interface LojaPedido {
   categoria: 'vestimenta' | 'outros'
   nome: string
   genero: string
+  tipoCamiseta: string
   tamanho: string
   quantidade: number
   valorUnit: number

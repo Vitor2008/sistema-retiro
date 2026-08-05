@@ -1,0 +1,1 @@
+ALTER TABLE "loja_produtos" ADD COLUMN "link_pagamento" text DEFAULT '' NOT NULL;

@@ -14,6 +14,7 @@ function toProduto(r: ProdutoRow): LojaProduto {
     nome: r.nome,
     descricao: r.descricao,
     valor: r.valor,
+    linkPagamento: r.linkPagamento,
     fotos: r.fotos ?? [],
     ativo: r.ativo,
     criadoEm: r.criadoEm,
@@ -29,6 +30,7 @@ function toPedido(r: PedidoRow): LojaPedido {
     categoria: r.categoria as LojaPedido['categoria'],
     nome: r.nome,
     genero: r.genero,
+    tipoCamiseta: r.tipoCamiseta,
     tamanho: r.tamanho,
     quantidade: r.quantidade,
     valorUnit: r.valorUnit,
@@ -65,6 +67,7 @@ export const lojaRepository = {
       nome: dto.nome,
       descricao: dto.descricao,
       valor: dto.valor,
+      linkPagamento: dto.linkPagamento,
       fotos: dto.fotos,
       ativo: dto.ativo,
       criadoEm: dto.criadoEm || new Date().toISOString(),
@@ -78,6 +81,7 @@ export const lojaRepository = {
     if (patch.nome !== undefined) set.nome = patch.nome
     if (patch.descricao !== undefined) set.descricao = patch.descricao
     if (patch.valor !== undefined) set.valor = patch.valor
+    if (patch.linkPagamento !== undefined) set.linkPagamento = patch.linkPagamento
     if (patch.fotos !== undefined) set.fotos = patch.fotos
     if (patch.ativo !== undefined) set.ativo = patch.ativo
     if (Object.keys(set).length) await db.update(lojaProdutos).set(set).where(eq(lojaProdutos.id, id))
@@ -106,6 +110,7 @@ export const lojaRepository = {
       categoria: dto.categoria,
       nome: dto.nome,
       genero: dto.genero,
+      tipoCamiseta: dto.tipoCamiseta,
       tamanho: dto.tamanho,
       quantidade: dto.quantidade,
       valorUnit: dto.valorUnit,

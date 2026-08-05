@@ -307,6 +307,8 @@ export interface LojaProduto {
   nome: string
   descricao: string
   valor: number
+  /** Link de pagamento (cartão) exibido quando o comprador escolhe Cartão. */
+  linkPagamento: string
   /** ids de arquivos (fotos do produto, até 4). */
   fotos: string[]
   ativo: boolean
@@ -321,6 +323,7 @@ export interface LojaPedido {
   categoria: LojaCategoria
   nome: string
   genero: string
+  tipoCamiseta: string
   tamanho: string
   quantidade: number
   valorUnit: number

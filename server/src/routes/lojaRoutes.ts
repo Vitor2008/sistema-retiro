@@ -52,6 +52,7 @@ lojaRoutes.post('/produtos', async (req, res) => {
       nome,
       descricao: String(b.descricao || '').trim(),
       valor: Math.max(0, Number(b.valor) || 0),
+      linkPagamento: String(b.linkPagamento || '').trim(),
       fotos: normFotos(b.fotos),
       ativo: b.ativo !== false,
       criadoEm: new Date().toISOString(),
@@ -70,6 +71,7 @@ lojaRoutes.put('/produtos/:id', async (req, res) => {
     if (b.nome !== undefined) patch.nome = String(b.nome).trim()
     if (b.descricao !== undefined) patch.descricao = String(b.descricao).trim()
     if (b.valor !== undefined) patch.valor = Math.max(0, Number(b.valor) || 0)
+    if (b.linkPagamento !== undefined) patch.linkPagamento = String(b.linkPagamento).trim()
     if (b.fotos !== undefined) patch.fotos = normFotos(b.fotos)
     if (b.ativo !== undefined) patch.ativo = !!b.ativo
     await lojaRepository.updateProduto(req.params.id, patch)
