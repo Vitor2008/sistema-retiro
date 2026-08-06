@@ -76,6 +76,7 @@ export function LojaView() {
   const [salvando, setSalvando] = useState(false)
   const [subindoFoto, setSubindoFoto] = useState(false)
   const [aExcluir, setAExcluir] = useState<LojaProduto | null>(null)
+  const [aExcluirPedido, setAExcluirPedido] = useState<LojaPedido | null>(null)
 
   const carregar = useCallback(async () => {
     setCarregando(true)
@@ -190,6 +191,19 @@ export function LojaView() {
     }
   }
 
+  const confirmarExcluirPedido = async () => {
+    if (!aExcluirPedido) return
+    try {
+      await apiClient.delete('/loja/pedidos/' + aExcluirPedido.id)
+      setPedidos((lista) => lista.filter((x) => x.id !== aExcluirPedido.id))
+      setAExcluirPedido(null)
+      toast('Pedido excluído.')
+    } catch (e) {
+      setAExcluirPedido(null)
+      toast(e instanceof ApiError ? e.message : 'Não foi possível excluir o pedido.')
+    }
+  }
+
   const totalPedidos = pedidos.reduce((a, p) => a + p.valorTotal, 0)
 
   return (
@@ -245,7 +259,7 @@ export function LojaView() {
       ) : aba === 'produtos' ? (
         <ProdutosTab produtos={produtos} onEditar={abrirEdicao} onExcluir={setAExcluir} onCopiarLink={copiarLink} />
       ) : (
-        <PedidosTab pedidos={pedidos} total={totalPedidos} onStatus={mudarStatus} onAnexar={anexarComprovantePedido} />
+        <PedidosTab pedidos={pedidos} total={totalPedidos} onStatus={mudarStatus} onAnexar={anexarComprovantePedido} onExcluir={setAExcluirPedido} />
       )}
 
       {/* Modal criar/editar produto */}
@@ -368,6 +382,25 @@ export function LojaView() {
           </div>
         </div>
       )}
+
+      {/* Modal excluir pedido (só cancelados) */}
+      {aExcluirPedido && (
+        <div onClick={() => setAExcluirPedido(null)} style={overlay}>
+          <div onClick={(e) => e.stopPropagation()} style={{ ...cardModal, maxWidth: 440 }}>
+            <div style={{ padding: '22px 24px' }}>
+              <h3 style={{ marginBottom: 6 }}>Excluir pedido</h3>
+              <p style={{ fontSize: 13, marginBottom: 18 }}>
+                Excluir definitivamente o pedido de <b>{aExcluirPedido.produtoNome}</b>
+                {aExcluirPedido.nome ? <> — {aExcluirPedido.nome}</> : null}? Esta ação não pode ser desfeita.
+              </p>
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
+                <button className="btn btn-default" onClick={() => setAExcluirPedido(null)}>Cancelar</button>
+                <button className="btn" style={{ background: 'var(--status-rejected-fg)', color: '#fff' }} onClick={confirmarExcluirPedido}>Excluir</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
@@ -413,11 +446,12 @@ function ProdutosTab({ produtos, onEditar, onExcluir, onCopiarLink }: {
 }
 
 // ---- Aba Pedidos -----------------------------------------------------------
-function PedidosTab({ pedidos, total, onStatus, onAnexar }: {
+function PedidosTab({ pedidos, total, onStatus, onAnexar, onExcluir }: {
   pedidos: LojaPedido[]
   total: number
   onStatus: (p: LojaPedido, status: string) => void
   onAnexar: (p: LojaPedido, file: File) => void
+  onExcluir: (p: LojaPedido) => void
 }) {
   if (pedidos.length === 0)
     return <div className="tbl-wrap" style={{ padding: 24, fontSize: 13, color: 'var(--fg-muted)' }}>Nenhum pedido recebido ainda.</div>
@@ -440,6 +474,7 @@ function PedidosTab({ pedidos, total, onStatus, onAnexar }: {
             <th>Forma</th>
             <th>Comprovante</th>
             <th>Status</th>
+            <th style={{ textAlign: 'right' }}>Ações</th>
           </tr>
         </thead>
         <tbody>
@@ -479,6 +514,15 @@ function PedidosTab({ pedidos, total, onStatus, onAnexar }: {
                 <select className="input" style={{ width: 'auto', fontSize: 12, padding: '4px 6px' }} value={p.status} onChange={(e) => onStatus(p, e.target.value)}>
                   {STATUS.map((s) => <option key={s.id} value={s.id}>{s.label}</option>)}
                 </select>
+              </td>
+              <td style={{ textAlign: 'right', whiteSpace: 'nowrap' }}>
+                {p.status === 'cancelado' ? (
+                  <button className="btn btn-default btn-xs" style={{ color: 'var(--status-rejected-fg)' }} onClick={() => onExcluir(p)}>
+                    Excluir
+                  </button>
+                ) : (
+                  <span style={{ fontSize: 11, color: 'var(--fg-muted)' }} title="Só é possível excluir pedidos cancelados">—</span>
+                )}
               </td>
             </tr>
           ))}

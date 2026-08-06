@@ -113,6 +113,15 @@ export const lojaRepository = {
     return rows.map(toPedido).reverse()
   },
 
+  async getPedido(id: string): Promise<LojaPedido | null> {
+    const [row] = await db.select().from(lojaPedidos).where(eq(lojaPedidos.id, id))
+    return row ? toPedido(row) : null
+  },
+
+  async removePedido(id: string): Promise<void> {
+    await db.delete(lojaPedidos).where(eq(lojaPedidos.id, id))
+  },
+
   async createPedido(dto: LojaPedido): Promise<LojaPedido> {
     await db.insert(lojaPedidos).values({
       id: dto.id,

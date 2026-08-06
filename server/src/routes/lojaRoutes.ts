@@ -121,6 +121,20 @@ lojaRoutes.put('/pedidos/:id/status', async (req, res) => {
   }
 })
 
+// Excluir um pedido — permitido apenas quando o status é 'cancelado'.
+lojaRoutes.delete('/pedidos/:id', async (req, res) => {
+  try {
+    const pedido = await lojaRepository.getPedido(req.params.id)
+    if (!pedido) return res.status(404).json({ error: 'Pedido não encontrado.' })
+    if (pedido.status !== 'cancelado')
+      return res.status(409).json({ error: 'Só é possível excluir pedidos com status Cancelado.' })
+    await lojaRepository.removePedido(pedido.id)
+    res.status(204).end()
+  } catch (e) {
+    res.status(400).json({ error: e instanceof Error ? e.message : 'Erro ao excluir pedido.' })
+  }
+})
+
 // Anexar/atualizar o comprovante de um pedido (quando o comprador esqueceu).
 lojaRoutes.put('/pedidos/:id/comprovante', async (req, res) => {
   try {
