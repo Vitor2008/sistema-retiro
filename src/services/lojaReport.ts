@@ -38,8 +38,28 @@ function dataHoraBR(iso: string): string {
   return isNaN(d.getTime()) ? iso : d.toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })
 }
 
-const STATUS_LABEL: Record<string, string> = {
-  pendente: 'Pendente', pago: 'Pago', entregue: 'Entregue', cancelado: 'Cancelado',
+const somaPago = (p: LojaPedido) => (p.pagamentos ?? []).reduce((a, x) => a + (x.valor || 0), 0)
+
+/** Situação derivada dos lançamentos (igual à exibida na tela). */
+function situacaoLabel(p: LojaPedido): string {
+  if (p.status === 'cancelado') return 'Cancelado'
+  const pg = somaPago(p)
+  if (p.valorTotal > 0 && pg >= p.valorTotal - 0.005) return 'Pago'
+  if (pg > 0) return 'Pago Parcial'
+  return 'Pendente'
+}
+
+/** Observações de todos os lançamentos concatenadas. */
+function obsPedido(p: LojaPedido): string {
+  return (p.pagamentos ?? []).map((x) => x.obs).filter(Boolean).join(' | ')
+}
+
+/** Última data prevista para o restante informada (DD/MM/AAAA). */
+function dataRestantePedido(p: LojaPedido): string {
+  const ds = (p.pagamentos ?? []).map((x) => x.dataPrevista).filter(Boolean) as string[]
+  const d = ds.length ? ds[ds.length - 1] : ''
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(d)
+  return m ? `${m[3]}/${m[2]}/${m[1]}` : d
 }
 
 export async function exportPedidosLoja(
@@ -133,18 +153,24 @@ export async function exportPedidosLoja(
   const det = wb.addWorksheet('Pedidos')
   det.columns = [
     { width: 18 }, { width: 30 }, { width: 26 }, { width: 10 },
-    { width: 12 }, { width: 12 }, { width: 8 }, { width: 14 }, { width: 12 }, { width: 12 },
+    { width: 12 }, { width: 12 }, { width: 8 }, { width: 13 }, { width: 13 }, { width: 13 },
+    { width: 34 }, { width: 16 }, { width: 12 }, { width: 13 },
   ]
-  det.mergeCells('A1:J1')
+  det.mergeCells('A1:N1')
   det.getCell('A1').value = 'Loja — Pedidos'
   det.getCell('A1').font = { bold: true, size: 16, color: { argb: BRAND } }
   det.getRow(1).height = 26
 
-  styleHeader(det.addRow(['Data', 'Produto', 'Comprador', 'Gênero', 'Tipo', 'Tamanho', 'Qtd', 'Total (R$)', 'Forma', 'Status']))
+  styleHeader(det.addRow([
+    'Data', 'Produto', 'Comprador', 'Gênero', 'Tipo', 'Tamanho', 'Qtd',
+    'Total (R$)', 'Pago (R$)', 'Restante (R$)', 'Observação', 'Restante previsto', 'Forma', 'Status',
+  ]))
   pedidos
     .slice()
     .sort((a, b) => (a.criadoEm < b.criadoEm ? 1 : -1))
     .forEach((p) => {
+      const pago = somaPago(p)
+      const restante = Math.max(0, p.valorTotal - pago)
       const r = det.addRow([
         dataHoraBR(p.criadoEm),
         p.produtoNome,
@@ -154,10 +180,16 @@ export async function exportPedidosLoja(
         p.tamanho || '—',
         p.quantidade,
         p.valorTotal,
+        pago,
+        restante,
+        obsPedido(p) || '—',
+        dataRestantePedido(p) || '—',
         p.forma,
-        STATUS_LABEL[p.status] ?? p.status,
+        situacaoLabel(p),
       ])
       r.getCell(8).numFmt = MONEY
+      r.getCell(9).numFmt = MONEY
+      r.getCell(10).numFmt = MONEY
       if (p.status === 'cancelado') r.eachCell((c) => (c.font = { color: { argb: 'FFADB5BD' }, strike: true }))
     })
 
