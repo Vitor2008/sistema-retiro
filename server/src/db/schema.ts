@@ -274,6 +274,13 @@ export const lojaPedidos = pgTable('loja_pedidos', {
   forma: text('forma').notNull().default(''),
   comprovante: boolean('comprovante').notNull().default(false),
   comprovanteId: text('comprovante_id'),
+  /** 'cancelado' bloqueia o pedido; qualquer outro valor = ativo (o status
+   *  exibido de pagamento é derivado dos lançamentos). */
   status: text('status').notNull().default('pendente'),
+  /** Lançamentos de pagamento (parciais/total): valor, obs, data e data prevista. */
+  pagamentos: jsonb('pagamentos')
+    .$type<{ valor: number; obs: string; data: string; dataPrevista: string | null }[]>()
+    .notNull()
+    .default([]),
   criadoEm: text('criado_em').notNull().default(''),
 })

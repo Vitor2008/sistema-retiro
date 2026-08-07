@@ -135,6 +135,41 @@ lojaRoutes.delete('/pedidos/:id', async (req, res) => {
   }
 })
 
+// Registrar um pagamento (parcial ou total) num pedido.
+lojaRoutes.post('/pedidos/:id/pagamentos', async (req, res) => {
+  try {
+    const pedido = await lojaRepository.getPedido(req.params.id)
+    if (!pedido) return res.status(404).json({ error: 'Pedido não encontrado.' })
+    const valor = Number(req.body?.valor)
+    if (!(valor > 0)) throw new Error('Informe um valor pago maior que zero.')
+    const lanc = {
+      valor,
+      obs: String(req.body?.obs || '').trim(),
+      data: new Date().toISOString(),
+      dataPrevista: req.body?.dataPrevista ? String(req.body.dataPrevista) : null,
+    }
+    const pagamentos = [...(pedido.pagamentos ?? []), lanc]
+    await lojaRepository.setPagamentos(pedido.id, pagamentos)
+    res.json(await lojaRepository.getPedido(pedido.id))
+  } catch (e) {
+    res.status(400).json({ error: e instanceof Error ? e.message : 'Erro ao registrar pagamento.' })
+  }
+})
+
+// Remover um lançamento de pagamento (por índice) de um pedido.
+lojaRoutes.delete('/pedidos/:id/pagamentos/:idx', async (req, res) => {
+  try {
+    const pedido = await lojaRepository.getPedido(req.params.id)
+    if (!pedido) return res.status(404).json({ error: 'Pedido não encontrado.' })
+    const idx = Number(req.params.idx)
+    const pagamentos = (pedido.pagamentos ?? []).filter((_, i) => i !== idx)
+    await lojaRepository.setPagamentos(pedido.id, pagamentos)
+    res.json(await lojaRepository.getPedido(pedido.id))
+  } catch (e) {
+    res.status(400).json({ error: e instanceof Error ? e.message : 'Erro ao remover pagamento.' })
+  }
+})
+
 // Anexar/atualizar o comprovante de um pedido (quando o comprador esqueceu).
 lojaRoutes.put('/pedidos/:id/comprovante', async (req, res) => {
   try {

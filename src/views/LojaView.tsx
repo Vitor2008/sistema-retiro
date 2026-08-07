@@ -19,12 +19,23 @@ const CATEGORIAS: { id: LojaCategoria; label: string }[] = [
 ]
 const labelCategoria = (c: string) => CATEGORIAS.find((x) => x.id === c)?.label ?? c
 
-const STATUS: { id: string; label: string; cls: string }[] = [
-  { id: 'pendente', label: 'Pendente', cls: 'chip-pending' },
-  { id: 'pago', label: 'Pago', cls: 'chip-approved' },
-  { id: 'entregue', label: 'Entregue', cls: 'chip-approved' },
-  { id: 'cancelado', label: 'Cancelado', cls: 'chip-rejected' },
-]
+/** Situação de pagamento exibida (derivada dos lançamentos; 'cancelado' vem do
+ *  campo status). */
+type SituacaoPedido = 'pendente' | 'parcial' | 'pago' | 'cancelado'
+const STATUS_INFO: Record<SituacaoPedido, { label: string; bg: string; fg: string }> = {
+  pendente: { label: 'Pendente', bg: 'var(--status-progress-bg)', fg: 'var(--status-progress-fg)' },
+  parcial: { label: 'Pago Parcial', bg: 'var(--status-interview-bg)', fg: 'var(--status-interview-fg)' },
+  pago: { label: 'Pago', bg: 'var(--status-final-bg)', fg: 'var(--status-final-fg)' },
+  cancelado: { label: 'Cancelado', bg: 'var(--status-rejected-bg)', fg: 'var(--status-rejected-fg)' },
+}
+const somaPago = (p: LojaPedido) => (p.pagamentos ?? []).reduce((a, x) => a + (x.valor || 0), 0)
+function situacaoPedido(p: LojaPedido): SituacaoPedido {
+  if (p.status === 'cancelado') return 'cancelado'
+  const pg = somaPago(p)
+  if (p.valorTotal > 0 && pg >= p.valorTotal - 0.005) return 'pago'
+  if (pg > 0) return 'parcial'
+  return 'pendente'
+}
 
 interface ProdutoForm {
   id: string | null
@@ -77,6 +88,8 @@ export function LojaView() {
   const [subindoFoto, setSubindoFoto] = useState(false)
   const [aExcluir, setAExcluir] = useState<LojaProduto | null>(null)
   const [aExcluirPedido, setAExcluirPedido] = useState<LojaPedido | null>(null)
+  // Pedido aberto no modal de pagamento.
+  const [pagPedido, setPagPedido] = useState<LojaPedido | null>(null)
 
   const carregar = useCallback(async () => {
     setCarregando(true)
@@ -170,13 +183,38 @@ export function LojaView() {
     toast('Link copiado: ' + link)
   }
 
-  const mudarStatus = async (ped: LojaPedido, status: string) => {
-    setPedidos((lista) => lista.map((x) => (x.id === ped.id ? { ...x, status } : x)))
+  // Aplica a versão atualizada de um pedido na lista e no modal aberto.
+  const aplicarPedido = (p: LojaPedido) => {
+    setPedidos((lista) => lista.map((x) => (x.id === p.id ? p : x)))
+    setPagPedido((cur) => (cur && cur.id === p.id ? p : cur))
+  }
+
+  const registrarPagamento = async (ped: LojaPedido, valor: number, obs: string, dataPrevista: string | null) => {
+    try {
+      const atualizado = await apiClient.post<LojaPedido>('/loja/pedidos/' + ped.id + '/pagamentos', { valor, obs, dataPrevista })
+      aplicarPedido(atualizado)
+      toast('Pagamento registrado.')
+    } catch (e) {
+      toast(e instanceof ApiError ? e.message : 'Não foi possível registrar o pagamento.')
+    }
+  }
+
+  const removerPagamento = async (ped: LojaPedido, idx: number) => {
+    try {
+      await apiClient.delete('/loja/pedidos/' + ped.id + '/pagamentos/' + idx)
+      aplicarPedido({ ...ped, pagamentos: ped.pagamentos.filter((_, i) => i !== idx) })
+    } catch {
+      toast('Não foi possível remover o lançamento.')
+    }
+  }
+
+  const mudarStatusPedido = async (ped: LojaPedido, status: string) => {
     try {
       await apiClient.put('/loja/pedidos/' + ped.id + '/status', { status })
+      aplicarPedido({ ...ped, status })
+      toast(status === 'cancelado' ? 'Pedido cancelado.' : 'Pedido reaberto.')
     } catch {
-      toast('Não foi possível atualizar o status.')
-      void carregar()
+      toast('Não foi possível atualizar o pedido.')
     }
   }
 
@@ -184,7 +222,7 @@ export function LojaView() {
     try {
       const att = await fileService.save(file)
       await apiClient.put('/loja/pedidos/' + ped.id + '/comprovante', { comprovanteId: att.fileId })
-      setPedidos((lista) => lista.map((x) => (x.id === ped.id ? { ...x, comprovante: true, comprovanteId: att.fileId } : x)))
+      aplicarPedido({ ...ped, comprovante: true, comprovanteId: att.fileId })
       toast('Comprovante anexado ao pedido.')
     } catch {
       toast('Não foi possível anexar o comprovante.')
@@ -259,7 +297,7 @@ export function LojaView() {
       ) : aba === 'produtos' ? (
         <ProdutosTab produtos={produtos} onEditar={abrirEdicao} onExcluir={setAExcluir} onCopiarLink={copiarLink} />
       ) : (
-        <PedidosTab pedidos={pedidos} total={totalPedidos} onStatus={mudarStatus} onAnexar={anexarComprovantePedido} onExcluir={setAExcluirPedido} />
+        <PedidosTab pedidos={pedidos} total={totalPedidos} onAnexar={anexarComprovantePedido} onExcluir={setAExcluirPedido} onPagamento={setPagPedido} />
       )}
 
       {/* Modal criar/editar produto */}
@@ -401,6 +439,17 @@ export function LojaView() {
           </div>
         </div>
       )}
+
+      {/* Modal de pagamento do pedido */}
+      {pagPedido && (
+        <PagamentoPedidoModal
+          pedido={pagPedido}
+          onRegistrar={registrarPagamento}
+          onRemover={removerPagamento}
+          onStatus={mudarStatusPedido}
+          onClose={() => setPagPedido(null)}
+        />
+      )}
     </div>
   )
 }
@@ -446,12 +495,12 @@ function ProdutosTab({ produtos, onEditar, onExcluir, onCopiarLink }: {
 }
 
 // ---- Aba Pedidos -----------------------------------------------------------
-function PedidosTab({ pedidos, total, onStatus, onAnexar, onExcluir }: {
+function PedidosTab({ pedidos, total, onAnexar, onExcluir, onPagamento }: {
   pedidos: LojaPedido[]
   total: number
-  onStatus: (p: LojaPedido, status: string) => void
   onAnexar: (p: LojaPedido, file: File) => void
   onExcluir: (p: LojaPedido) => void
+  onPagamento: (p: LojaPedido) => void
 }) {
   if (pedidos.length === 0)
     return <div className="tbl-wrap" style={{ padding: 24, fontSize: 13, color: 'var(--fg-muted)' }}>Nenhum pedido recebido ainda.</div>
@@ -497,7 +546,12 @@ function PedidosTab({ pedidos, total, onStatus, onAnexar, onExcluir }: {
                 {p.tipoCamiseta && <div className="vaga-id">{p.tipoCamiseta}</div>}
               </td>
               <td style={{ fontSize: 12, textAlign: 'center' }}>{p.quantidade}</td>
-              <td style={{ fontSize: 12, textAlign: 'right', fontWeight: 600 }}>{fmt(p.valorTotal)}</td>
+              <td style={{ fontSize: 12, textAlign: 'right', fontWeight: 600 }}>
+                {fmt(p.valorTotal)}
+                {somaPago(p) > 0 && situacaoPedido(p) !== 'pago' && (
+                  <div className="vaga-id" style={{ fontWeight: 400 }}>pago {fmt(somaPago(p))}</div>
+                )}
+              </td>
               <td style={{ fontSize: 12 }}>{p.forma}</td>
               <td style={{ fontSize: 12 }}>
                 <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
@@ -511,23 +565,136 @@ function PedidosTab({ pedidos, total, onStatus, onAnexar, onExcluir }: {
                 </div>
               </td>
               <td>
-                <select className="input" style={{ width: 'auto', fontSize: 12, padding: '4px 6px' }} value={p.status} onChange={(e) => onStatus(p, e.target.value)}>
-                  {STATUS.map((s) => <option key={s.id} value={s.id}>{s.label}</option>)}
-                </select>
+                {(() => {
+                  const info = STATUS_INFO[situacaoPedido(p)]
+                  return <span className="chip-mini" style={{ background: info.bg, color: info.fg }}>{info.label}</span>
+                })()}
               </td>
               <td style={{ textAlign: 'right', whiteSpace: 'nowrap' }}>
-                {p.status === 'cancelado' ? (
-                  <button className="btn btn-default btn-xs" style={{ color: 'var(--status-rejected-fg)' }} onClick={() => onExcluir(p)}>
-                    Excluir
+                <div style={{ display: 'inline-flex', gap: 6 }}>
+                  <button className="btn btn-outline btn-xs" onClick={() => onPagamento(p)}>
+                    {p.status === 'cancelado' ? 'Ver' : 'Pagamento'}
                   </button>
-                ) : (
-                  <span style={{ fontSize: 11, color: 'var(--fg-muted)' }} title="Só é possível excluir pedidos cancelados">—</span>
-                )}
+                  {p.status === 'cancelado' && (
+                    <button className="btn btn-default btn-xs" style={{ color: 'var(--status-rejected-fg)' }} onClick={() => onExcluir(p)}>
+                      Excluir
+                    </button>
+                  )}
+                </div>
               </td>
             </tr>
           ))}
         </tbody>
       </table>
+    </div>
+  )
+}
+
+// ---- Modal de pagamento do pedido -----------------------------------------
+function PagamentoPedidoModal({ pedido, onRegistrar, onRemover, onStatus, onClose }: {
+  pedido: LojaPedido
+  onRegistrar: (p: LojaPedido, valor: number, obs: string, dataPrevista: string | null) => void
+  onRemover: (p: LojaPedido, idx: number) => void
+  onStatus: (p: LojaPedido, status: string) => void
+  onClose: () => void
+}) {
+  const pago = somaPago(pedido)
+  const restante = Math.max(0, pedido.valorTotal - pago)
+  const sit = situacaoPedido(pedido)
+  const cancelado = pedido.status === 'cancelado'
+  const info = STATUS_INFO[sit]
+
+  const [valor, setValor] = useState(restante > 0 ? String(restante.toFixed(2)) : '')
+  const [obs, setObs] = useState('')
+  const [dataPrevista, setDataPrevista] = useState('')
+  const valorN = Number(valor) || 0
+  const parcial = valorN > 0 && valorN < restante - 0.005
+
+  const registrar = () => {
+    if (!(valorN > 0)) return
+    onRegistrar(pedido, valorN, obs.trim(), parcial && dataPrevista ? dataPrevista : null)
+    setValor('')
+    setObs('')
+    setDataPrevista('')
+  }
+
+  return (
+    <div onClick={onClose} style={overlay}>
+      <div onClick={(e) => e.stopPropagation()} style={{ ...cardModal, maxWidth: 520 }}>
+        <div style={{ padding: '22px 24px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 4 }}>
+            <h3>Pagamento do pedido</h3>
+            <span className="chip-mini" style={{ background: info.bg, color: info.fg }}>{info.label}</span>
+          </div>
+          <p style={{ fontSize: 13, color: 'var(--fg-muted)', marginBottom: 14 }}>
+            {pedido.produtoNome}{pedido.nome ? ' — ' + pedido.nome : ''}
+            {pedido.tamanho ? ' · ' + pedido.tamanho : ''}{pedido.tipoCamiseta ? ' (' + pedido.tipoCamiseta + ')' : ''} · {pedido.quantidade} un
+          </p>
+
+          {/* Resumo financeiro */}
+          <div style={{ background: 'var(--bg-app)', border: '1px solid var(--border-default)', borderRadius: 8, padding: '12px 14px', marginBottom: 14 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8, textAlign: 'center' }}>
+              <div><div style={labelStyle}>Total</div><div style={{ fontWeight: 700 }}>{fmt(pedido.valorTotal)}</div></div>
+              <div><div style={labelStyle}>Pago</div><div style={{ fontWeight: 700, color: 'var(--color-primary)' }}>{fmt(pago)}</div></div>
+              <div><div style={labelStyle}>Restante</div><div style={{ fontWeight: 700, color: restante > 0 ? 'var(--status-rejected-fg)' : 'var(--status-final-fg)' }}>{fmt(restante)}</div></div>
+            </div>
+            {pedido.pagamentos.length > 0 && (
+              <div style={{ marginTop: 10 }}>
+                {pedido.pagamentos.map((h, i) => (
+                  <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8, fontSize: 11, color: 'var(--fg-muted)', borderTop: '1px dashed var(--border-default)', paddingTop: 6, marginTop: 6 }}>
+                    <span>
+                      {dataHoraBR(h.data)}{h.obs ? ' — ' + h.obs : ''}{h.dataPrevista ? ' · restante previsto p/ ' + h.dataPrevista : ''}
+                    </span>
+                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
+                      <b style={{ color: 'var(--color-primary)' }}>{fmt(h.valor)}</b>
+                      {!cancelado && (
+                        <button onClick={() => onRemover(pedido, i)} title="Remover lançamento" style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--status-rejected-fg)', fontSize: 13, lineHeight: 1 }}>×</button>
+                      )}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Registrar pagamento (oculto se cancelado ou já quitado) */}
+          {!cancelado && restante > 0 && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginBottom: 14 }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                <div>
+                  <label style={labelStyle}>Valor pago agora (R$)</label>
+                  <input className="input" type="number" min="0" step="0.01" value={valor} onChange={(e) => setValor(e.target.value)} />
+                </div>
+                {parcial && (
+                  <div>
+                    <label style={labelStyle}>Restante previsto para</label>
+                    <input className="input" type="date" value={dataPrevista} onChange={(e) => setDataPrevista(e.target.value)} />
+                  </div>
+                )}
+              </div>
+              <div>
+                <label style={labelStyle}>Observação</label>
+                <input className="input" value={obs} onChange={(e) => setObs(e.target.value)} placeholder="Ex.: pagou metade, resto na entrega…" />
+              </div>
+              <div>
+                <button className="btn btn-primary" style={{ width: '100%', justifyContent: 'center' }} disabled={!(valorN > 0)} onClick={registrar}>
+                  {parcial ? 'Registrar pagamento parcial' : 'Registrar pagamento'}
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* Ações do pedido */}
+          <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8 }}>
+            {cancelado ? (
+              <button className="btn btn-default btn-sm" onClick={() => onStatus(pedido, 'pendente')}>Reabrir pedido</button>
+            ) : (
+              <button className="btn btn-default btn-sm" style={{ color: 'var(--status-rejected-fg)' }} onClick={() => onStatus(pedido, 'cancelado')}>Cancelar pedido</button>
+            )}
+            <button className="btn btn-default" onClick={onClose}>Fechar</button>
+          </div>
+        </div>
+      </div>
     </div>
   )
 }

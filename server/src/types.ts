@@ -137,6 +137,14 @@ export interface LojaProduto {
   criadoEm: string
 }
 
+/** Lançamento de pagamento de um pedido da loja (parcial ou total). */
+export interface PagamentoPedido {
+  valor: number
+  obs: string
+  data: string
+  dataPrevista: string | null
+}
+
 /** Pedido da loja (feito pelo público). */
 export interface LojaPedido {
   id: string
@@ -155,6 +163,7 @@ export interface LojaPedido {
   comprovante: boolean
   comprovanteId: string | null
   status: string
+  pagamentos: PagamentoPedido[]
   criadoEm: string
 }
 

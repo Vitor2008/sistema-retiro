@@ -163,6 +163,7 @@ publicRoutes.post('/loja/:id/pedido', async (req, res, next) => {
       comprovante: !!comprovanteId,
       comprovanteId,
       status: 'pendente',
+      pagamentos: [],
       criadoEm: new Date().toISOString(),
     }
     await lojaRepository.createPedido(pedido)

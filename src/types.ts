@@ -322,6 +322,13 @@ export interface LojaProduto {
   criadoEm: string
 }
 
+export interface PagamentoPedido {
+  valor: number
+  obs: string
+  data: string
+  dataPrevista: string | null
+}
+
 export interface LojaPedido {
   id: string
   retiroId: string | null
@@ -339,6 +346,7 @@ export interface LojaPedido {
   comprovante: boolean
   comprovanteId: string | null
   status: string
+  pagamentos: PagamentoPedido[]
   criadoEm: string
 }
 

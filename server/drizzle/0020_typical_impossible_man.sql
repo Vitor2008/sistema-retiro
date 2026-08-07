@@ -1,0 +1,1 @@
+ALTER TABLE "loja_pedidos" ADD COLUMN "pagamentos" jsonb DEFAULT '[]'::jsonb NOT NULL;

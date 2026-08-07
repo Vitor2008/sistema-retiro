@@ -43,6 +43,7 @@ function toPedido(r: PedidoRow): LojaPedido {
     comprovante: r.comprovante,
     comprovanteId: r.comprovanteId,
     status: r.status,
+    pagamentos: r.pagamentos ?? [],
     criadoEm: r.criadoEm,
   }
 }
@@ -140,6 +141,7 @@ export const lojaRepository = {
       comprovante: dto.comprovante,
       comprovanteId: dto.comprovanteId,
       status: dto.status,
+      pagamentos: dto.pagamentos ?? [],
       criadoEm: dto.criadoEm || new Date().toISOString(),
     })
     return dto
@@ -147,6 +149,10 @@ export const lojaRepository = {
 
   async updatePedidoStatus(id: string, status: string): Promise<void> {
     await db.update(lojaPedidos).set({ status }).where(eq(lojaPedidos.id, id))
+  },
+
+  async setPagamentos(id: string, pagamentos: LojaPedido['pagamentos']): Promise<void> {
+    await db.update(lojaPedidos).set({ pagamentos }).where(eq(lojaPedidos.id, id))
   },
 
   async updatePedidoComprovante(id: string, comprovanteId: string): Promise<void> {
