@@ -327,6 +327,8 @@ export interface PagamentoPedido {
   obs: string
   data: string
   dataPrevista: string | null
+  /** Quem registrou o pagamento (usuário logado). */
+  usuario: string
 }
 
 export interface LojaPedido {

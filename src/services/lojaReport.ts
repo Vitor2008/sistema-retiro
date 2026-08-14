@@ -76,37 +76,44 @@ export async function exportPedidosLoja(
 
   // ---------------------------------------------------- Resumo por produto ---
   const resumo = wb.addWorksheet('Resumo por produto')
-  resumo.columns = [{ width: 36 }, { width: 16 }, { width: 18 }]
-  resumo.mergeCells('A1:C1')
+  resumo.columns = [{ width: 36 }, { width: 14 }, { width: 16 }, { width: 16 }, { width: 16 }]
+  resumo.mergeCells('A1:E1')
   resumo.getCell('A1').value = 'Loja — Resumo por produto'
   resumo.getCell('A1').font = { bold: true, size: 16, color: { argb: BRAND } }
   resumo.getRow(1).height = 26
-  resumo.mergeCells('A2:C2')
+  resumo.mergeCells('A2:E2')
   resumo.getCell('A2').value = eventoNome + ' · pedidos ativos (exclui cancelados)'
   resumo.getCell('A2').font = { size: 11, color: { argb: 'FF868E96' } }
 
-  styleHeader(resumo.addRow(['Produto', 'Quantidade', 'Total (R$)']))
+  styleHeader(resumo.addRow(['Produto', 'Quantidade', 'Total vendido (R$)', 'Total pago (R$)', 'A receber (R$)']))
 
-  const porProduto = new Map<string, { qtd: number; valor: number }>()
+  const porProduto = new Map<string, { qtd: number; valor: number; pago: number }>()
   for (const p of validos) {
-    const a = porProduto.get(p.produtoNome) ?? { qtd: 0, valor: 0 }
+    const a = porProduto.get(p.produtoNome) ?? { qtd: 0, valor: 0, pago: 0 }
     a.qtd += p.quantidade
     a.valor += p.valorTotal
+    a.pago += somaPago(p)
     porProduto.set(p.produtoNome, a)
   }
   let totQtd = 0
   let totValor = 0
+  let totPago = 0
   Array.from(porProduto.keys())
     .sort((a, b) => a.localeCompare(b))
     .forEach((nome) => {
       const a = porProduto.get(nome)!
       totQtd += a.qtd
       totValor += a.valor
-      const r = resumo.addRow([nome, a.qtd, a.valor])
+      totPago += a.pago
+      const r = resumo.addRow([nome, a.qtd, a.valor, a.pago, Math.max(0, a.valor - a.pago)])
       r.getCell(3).numFmt = MONEY
+      r.getCell(4).numFmt = MONEY
+      r.getCell(5).numFmt = MONEY
     })
-  const rTot = resumo.addRow(['TOTAL', totQtd, totValor])
+  const rTot = resumo.addRow(['TOTAL', totQtd, totValor, totPago, Math.max(0, totValor - totPago)])
   rTot.getCell(3).numFmt = MONEY
+  rTot.getCell(4).numFmt = MONEY
+  rTot.getCell(5).numFmt = MONEY
   styleTotalRow(rTot)
 
   // ---------------------------------------- Camisetas por tipo e tamanho ---

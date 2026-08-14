@@ -143,6 +143,8 @@ export interface PagamentoPedido {
   obs: string
   data: string
   dataPrevista: string | null
+  /** Quem registrou o pagamento (usuário logado). */
+  usuario: string
 }
 
 /** Pedido da loja (feito pelo público). */

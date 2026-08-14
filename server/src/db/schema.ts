@@ -277,9 +277,9 @@ export const lojaPedidos = pgTable('loja_pedidos', {
   /** 'cancelado' bloqueia o pedido; qualquer outro valor = ativo (o status
    *  exibido de pagamento é derivado dos lançamentos). */
   status: text('status').notNull().default('pendente'),
-  /** Lançamentos de pagamento (parciais/total): valor, obs, data e data prevista. */
+  /** Lançamentos de pagamento (parciais/total): valor, obs, data, data prevista e autor. */
   pagamentos: jsonb('pagamentos')
-    .$type<{ valor: number; obs: string; data: string; dataPrevista: string | null }[]>()
+    .$type<{ valor: number; obs: string; data: string; dataPrevista: string | null; usuario: string }[]>()
     .notNull()
     .default([]),
   criadoEm: text('criado_em').notNull().default(''),

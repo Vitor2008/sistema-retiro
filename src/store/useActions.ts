@@ -24,11 +24,15 @@ import type {
   Produto,
   Venda,
 } from '../types'
+import { useAuth } from './AuthContext'
 import { useRetiro } from './RetiroContext'
 import { escalaVazia, ofertado, pago, porId, servosServico, valorInscricao } from './selectors'
 
 export function useActions() {
   const { state, patch, setModal, toast } = useRetiro()
+  const { user } = useAuth()
+  // Nome de quem está operando — usado para atribuir pagamentos/cancelamentos.
+  const autor = user?.nome?.trim() || user?.username || 'Sistema'
 
   const gerarEscala = () => {
     const escala: Escala = escalaVazia()
@@ -288,7 +292,7 @@ export function useActions() {
       forma: m.forma,
       obs: m.obs,
       data: stampAgora(),
-      usuario: 'Admin',
+      usuario: autor,
       dataPrevista: m.dataPrevista || null,
     }
     patch({
@@ -332,7 +336,8 @@ export function useActions() {
               cancelInfo:
                 'Cancelada em ' +
                 stampDia() +
-                ' por Admin' +
+                ' por ' +
+                autor +
                 (obs ? ' — ' + obs : ''),
             }
           : x,
@@ -352,6 +357,13 @@ export function useActions() {
       toast('Informe o nome do evento.')
       return
     }
+    // Preço por lote: antes de aplicar o novo valor, congela o valor atual nas
+    // inscrições que ainda não têm um valor travado (legadas). Assim a mudança
+    // de preço vale só para as inscrições futuras; as já feitas permanecem.
+    const valorAntigo = s.retiro.valor
+    const inscritosCongelados = s.inscritos.map((p) =>
+      p.valor == null ? { ...p, valor: valorAntigo } : p,
+    )
     patch({
       retiro: {
         ...s.retiro,
@@ -367,6 +379,7 @@ export function useActions() {
         linkPagamento: m.linkPagamento,
         bannerId: m.bannerId,
       },
+      inscritos: inscritosCongelados,
       modal: null,
     })
     toast('Evento atualizado.')

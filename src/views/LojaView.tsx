@@ -242,7 +242,6 @@ export function LojaView() {
     }
   }
 
-  const totalPedidos = pedidos.reduce((a, p) => a + p.valorTotal, 0)
 
   return (
     <div data-screen-label="Loja">
@@ -297,7 +296,7 @@ export function LojaView() {
       ) : aba === 'produtos' ? (
         <ProdutosTab produtos={produtos} onEditar={abrirEdicao} onExcluir={setAExcluir} onCopiarLink={copiarLink} />
       ) : (
-        <PedidosTab pedidos={pedidos} total={totalPedidos} onAnexar={anexarComprovantePedido} onExcluir={setAExcluirPedido} onPagamento={setPagPedido} />
+        <PedidosTab pedidos={pedidos} onAnexar={anexarComprovantePedido} onExcluir={setAExcluirPedido} onPagamento={setPagPedido} />
       )}
 
       {/* Modal criar/editar produto */}
@@ -495,22 +494,83 @@ function ProdutosTab({ produtos, onEditar, onExcluir, onCopiarLink }: {
 }
 
 // ---- Aba Pedidos -----------------------------------------------------------
-function PedidosTab({ pedidos, total, onAnexar, onExcluir, onPagamento }: {
+function PedidosTab({ pedidos, onAnexar, onExcluir, onPagamento }: {
   pedidos: LojaPedido[]
-  total: number
   onAnexar: (p: LojaPedido, file: File) => void
   onExcluir: (p: LojaPedido) => void
   onPagamento: (p: LojaPedido) => void
 }) {
+  const [fProduto, setFProduto] = useState('')
+  const [de, setDe] = useState('')
+  const [ate, setAte] = useState('')
+
   if (pedidos.length === 0)
     return <div className="tbl-wrap" style={{ padding: 24, fontSize: 13, color: 'var(--fg-muted)' }}>Nenhum pedido recebido ainda.</div>
 
+  const nomes = Array.from(new Set(pedidos.map((p) => p.produtoNome))).sort((a, b) => a.localeCompare(b))
+  const filtrados = pedidos.filter((p) => {
+    if (fProduto && p.produtoNome !== fProduto) return false
+    if (de || ate) {
+      const d = (p.criadoEm || '').slice(0, 10)
+      if (de && (!d || d < de)) return false
+      if (ate && (!d || d > ate)) return false
+    }
+    return true
+  })
+  // Totais sobre o filtro atual, excluindo cancelados.
+  const validos = filtrados.filter((p) => p.status !== 'cancelado')
+  const totalVendido = validos.reduce((a, p) => a + p.valorTotal, 0)
+  const totalPago = validos.reduce((a, p) => a + somaPago(p), 0)
+  const qtdVendido = validos.reduce((a, p) => a + p.quantidade, 0)
+  const temFiltro = !!(fProduto || de || ate)
+
   return (
-    <div className="tbl-wrap" style={{ overflowX: 'auto' }}>
-      <div className="tbl-head-bar">
-        <h3>Pedidos</h3>
-        <span style={{ fontSize: 12, color: 'var(--fg-muted)' }}>{pedidos.length} pedido(s) · {fmt(total)}</span>
+    <>
+      <div className="kpi-grid" style={{ gridTemplateColumns: 'repeat(3, 1fr)', marginBottom: 12 }}>
+        <div className="kpi">
+          <div className="topline">Total vendido</div>
+          <div className="v" style={{ fontSize: 22 }}>{fmt(totalVendido)}</div>
+          <div className="meta">a receber {fmt(Math.max(0, totalVendido - totalPago))}</div>
+        </div>
+        <div className="kpi">
+          <div className="topline">Total pago</div>
+          <div className="v" style={{ fontSize: 22, color: 'var(--color-primary)' }}>{fmt(totalPago)}</div>
+          <div className="meta">recebido</div>
+        </div>
+        <div className="kpi">
+          <div className="topline">Quantidade vendida</div>
+          <div className="v" style={{ fontSize: 22 }}>{qtdVendido}</div>
+          <div className="meta">itens</div>
+        </div>
       </div>
+
+      <div className="filterbar">
+        <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12, color: 'var(--fg-muted)' }}>
+          <span style={{ fontWeight: 600 }}>Produto:</span>
+          <select className="input" style={{ width: 'auto', padding: '6px 8px', fontSize: 12 }} value={fProduto} onChange={(e) => setFProduto(e.target.value)}>
+            <option value="">Todos</option>
+            {nomes.map((n) => <option key={n} value={n}>{n}</option>)}
+          </select>
+        </div>
+        <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12, color: 'var(--fg-muted)' }}>
+          <span style={{ fontWeight: 600 }}>Período do pedido:</span>
+          <input type="date" className="input" style={{ width: 'auto', padding: '6px 8px', fontSize: 12 }} value={de} max={ate || undefined} onChange={(e) => setDe(e.target.value)} title="Data inicial" />
+          <span>até</span>
+          <input type="date" className="input" style={{ width: 'auto', padding: '6px 8px', fontSize: 12 }} value={ate} min={de || undefined} onChange={(e) => setAte(e.target.value)} title="Data final" />
+          {temFiltro && (
+            <button className="btn btn-default btn-xs" onClick={() => { setFProduto(''); setDe(''); setAte('') }}>Limpar</button>
+          )}
+        </div>
+      </div>
+
+      <div className="tbl-wrap" style={{ overflowX: 'auto' }}>
+        <div className="tbl-head-bar">
+          <h3>Pedidos</h3>
+          <span style={{ fontSize: 12, color: 'var(--fg-muted)' }}>{filtrados.length} pedido(s){temFiltro ? ' (filtrado)' : ''}</span>
+        </div>
+        {filtrados.length === 0 ? (
+          <div style={{ padding: 20, fontSize: 13, color: 'var(--fg-muted)' }}>Nenhum pedido no filtro selecionado.</div>
+        ) : (
       <table className="tbl">
         <thead>
           <tr>
@@ -527,7 +587,7 @@ function PedidosTab({ pedidos, total, onAnexar, onExcluir, onPagamento }: {
           </tr>
         </thead>
         <tbody>
-          {pedidos.map((p) => (
+          {filtrados.map((p) => (
             <tr key={p.id}>
               <td style={{ fontSize: 12, whiteSpace: 'nowrap' }}>{dataHoraBR(p.criadoEm)}</td>
               <td style={{ fontSize: 12 }}>{p.produtoNome}</td>
@@ -586,7 +646,9 @@ function PedidosTab({ pedidos, total, onAnexar, onExcluir, onPagamento }: {
           ))}
         </tbody>
       </table>
-    </div>
+        )}
+      </div>
+    </>
   )
 }
 
@@ -643,7 +705,7 @@ function PagamentoPedidoModal({ pedido, onRegistrar, onRemover, onStatus, onClos
                 {pedido.pagamentos.map((h, i) => (
                   <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8, fontSize: 11, color: 'var(--fg-muted)', borderTop: '1px dashed var(--border-default)', paddingTop: 6, marginTop: 6 }}>
                     <span>
-                      {dataHoraBR(h.data)}{h.obs ? ' — ' + h.obs : ''}{h.dataPrevista ? ' · restante previsto p/ ' + h.dataPrevista : ''}
+                      {dataHoraBR(h.data)}{h.usuario ? ' · ' + h.usuario : ''}{h.obs ? ' — ' + h.obs : ''}{h.dataPrevista ? ' · restante previsto p/ ' + h.dataPrevista : ''}
                     </span>
                     <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
                       <b style={{ color: 'var(--color-primary)' }}>{fmt(h.valor)}</b>

@@ -1,4 +1,4 @@
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { AttachmentLink } from '../components/AttachmentLink'
 import { appConfig } from '../config'
 import { fmt, initials } from '../lib/format'
@@ -22,6 +22,11 @@ export function CheckinView() {
   const { state, patch } = useRetiro()
   const { setModal } = useActions()
 
+  // Filtro de período pela data da inscrição (criadoEm). Estado local — não é
+  // sincronizado (é um filtro de visualização).
+  const [de, setDe] = useState('')
+  const [ate, setAte] = useState('')
+
   // Ao abrir o Check-in, sempre começa mostrando qualquer forma de pagamento.
   useEffect(() => {
     patch({ ciPag: 'todos' })
@@ -41,6 +46,12 @@ export function CheckinView() {
     if (busca && !(p.nome.toLowerCase().includes(busca) || p.lider.toLowerCase().includes(busca))) return false
     if (s.ciTipo === 'servo' && p.tipo !== 'Servo') return false
     if (s.ciTipo === 'enc' && p.tipo !== 'Encontrista') return false
+    // Período pela data da inscrição (YYYY-MM-DD de criadoEm).
+    if (de || ate) {
+      const d = (p.criadoEm || '').slice(0, 10)
+      if (de && (!d || d < de)) return false
+      if (ate && (!d || d > ate)) return false
+    }
     const sp = statusPag(s, p)
     if (s.ciPag === 'pend' && (sp === 'confirmado' || p.statusInscricao === 'cancelada')) return false
     if (s.ciPag === 'ok' && sp !== 'confirmado') return false
@@ -107,6 +118,15 @@ export function CheckinView() {
           <button className={seg(s.ciPag === 'todos')} onClick={() => patch({ ciPag: 'todos' })}>Qualquer pagamento</button>
           <button className={seg(s.ciPag === 'pend')} onClick={() => patch({ ciPag: 'pend' })}>Pendentes</button>
           <button className={seg(s.ciPag === 'ok')} onClick={() => patch({ ciPag: 'ok' })}>Confirmados</button>
+        </div>
+        <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12, color: 'var(--fg-muted)' }}>
+          <span style={{ fontWeight: 600 }}>Período da inscrição:</span>
+          <input type="date" className="input" style={{ width: 'auto', padding: '6px 8px', fontSize: 12 }} value={de} max={ate || undefined} onChange={(e) => setDe(e.target.value)} title="Data inicial" />
+          <span>até</span>
+          <input type="date" className="input" style={{ width: 'auto', padding: '6px 8px', fontSize: 12 }} value={ate} min={de || undefined} onChange={(e) => setAte(e.target.value)} title="Data final" />
+          {(de || ate) && (
+            <button className="btn btn-default btn-xs" onClick={() => { setDe(''); setAte('') }}>Limpar</button>
+          )}
         </div>
       </div>
 

@@ -147,6 +147,7 @@ lojaRoutes.post('/pedidos/:id/pagamentos', async (req, res) => {
       obs: String(req.body?.obs || '').trim(),
       data: new Date().toISOString(),
       dataPrevista: req.body?.dataPrevista ? String(req.body.dataPrevista) : null,
+      usuario: req.user?.username || 'Sistema',
     }
     const pagamentos = [...(pedido.pagamentos ?? []), lanc]
     await lojaRepository.setPagamentos(pedido.id, pagamentos)
