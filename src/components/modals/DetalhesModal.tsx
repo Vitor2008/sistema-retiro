@@ -94,7 +94,7 @@ function Campo({ label, valor }: { label: string; valor: React.ReactNode }) {
 
 export function DetalhesModal({ modal }: { modal: ModalDetalhes }) {
   const { state, setModal, closeModal } = useRetiro()
-  const { anexarComprovante } = useActions()
+  const { anexarComprovante, reativarInscricao } = useActions()
   const { user } = useAuth()
   const admin = isAdmin(user?.acessos)
 
@@ -214,6 +214,15 @@ export function DetalhesModal({ modal }: { modal: ModalDetalhes }) {
             onClick={() => setModal({ type: 'cancelar', pid: p.id, obs: '' })}
           >
             Cancelar inscrição
+          </button>
+        ) : admin ? (
+          <button
+            className="btn btn-default btn-sm"
+            style={{ color: 'var(--status-final-fg)' }}
+            title="Reativar esta inscrição cancelada (somente administrador)"
+            onClick={() => reativarInscricao(p.id)}
+          >
+            Reativar inscrição
           </button>
         ) : (
           <span />

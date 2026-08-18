@@ -347,6 +347,24 @@ export function useActions() {
     toast('Inscrição cancelada. Vaga liberada.')
   }
 
+  /** Reativa uma inscrição cancelada (volta para pendente). Restrito ao ADM na UI. */
+  const reativarInscricao = (pid: string) => {
+    const s = state
+    patch({
+      inscritos: s.inscritos.map((x) =>
+        x.id === pid && x.statusInscricao === 'cancelada'
+          ? {
+              ...x,
+              statusInscricao: 'pendente',
+              cancelInfo: 'Reativada em ' + stampDia() + ' por ' + autor,
+            }
+          : x,
+      ),
+      modal: null,
+    })
+    toast('Inscrição reativada.')
+  }
+
   /** Edição do retiro atual (a criação de novos vai por API — RetiroSelection).
    *  Os campos editáveis sincronizam via snapshot; slug e id não mudam aqui. */
   const salvarRetiro = () => {
@@ -652,6 +670,7 @@ export function useActions() {
     anexarComprovante,
     salvarEdicaoInscricao,
     salvarEdicaoPagamento,
+    reativarInscricao,
     confirmarFecharConta,
     salvarEdicaoConta,
     toggleLink,
