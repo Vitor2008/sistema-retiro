@@ -21,6 +21,7 @@ function toProduto(r: ProdutoRow): LojaProduto {
     linkPagamento: r.linkPagamento,
     fotos: r.fotos ?? [],
     ativo: r.ativo,
+    pedidosAbertos: r.pedidosAbertos,
     criadoEm: r.criadoEm,
   }
 }
@@ -79,6 +80,7 @@ export const lojaRepository = {
       linkPagamento: dto.linkPagamento,
       fotos: dto.fotos,
       ativo: dto.ativo,
+      pedidosAbertos: dto.pedidosAbertos,
       criadoEm: dto.criadoEm || new Date().toISOString(),
     })
     return dto
@@ -97,6 +99,7 @@ export const lojaRepository = {
     if (patch.linkPagamento !== undefined) set.linkPagamento = patch.linkPagamento
     if (patch.fotos !== undefined) set.fotos = patch.fotos
     if (patch.ativo !== undefined) set.ativo = patch.ativo
+    if (patch.pedidosAbertos !== undefined) set.pedidosAbertos = patch.pedidosAbertos
     if (Object.keys(set).length) await db.update(lojaProdutos).set(set).where(eq(lojaProdutos.id, id))
   },
 

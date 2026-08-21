@@ -96,6 +96,7 @@ publicRoutes.get('/loja/:id', async (req, res, next) => {
       linkPagamento: contaOutra ? p.linkPagamento : p.linkPagamento || evento?.linkPagamento || '',
       eventoNome: evento?.nome ?? '',
       bannerId: evento?.bannerId ?? null,
+      aberto: p.pedidosAbertos,
     })
   } catch (e) {
     next(e)
@@ -126,6 +127,7 @@ publicRoutes.post('/loja/:id/pedido', async (req, res, next) => {
   try {
     const p = await lojaRepository.getProduto(req.params.id)
     if (!p || !p.ativo) return res.status(404).json({ error: 'Produto não encontrado.' })
+    if (!p.pedidosAbertos) return res.status(409).json({ error: 'Os pedidos deste produto foram encerrados.' })
 
     const b = req.body ?? {}
     const quantidade = Math.max(1, Math.floor(Number(b.quantidade) || 0))

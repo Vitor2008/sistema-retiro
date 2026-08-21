@@ -148,6 +148,13 @@
       "when": 1786130621107,
       "tag": "0020_typical_impossible_man",
       "breakpoints": true
+    },
+    {
+      "idx": 21,
+      "version": "7",
+      "when": 1787343467025,
+      "tag": "0021_unusual_supreme_intelligence",
+      "breakpoints": true
     }
   ]
 }

@@ -66,6 +66,7 @@ lojaRoutes.post('/produtos', async (req, res) => {
       linkPagamento: String(b.linkPagamento || '').trim(),
       fotos: normFotos(b.fotos),
       ativo: b.ativo !== false,
+      pedidosAbertos: b.pedidosAbertos !== false,
       criadoEm: new Date().toISOString(),
     }
     res.status(201).json(await lojaRepository.createProduto(produto))
@@ -92,6 +93,7 @@ lojaRoutes.put('/produtos/:id', async (req, res) => {
     if (b.linkPagamento !== undefined) patch.linkPagamento = String(b.linkPagamento).trim()
     if (b.fotos !== undefined) patch.fotos = normFotos(b.fotos)
     if (b.ativo !== undefined) patch.ativo = !!b.ativo
+    if (b.pedidosAbertos !== undefined) patch.pedidosAbertos = !!b.pedidosAbertos
     await lojaRepository.updateProduto(req.params.id, patch)
     res.json({ ok: true })
   } catch (e) {

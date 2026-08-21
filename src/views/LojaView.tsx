@@ -183,6 +183,17 @@ export function LojaView() {
     toast('Link copiado: ' + link)
   }
 
+  const toggleLinkPedidos = async (p: LojaProduto) => {
+    const novo = !p.pedidosAbertos
+    try {
+      await apiClient.put('/loja/produtos/' + p.id, { pedidosAbertos: novo })
+      setProdutos((lista) => lista.map((x) => (x.id === p.id ? { ...x, pedidosAbertos: novo } : x)))
+      toast(novo ? 'Link de pedidos reaberto.' : 'Link de pedidos encerrado.')
+    } catch (e) {
+      toast(e instanceof ApiError ? e.message : 'Não foi possível alterar o link.')
+    }
+  }
+
   // Aplica a versão atualizada de um pedido na lista e no modal aberto.
   const aplicarPedido = (p: LojaPedido) => {
     setPedidos((lista) => lista.map((x) => (x.id === p.id ? p : x)))
@@ -294,7 +305,7 @@ export function LojaView() {
       {carregando ? (
         <div style={{ fontSize: 13, color: 'var(--fg-muted)', padding: 20 }}>Carregando…</div>
       ) : aba === 'produtos' ? (
-        <ProdutosTab produtos={produtos} onEditar={abrirEdicao} onExcluir={setAExcluir} onCopiarLink={copiarLink} />
+        <ProdutosTab produtos={produtos} onEditar={abrirEdicao} onExcluir={setAExcluir} onCopiarLink={copiarLink} onToggleLink={toggleLinkPedidos} />
       ) : (
         <PedidosTab pedidos={pedidos} onAnexar={anexarComprovantePedido} onExcluir={setAExcluirPedido} onPagamento={setPagPedido} />
       )}
@@ -454,11 +465,12 @@ export function LojaView() {
 }
 
 // ---- Aba Produtos ----------------------------------------------------------
-function ProdutosTab({ produtos, onEditar, onExcluir, onCopiarLink }: {
+function ProdutosTab({ produtos, onEditar, onExcluir, onCopiarLink, onToggleLink }: {
   produtos: LojaProduto[]
   onEditar: (p: LojaProduto) => void
   onExcluir: (p: LojaProduto) => void
   onCopiarLink: (p: LojaProduto) => void
+  onToggleLink: (p: LojaProduto) => void
 }) {
   if (produtos.length === 0)
     return <div className="tbl-wrap" style={{ padding: 24, fontSize: 13, color: 'var(--fg-muted)' }}>Nenhum produto cadastrado. Clique em “+ Novo produto”.</div>
@@ -475,14 +487,22 @@ function ProdutosTab({ produtos, onEditar, onExcluir, onCopiarLink }: {
             )}
           </div>
           <div style={{ padding: '12px 14px' }}>
-            <div style={{ display: 'flex', gap: 6, alignItems: 'center', marginBottom: 4 }}>
+            <div style={{ display: 'flex', gap: 6, alignItems: 'center', marginBottom: 4, flexWrap: 'wrap' }}>
               <span className="chip-mini" style={{ background: 'var(--bg-muted)' }}>{labelCategoria(p.categoria)}</span>
               {!p.ativo && <span className="chip-mini chip-rejected">inativo</span>}
+              <span className="chip-mini" style={p.pedidosAbertos
+                ? { background: 'var(--status-final-bg)', color: 'var(--status-final-fg)' }
+                : { background: 'var(--status-rejected-bg)', color: 'var(--status-rejected-fg)' }}>
+                {p.pedidosAbertos ? 'Pedidos abertos' : 'Pedidos encerrados'}
+              </span>
             </div>
             <div style={{ fontWeight: 600, fontSize: 14 }}>{p.nome}</div>
             <div style={{ fontWeight: 700, color: 'var(--color-primary)', marginTop: 2 }}>{fmt(p.valor)}</div>
             <div style={{ display: 'flex', gap: 6, marginTop: 12, flexWrap: 'wrap' }}>
               <button className="btn btn-default btn-xs" onClick={() => onCopiarLink(p)}>Copiar link</button>
+              <button className={'btn btn-xs ' + (p.pedidosAbertos ? 'btn-default' : 'btn-secondary')} onClick={() => onToggleLink(p)}>
+                {p.pedidosAbertos ? 'Fechar link' : 'Reabrir link'}
+              </button>
               <button className="btn btn-outline btn-xs" onClick={() => onEditar(p)}>Editar</button>
               <button className="btn btn-default btn-xs" style={{ color: 'var(--status-rejected-fg)' }} onClick={() => onExcluir(p)}>Excluir</button>
             </div>

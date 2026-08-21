@@ -36,9 +36,10 @@ interface ProdutoPublico {
   linkPagamento: string
   eventoNome: string
   bannerId: string | null
+  aberto: boolean
 }
 
-type Fase = 'carregando' | 'erro' | 'aberto' | 'enviado'
+type Fase = 'carregando' | 'erro' | 'fechado' | 'aberto' | 'enviado'
 
 export function LojaPublica() {
   const { id = '' } = useParams()
@@ -71,7 +72,7 @@ export function LojaPublica() {
       .then((p) => {
         if (!vivo) return
         setProduto(p)
-        setFase('aberto')
+        setFase(p.aberto ? 'aberto' : 'fechado')
       })
       .catch(() => vivo && setFase('erro'))
     return () => {
@@ -184,6 +185,18 @@ export function LojaPublica() {
               <IconeCirculo tipo="erro">✕</IconeCirculo>
               <h3 style={{ marginTop: 8 }}>Produto não encontrado</h3>
               <p style={{ marginTop: 8 }}>O link pode estar incorreto ou o produto não está mais disponível.</p>
+            </div>
+          </Cartao>
+        )}
+
+        {fase === 'fechado' && produto && (
+          <Cartao>
+            <div style={{ textAlign: 'center', padding: '24px 8px' }}>
+              <IconeCirculo tipo="erro">✕</IconeCirculo>
+              <h3 style={{ marginTop: 8 }}>Pedidos encerrados</h3>
+              <p style={{ marginTop: 8 }}>
+                Os pedidos de <b>{produto.nome}</b> foram encerrados. Fale com a organização para mais informações.
+              </p>
             </div>
           </Cartao>
         )}

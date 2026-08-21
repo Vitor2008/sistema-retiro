@@ -319,6 +319,8 @@ export interface LojaProduto {
   /** ids de arquivos (fotos do produto, até 4). */
   fotos: string[]
   ativo: boolean
+  /** Link de pedidos aberto (false = "pedidos encerrados" no público). */
+  pedidosAbertos: boolean
   criadoEm: string
 }
 

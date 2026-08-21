@@ -252,6 +252,8 @@ export const lojaProdutos = pgTable('loja_produtos', {
   /** ids de arquivos (bytea) usados como fotos do produto (até 4). */
   fotos: jsonb('fotos').$type<string[]>().notNull().default([]),
   ativo: boolean('ativo').notNull().default(true),
+  /** Link de pedidos aberto: quando false, o público vê "pedidos encerrados". */
+  pedidosAbertos: boolean('pedidos_abertos').notNull().default(true),
   criadoEm: text('criado_em').notNull().default(''),
 })
 

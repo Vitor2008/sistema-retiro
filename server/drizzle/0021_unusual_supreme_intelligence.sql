@@ -1,0 +1,1 @@
+ALTER TABLE "loja_produtos" ADD COLUMN "pedidos_abertos" boolean DEFAULT true NOT NULL;

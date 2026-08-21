@@ -134,6 +134,8 @@ export interface LojaProduto {
   linkPagamento: string
   fotos: string[]
   ativo: boolean
+  /** Link de pedidos aberto (false = encerrado no formulário público). */
+  pedidosAbertos: boolean
   criadoEm: string
 }
 
