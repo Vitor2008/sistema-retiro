@@ -2,6 +2,8 @@ import { Router } from 'express'
 import { arquivoRoutes } from './arquivoRoutes.js'
 import { requireAuth } from './authMiddleware.js'
 import { authRoutes } from './authRoutes.js'
+import { cantinaCatalogoRoutes } from './cantinaCatalogoRoutes.js'
+import { inscritoRoutes } from './inscritoRoutes.js'
 import { lojaRoutes } from './lojaRoutes.js'
 import { predioRoutes } from './predioRoutes.js'
 import { publicRoutes } from './publicRoutes.js'
@@ -38,3 +40,9 @@ apiRouter.use('/usuarios', usuarioRoutes)
 
 // Loja por evento (produtos e pedidos)
 apiRouter.use('/loja', lojaRoutes)
+
+// Catálogo global de produtos da cantina
+apiRouter.use('/cantina-catalogo', cantinaCatalogoRoutes)
+
+// Ações administrativas sobre inscritos (excluir cancelada)
+apiRouter.use('/inscritos', inscritoRoutes)

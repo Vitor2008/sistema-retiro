@@ -1,9 +1,13 @@
-import { fmt, initials } from '../lib/format'
+import { useEffect, useState } from 'react'
+import { isAdmin } from '../acessos'
+import { fmt, initials, uid } from '../lib/format'
+import { apiClient, ApiError } from '../services/api/apiClient'
+import { useAuth } from '../store/AuthContext'
 import { useRetiro } from '../store/RetiroContext'
 import { useActions } from '../store/useActions'
 import { ativos } from '../store/selectors'
 import { useViewport } from '../hooks/useViewport'
-import type { CantinaTab, FormaPagamento, Produto } from '../types'
+import type { CantinaCatalogoItem, CantinaTab, FormaPagamento, Produto, Venda } from '../types'
 
 function estInfo(p: Produto): [string, string] {
   if (p.estoque === 0) return ['chip-rejected', 'esgotado']
@@ -12,14 +16,106 @@ function estInfo(p: Produto): [string, string] {
 }
 
 export function CantinaView() {
-  const { state, patch } = useRetiro()
+  const { state, patch, toast } = useRetiro()
   const { addCart, finalizarVenda, setModal } = useActions()
   const { mid } = useViewport()
+  const { user } = useAuth()
+  const admin = isAdmin(user?.acessos)
+
+  // Catálogo global de produtos (reutilizável entre eventos).
+  const [catalogo, setCatalogo] = useState<CantinaCatalogoItem[]>([])
+  useEffect(() => {
+    apiClient.get<CantinaCatalogoItem[]>('/cantina-catalogo').then(setCatalogo).catch(() => setCatalogo([]))
+  }, [])
+
+  // Modal local de novo produto (com escolha global x só do evento).
+  const [npOpen, setNpOpen] = useState(false)
+  const [npNome, setNpNome] = useState('')
+  const [npValor, setNpValor] = useState('')
+  const [npEstoque, setNpEstoque] = useState('')
+  const [npGlobal, setNpGlobal] = useState(true)
+  const [npSalvando, setNpSalvando] = useState(false)
+  // Confirmação de exclusão de item do catálogo.
+  const [aExcluirCat, setAExcluirCat] = useState<CantinaCatalogoItem | null>(null)
+  const [excluindoCat, setExcluindoCat] = useState(false)
+  // Confirmação de exclusão de conta aberta (pendente).
+  const [aExcluirConta, setAExcluirConta] = useState<Venda | null>(null)
 
   const s = state
   const narrow = s.narrow
   const seg = (on: boolean) => (on ? 'on' : '')
   const cart = s.carrinho
+  // Só produtos ativos aparecem na venda e nas listas do evento.
+  const produtosAtivos = s.produtos.filter((p) => p.ativo !== false)
+
+  const trazerProduto = (cat: CantinaCatalogoItem) => {
+    const ex = s.produtos.find((p) => p.catalogoId === cat.id)
+    if (ex) {
+      patch({ produtos: s.produtos.map((p) => (p.id === ex.id ? { ...p, ativo: true } : p)) })
+    } else {
+      patch({ produtos: s.produtos.concat([{ id: uid('pr'), nome: cat.nome, valor: cat.valor, estoque: 0, catalogoId: cat.id, ativo: true }]) })
+    }
+  }
+  const removerDoEvento = (produtoId: string) =>
+    patch({ produtos: s.produtos.map((p) => (p.id === produtoId ? { ...p, ativo: false } : p)) })
+
+  const criarProduto = async () => {
+    const nome = npNome.trim()
+    if (!nome) { toast('Informe o nome do produto.'); return }
+    const valor = Number(npValor) || 0
+    const estoque = Number(npEstoque) || 0
+    setNpSalvando(true)
+    try {
+      let catalogoId: number | null = null
+      if (npGlobal) {
+        const cat = await apiClient.post<CantinaCatalogoItem>('/cantina-catalogo', { nome, valor })
+        setCatalogo((lista) => [...lista, cat].sort((a, b) => a.nome.localeCompare(b.nome)))
+        catalogoId = cat.id
+      }
+      patch({ produtos: s.produtos.concat([{ id: uid('pr'), nome, valor, estoque, catalogoId, ativo: true }]) })
+      setNpOpen(false); setNpNome(''); setNpValor(''); setNpEstoque(''); setNpGlobal(true)
+      toast('Produto criado.')
+    } catch {
+      toast('Não foi possível cadastrar no catálogo.')
+    } finally {
+      setNpSalvando(false)
+    }
+  }
+
+  // Exclui a conta aberta (venda pendente) e suas vendas relacionadas (mesmo
+  // cliente, ainda pendentes). Só ADM.
+  const confirmarExcluirConta = () => {
+    if (!aExcluirConta) return
+    const cliente = aExcluirConta.cliente.trim().toLowerCase()
+    const removidas = s.vendas.filter(
+      (v) => v.status === 'pendente' && v.cliente.trim().toLowerCase() === cliente,
+    )
+    // Devolve ao estoque as unidades dos itens das contas removidas.
+    const restauro: Record<string, number> = {}
+    removidas.forEach((v) => v.itens.forEach((it) => { restauro[it.id] = (restauro[it.id] || 0) + it.qtd }))
+    patch({
+      vendas: s.vendas.filter((v) => !removidas.includes(v)),
+      produtos: s.produtos.map((p) => (restauro[p.id] ? { ...p, estoque: p.estoque + restauro[p.id] } : p)),
+    })
+    setAExcluirConta(null)
+    toast('Conta excluída e estoque devolvido.')
+  }
+
+  const confirmarExcluirCatalogo = async () => {
+    if (!aExcluirCat) return
+    setExcluindoCat(true)
+    try {
+      await apiClient.delete('/cantina-catalogo/' + aExcluirCat.id)
+      setCatalogo((lista) => lista.filter((c) => c.id !== aExcluirCat.id))
+      setAExcluirCat(null)
+      toast('Produto excluído do catálogo.')
+    } catch (e) {
+      setAExcluirCat(null)
+      toast(e instanceof ApiError ? e.message : 'Não foi possível excluir do catálogo.')
+    } finally {
+      setExcluindoCat(false)
+    }
+  }
   const cartTotal = cart.reduce((a, i) => a + i.valor * i.qtd, 0)
   const contasPend = s.vendas.filter((v) => v.status === 'pendente')
   const vfBtn = (f: FormaPagamento) => (s.vendaForma === f ? 'btn-primary' : 'btn-default')
@@ -65,7 +161,12 @@ export function CantinaView() {
       {s.cantinaTab === 'venda' && (
         <div style={{ display: 'grid', gridTemplateColumns: narrow ? '1fr' : '1fr 320px', gap: 14, alignItems: 'start' }}>
           <div style={{ display: 'grid', gridTemplateColumns: narrow ? '1fr 1fr' : mid ? '1fr 1fr' : '1fr 1fr 1fr', gap: 10 }}>
-            {s.produtos.map((p) => {
+            {produtosAtivos.length === 0 && (
+              <div style={{ gridColumn: '1 / -1', fontSize: 13, color: 'var(--fg-muted)', padding: 16 }}>
+                Nenhum produto ativo neste evento. Vá em <b>Produtos</b> e traga produtos do catálogo.
+              </div>
+            )}
+            {produtosAtivos.map((p) => {
               const [, lbl] = estInfo(p)
               return (
                 <button
@@ -219,6 +320,9 @@ export function CantinaView() {
                     <button className="btn btn-default btn-xs" onClick={() => patch({ cantinaTab: 'venda', vendaTipo: 'anotada', vCliente: v.cliente })}>+ Itens</button>
                     <button className="btn btn-outline btn-xs" onClick={() => setModal({ type: 'editarConta', vid: v.id, itens: v.itens.map((i) => ({ ...i })) })}>Editar</button>
                     <button className="btn btn-primary btn-xs" onClick={() => setModal({ type: 'fecharConta', vid: v.id, pagamentos: [{ forma: 'Dinheiro', valor: String(total) }] })}>Receber</button>
+                    {admin && (
+                      <button className="btn btn-default btn-xs" style={{ color: 'var(--status-rejected-fg)' }} onClick={() => setAExcluirConta(v)}>Excluir</button>
+                    )}
                   </div>
                 </div>
               </div>
@@ -233,62 +337,214 @@ export function CantinaView() {
       )}
 
       {s.cantinaTab === 'produtos' && (
-        <div className="tbl-wrap">
-          <div className="tbl-head-bar">
-            <h3>Produtos e estoque</h3>
-            <div className="actions">
-              <button className="btn btn-primary btn-xs" onClick={() => setModal({ type: 'produto', pid: null, nome: '', valor: '', estoque: '' })}>+ Novo produto</button>
+        <>
+          {/* Catálogo global — marque o que este evento vai vender */}
+          <div className="tbl-wrap" style={{ marginBottom: 14 }}>
+            <div className="tbl-head-bar">
+              <h3>Catálogo de produtos (global)</h3>
+              <div className="actions">
+                <button className="btn btn-primary btn-xs" onClick={() => setNpOpen(true)}>+ Novo produto</button>
+              </div>
+            </div>
+            <div style={{ padding: '14px 16px' }}>
+              <div style={{ fontSize: 12, color: 'var(--fg-muted)', marginBottom: 10 }}>
+                Marque os produtos que este evento vai vender. Desmarcar não apaga o estoque — só oculta do evento.
+              </div>
+              {catalogo.length === 0 ? (
+                <div style={{ fontSize: 12, color: 'var(--fg-muted)' }}>Nenhum produto no catálogo ainda. Crie um em “+ Novo produto” marcando como global.</div>
+              ) : (
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))', gap: 8 }}>
+                  {catalogo.map((cat) => {
+                    const evp = s.produtos.find((p) => p.catalogoId === cat.id)
+                    const on = !!evp && evp.ativo !== false
+                    return (
+                      <label
+                        key={cat.id}
+                        style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, cursor: 'pointer', padding: '7px 10px', borderRadius: 8, border: '1px solid ' + (on ? 'var(--color-primary)' : 'var(--border-default)'), background: on ? 'var(--color-primary-tint)' : '#fff' }}
+                      >
+                        <input type="checkbox" checked={on} onChange={() => (on && evp ? removerDoEvento(evp.id) : trazerProduto(cat))} style={{ width: 16, height: 16, accentColor: 'var(--color-primary)' }} />
+                        <span style={{ flex: 1 }}>{cat.nome}</span>
+                        <span style={{ color: 'var(--fg-muted)' }}>{fmt(cat.valor)}</span>
+                        <button onClick={(e) => { e.preventDefault(); setAExcluirCat(cat) }} title="Excluir do catálogo" style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--fg-muted)', fontSize: 14, lineHeight: 1 }}>×</button>
+                      </label>
+                    )
+                  })}
+                </div>
+              )}
             </div>
           </div>
-          <div style={{ overflowX: 'auto' }}>
-            <table className="tbl">
-              <thead>
-                <tr>
-                  <th>Produto</th>
-                  <th style={{ textAlign: 'right' }}>Valor unitário</th>
-                  <th style={{ textAlign: 'right' }}>Estoque</th>
-                  <th></th>
-                  <th style={{ textAlign: 'right' }}>Ações</th>
-                </tr>
-              </thead>
-              <tbody>
-                {s.produtos.map((p) => {
-                  const [cls] = estInfo(p)
-                  const estLabel = p.estoque === 0 ? 'Esgotado' : p.estoque <= 5 ? 'Estoque baixo' : 'OK'
-                  return (
-                    <tr key={p.id}>
-                      <td className="vaga-name">{p.nome}</td>
-                      <td style={{ textAlign: 'right' }}>{fmt(p.valor)}</td>
-                      <td style={{ textAlign: 'right', fontWeight: 600 }}>{p.estoque}</td>
-                      <td>
-                        <span className={'chip-mini ' + cls}>{estLabel}</span>
-                      </td>
-                      <td style={{ textAlign: 'right', whiteSpace: 'nowrap' }}>
-                        <div style={{ display: 'inline-flex', gap: 6 }}>
-                          <button className="btn btn-default btn-xs" onClick={() => patch({ produtos: s.produtos.map((x) => (x.id === p.id ? { ...x, estoque: Math.max(0, x.estoque - 1) } : x)) })}>− estoque</button>
-                          <button className="btn btn-default btn-xs" onClick={() => patch({ produtos: s.produtos.map((x) => (x.id === p.id ? { ...x, estoque: x.estoque + 1 } : x)) })}>+ estoque</button>
-                          <button className="btn btn-outline btn-xs" onClick={() => setModal({ type: 'produto', pid: p.id, nome: p.nome, valor: String(p.valor), estoque: String(p.estoque) })}>Editar</button>
-                        </div>
-                      </td>
-                    </tr>
-                  )
-                })}
-              </tbody>
-            </table>
+
+          {/* Produtos ativos no evento (estoque) */}
+          <div className="tbl-wrap">
+            <div className="tbl-head-bar">
+              <h3>Produtos deste evento</h3>
+              <span style={{ fontSize: 12, color: 'var(--fg-muted)' }}>{produtosAtivos.length} ativo(s)</span>
+            </div>
+            <div style={{ overflowX: 'auto' }}>
+              <table className="tbl">
+                <thead>
+                  <tr>
+                    <th>Produto</th>
+                    <th style={{ textAlign: 'right' }}>Valor unitário</th>
+                    <th style={{ textAlign: 'right' }}>Estoque</th>
+                    <th></th>
+                    <th style={{ textAlign: 'right' }}>Ações</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {produtosAtivos.length === 0 && (
+                    <tr><td colSpan={5} style={{ textAlign: 'center', color: 'var(--fg-muted)', fontSize: 13, padding: 20 }}>Nenhum produto ativo. Traga do catálogo acima ou crie um novo.</td></tr>
+                  )}
+                  {produtosAtivos.map((p) => {
+                    const [cls] = estInfo(p)
+                    const estLabel = p.estoque === 0 ? 'Esgotado' : p.estoque <= 5 ? 'Estoque baixo' : 'OK'
+                    return (
+                      <tr key={p.id}>
+                        <td className="vaga-name">
+                          {p.nome}
+                          {p.catalogoId == null && <span className="chip-mini" style={{ marginLeft: 6, background: 'var(--bg-muted)' }}>só deste evento</span>}
+                        </td>
+                        <td style={{ textAlign: 'right' }}>{fmt(p.valor)}</td>
+                        <td style={{ textAlign: 'right', fontWeight: 600 }}>{p.estoque}</td>
+                        <td>
+                          <span className={'chip-mini ' + cls}>{estLabel}</span>
+                        </td>
+                        <td style={{ textAlign: 'right', whiteSpace: 'nowrap' }}>
+                          <div style={{ display: 'inline-flex', gap: 6 }}>
+                            <button className="btn btn-default btn-xs" onClick={() => patch({ produtos: s.produtos.map((x) => (x.id === p.id ? { ...x, estoque: Math.max(0, x.estoque - 1) } : x)) })}>− estoque</button>
+                            <button className="btn btn-default btn-xs" onClick={() => patch({ produtos: s.produtos.map((x) => (x.id === p.id ? { ...x, estoque: x.estoque + 1 } : x)) })}>+ estoque</button>
+                            <button className="btn btn-outline btn-xs" onClick={() => setModal({ type: 'produto', pid: p.id, nome: p.nome, valor: String(p.valor), estoque: String(p.estoque) })}>Editar</button>
+                            <button className="btn btn-default btn-xs" style={{ color: 'var(--status-rejected-fg)' }} onClick={() => removerDoEvento(p.id)}>Remover</button>
+                          </div>
+                        </td>
+                      </tr>
+                    )
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </>
+      )}
+
+      {s.cantinaTab === 'resumo' && <ResumoVendas />}
+
+      {aExcluirConta && (
+        <div
+          onClick={() => setAExcluirConta(null)}
+          style={{ position: 'fixed', inset: 0, background: 'var(--bg-overlay)', zIndex: 100, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16, animation: 'fadeIn .15s var(--ease-default)' }}
+        >
+          <div onClick={(e) => e.stopPropagation()} style={{ background: '#fff', borderRadius: 10, boxShadow: 'var(--shadow-lg)', width: '100%', maxWidth: 460, animation: 'popIn .18s var(--ease-default)' }}>
+            <div style={{ padding: '22px 24px' }}>
+              <h3 style={{ marginBottom: 6 }}>Excluir conta aberta</h3>
+              <p style={{ fontSize: 13, marginBottom: 18 }}>
+                Excluir a conta de <b>{aExcluirConta.cliente}</b> e todos os itens lançados nela? A conta ainda não foi paga. Esta ação não pode ser desfeita.
+              </p>
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
+                <button className="btn btn-default" onClick={() => setAExcluirConta(null)}>Cancelar</button>
+                <button className="btn" style={{ background: 'var(--status-rejected-fg)', color: '#fff' }} onClick={confirmarExcluirConta}>Excluir conta</button>
+              </div>
+            </div>
           </div>
         </div>
       )}
 
-      {s.cantinaTab === 'resumo' && <ResumoVendas />}
+      {aExcluirCat && (
+        <div
+          onClick={() => !excluindoCat && setAExcluirCat(null)}
+          style={{ position: 'fixed', inset: 0, background: 'var(--bg-overlay)', zIndex: 100, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16, animation: 'fadeIn .15s var(--ease-default)' }}
+        >
+          <div onClick={(e) => e.stopPropagation()} style={{ background: '#fff', borderRadius: 10, boxShadow: 'var(--shadow-lg)', width: '100%', maxWidth: 460, animation: 'popIn .18s var(--ease-default)' }}>
+            <div style={{ padding: '22px 24px' }}>
+              <h3 style={{ marginBottom: 6 }}>Excluir produto do catálogo</h3>
+              <p style={{ fontSize: 13, marginBottom: 18 }}>
+                Excluir <b>{aExcluirCat.nome}</b> do catálogo? Só é permitido se ele não estiver ativo em nenhum evento. O histórico de vendas é mantido.
+              </p>
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
+                <button className="btn btn-default" disabled={excluindoCat} onClick={() => setAExcluirCat(null)}>Cancelar</button>
+                <button className="btn" style={{ background: 'var(--status-rejected-fg)', color: '#fff' }} disabled={excluindoCat} onClick={confirmarExcluirCatalogo}>
+                  {excluindoCat ? 'Excluindo…' : 'Excluir'}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {npOpen && (
+        <div
+          onClick={() => !npSalvando && setNpOpen(false)}
+          style={{ position: 'fixed', inset: 0, background: 'var(--bg-overlay)', zIndex: 100, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16, animation: 'fadeIn .15s var(--ease-default)' }}
+        >
+          <div onClick={(e) => e.stopPropagation()} style={{ background: '#fff', borderRadius: 10, boxShadow: 'var(--shadow-lg)', width: '100%', maxWidth: 460, animation: 'popIn .18s var(--ease-default)' }}>
+            <div style={{ padding: '22px 24px' }}>
+              <h3 style={{ marginBottom: 16 }}>Novo produto</h3>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                <div>
+                  <label style={{ fontSize: 12, fontWeight: 600, display: 'block', marginBottom: 5 }}>Nome do produto</label>
+                  <input className="input" value={npNome} onChange={(e) => setNpNome(e.target.value)} />
+                </div>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                  <div>
+                    <label style={{ fontSize: 12, fontWeight: 600, display: 'block', marginBottom: 5 }}>Valor unitário (R$)</label>
+                    <input className="input" type="number" min="0" step="0.5" value={npValor} onChange={(e) => setNpValor(e.target.value)} />
+                  </div>
+                  <div>
+                    <label style={{ fontSize: 12, fontWeight: 600, display: 'block', marginBottom: 5 }}>Estoque neste evento</label>
+                    <input className="input" type="number" min="0" value={npEstoque} onChange={(e) => setNpEstoque(e.target.value)} />
+                  </div>
+                </div>
+                <div>
+                  <label style={{ fontSize: 12, fontWeight: 600, display: 'block', marginBottom: 5 }}>Disponibilidade</label>
+                  <div style={{ display: 'flex', gap: 8 }}>
+                    <button type="button" className={'btn btn-sm ' + (npGlobal ? 'btn-primary' : 'btn-default')} style={{ flex: 1, justifyContent: 'center' }} onClick={() => setNpGlobal(true)}>
+                      Global (catálogo)
+                    </button>
+                    <button type="button" className={'btn btn-sm ' + (!npGlobal ? 'btn-primary' : 'btn-default')} style={{ flex: 1, justifyContent: 'center' }} onClick={() => setNpGlobal(false)}>
+                      Só deste evento
+                    </button>
+                  </div>
+                  <div style={{ fontSize: 11, color: 'var(--fg-muted)', marginTop: 4 }}>
+                    {npGlobal ? 'Fica disponível no catálogo para todos os eventos e já entra neste.' : 'Fica disponível apenas neste evento.'}
+                  </div>
+                </div>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, marginTop: 18 }}>
+                <button className="btn btn-default" disabled={npSalvando} onClick={() => setNpOpen(false)}>Cancelar</button>
+                <button className="btn btn-primary" disabled={npSalvando} onClick={criarProduto}>{npSalvando ? 'Salvando…' : 'Salvar produto'}</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
 
 function ResumoVendas() {
-  const { state } = useRetiro()
+  const { state, patch, toast } = useRetiro()
+  const { user } = useAuth()
+  const admin = isAdmin(user?.acessos)
   const s = state
   const narrow = s.narrow
   const contasPend = s.vendas.filter((v) => v.status === 'pendente')
+  const avulsas = s.vendas.filter((v) => v.tipo === 'avulsa')
+  const [aExcluirVenda, setAExcluirVenda] = useState<Venda | null>(null)
+
+  const confirmarExcluirVenda = () => {
+    if (!aExcluirVenda) return
+    // Devolve ao estoque as unidades dos itens desta venda.
+    const restauro: Record<string, number> = {}
+    aExcluirVenda.itens.forEach((it) => { restauro[it.id] = (restauro[it.id] || 0) + it.qtd })
+    patch({
+      vendas: s.vendas.filter((v) => v.id !== aExcluirVenda.id),
+      produtos: s.produtos.map((p) => (restauro[p.id] ? { ...p, estoque: p.estoque + restauro[p.id] } : p)),
+    })
+    setAExcluirVenda(null)
+    toast('Venda avulsa excluída e estoque devolvido.')
+  }
+  const resumoItensVenda = (v: Venda) =>
+    v.itens.map((i) => i.qtd + '× ' + i.nome).join(', ')
 
   const porItem: Record<string, { qtd: number; total: number }> = {}
   const porComprador: Record<
@@ -426,6 +682,67 @@ function ResumoVendas() {
           </table>
         </div>
       </div>
+
+      {/* Vendas avulsas — com exclusão (somente ADM) */}
+      <div className="tbl-wrap" style={{ marginTop: 14 }}>
+        <div className="tbl-head-bar">
+          <h3>Vendas avulsas</h3>
+          <span style={{ fontSize: 12, color: 'var(--fg-muted)' }}>{avulsas.length} venda(s)</span>
+        </div>
+        <div style={{ overflowX: 'auto' }}>
+          <table className="tbl">
+            <thead>
+              <tr>
+                <th>Itens</th>
+                <th>Forma</th>
+                <th style={{ textAlign: 'right' }}>Total</th>
+                {admin && <th style={{ textAlign: 'right' }}>Ações</th>}
+              </tr>
+            </thead>
+            <tbody>
+              {avulsas.map((v) => (
+                <tr key={v.id}>
+                  <td style={{ fontSize: 12 }}>{resumoItensVenda(v)}</td>
+                  <td style={{ fontSize: 12 }}>{v.forma}</td>
+                  <td style={{ textAlign: 'right', fontWeight: 600 }}>{fmt(v.itens.reduce((a, i) => a + i.valor * i.qtd, 0))}</td>
+                  {admin && (
+                    <td style={{ textAlign: 'right', whiteSpace: 'nowrap' }}>
+                      <button className="btn btn-default btn-xs" style={{ color: 'var(--status-rejected-fg)' }} onClick={() => setAExcluirVenda(v)}>Excluir</button>
+                    </td>
+                  )}
+                </tr>
+              ))}
+              {avulsas.length === 0 && (
+                <tr>
+                  <td colSpan={admin ? 4 : 3} style={{ textAlign: 'center', color: 'var(--fg-muted)', fontSize: 13, padding: 24 }}>
+                    Nenhuma venda avulsa registrada.
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      {aExcluirVenda && (
+        <div
+          onClick={() => setAExcluirVenda(null)}
+          style={{ position: 'fixed', inset: 0, background: 'var(--bg-overlay)', zIndex: 100, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16, animation: 'fadeIn .15s var(--ease-default)' }}
+        >
+          <div onClick={(e) => e.stopPropagation()} style={{ background: '#fff', borderRadius: 10, boxShadow: 'var(--shadow-lg)', width: '100%', maxWidth: 460, animation: 'popIn .18s var(--ease-default)' }}>
+            <div style={{ padding: '22px 24px' }}>
+              <h3 style={{ marginBottom: 6 }}>Excluir venda avulsa</h3>
+              <p style={{ fontSize: 13, marginBottom: 18 }}>
+                Excluir esta venda avulsa ({resumoItensVenda(aExcluirVenda)})? Esta ação não pode ser desfeita.
+              </p>
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
+                <button className="btn btn-default" onClick={() => setAExcluirVenda(null)}>Cancelar</button>
+                <button className="btn" style={{ background: 'var(--status-rejected-fg)', color: '#fff' }} onClick={confirmarExcluirVenda}>Excluir venda</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   )
 }

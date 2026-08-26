@@ -160,12 +160,23 @@ export const quartos = pgTable('quartos', {
   lideres: jsonb('lideres').$type<string[]>().notNull().default([]),
 })
 
+/** Catálogo global de produtos da cantina (reutilizável entre eventos). */
+export const cantinaCatalogo = pgTable('cantina_catalogo', {
+  id: serial('id').primaryKey(),
+  nome: text('nome').notNull(),
+  valor: doublePrecision('valor').notNull().default(0),
+})
+
 export const produtos = pgTable('produtos', {
   id: text('id').primaryKey(),
   retiroId: text('retiro_id').references(() => retiros.id, { onDelete: 'cascade' }),
   nome: text('nome').notNull(),
   valor: doublePrecision('valor').notNull().default(0),
   estoque: integer('estoque').notNull().default(0),
+  /** Vínculo com o item do catálogo global (null = produto só deste evento). */
+  catalogoId: integer('catalogo_id').references(() => cantinaCatalogo.id, { onDelete: 'set null' }),
+  /** Ativo neste evento (desmarcar no catálogo desativa sem perder o estoque). */
+  ativo: boolean('ativo').notNull().default(true),
 })
 
 export const vendas = pgTable('vendas', {

@@ -182,7 +182,17 @@ export const snapshotRepository = {
       if (quartosU.length)
         await tx.insert(quartos).values(quartosU.map((q) => ({ ...q, retiroId })))
       if (produtosU.length)
-        await tx.insert(produtos).values(produtosU.map((p) => ({ ...p, retiroId })))
+        await tx.insert(produtos).values(
+          produtosU.map((p) => ({
+            id: p.id,
+            retiroId,
+            nome: p.nome,
+            valor: p.valor,
+            estoque: p.estoque,
+            catalogoId: p.catalogoId ?? null,
+            ativo: p.ativo ?? true,
+          })),
+        )
       if (despesasU.length)
         await tx.insert(despesas).values(despesasU.map((d) => ({ ...d, retiroId })))
 

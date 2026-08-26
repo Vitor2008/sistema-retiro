@@ -4,7 +4,7 @@ import { appConfig } from '../config'
 import { fmt, initials } from '../lib/format'
 import { useRetiro } from '../store/RetiroContext'
 import { useActions } from '../store/useActions'
-import { ativos, ofertado, pago, statusPag, valorInscricao } from '../store/selectors'
+import { ofertado, pago, statusPag, valorInscricao } from '../store/selectors'
 import type { StatusInscricao, StatusPagamento } from '../types'
 
 const pagInfo: Record<StatusPagamento, [string, string]> = {
@@ -22,10 +22,11 @@ export function CheckinView() {
   const { state, patch } = useRetiro()
   const { setModal } = useActions()
 
-  // Filtro de período pela data da inscrição (criadoEm). Estado local — não é
-  // sincronizado (é um filtro de visualização).
+  // Filtros de visualização (estado local, não sincronizado).
   const [de, setDe] = useState('')
   const [ate, setAte] = useState('')
+  // Filtro geral por prédio — afeta os cards E a lista.
+  const [filtroPredio, setFiltroPredio] = useState('')
 
   // Ao abrir o Check-in, sempre começa mostrando qualquer forma de pagamento.
   useEffect(() => {
@@ -36,13 +37,21 @@ export function CheckinView() {
   const s = state
   // Eventos avulsos não têm o conceito de Convidado/Servo → oculta a coluna Tipo.
   const avulso = s.retiro.tipo === 'avulso'
-  const atv = ativos(s)
   const narrow = s.narrow
   const compacto = appConfig.modoCompacto
   const seg = (on: boolean) => (on ? 'on' : '')
   const busca = s.ciBusca.toLowerCase()
 
-  const filtrados = s.inscritos.filter((p) => {
+  // Prédios do evento (participantes + os que aparecem em inscrições).
+  const prediosOpcoes = Array.from(
+    new Set([...s.predios, ...s.inscritos.map((p) => p.predio).filter(Boolean)]),
+  ).sort((a, b) => a.localeCompare(b))
+
+  // Base filtrada por prédio — usada nos cards E na lista.
+  const inscritosBase = filtroPredio ? s.inscritos.filter((p) => (p.predio || '') === filtroPredio) : s.inscritos
+  const atv = inscritosBase.filter((p) => p.statusInscricao !== 'cancelada')
+
+  const filtrados = inscritosBase.filter((p) => {
     if (busca && !(p.nome.toLowerCase().includes(busca) || p.lider.toLowerCase().includes(busca))) return false
     if (s.ciTipo === 'servo' && p.tipo !== 'Servo') return false
     if (s.ciTipo === 'enc' && p.tipo !== 'Encontrista') return false
@@ -58,7 +67,7 @@ export function CheckinView() {
     return true
   })
 
-  const arrecadadoTot = s.inscritos.reduce((a, p) => a + pago(p), 0)
+  const arrecadadoTot = inscritosBase.reduce((a, p) => a + pago(p), 0)
   const aReceberTot = atv.reduce((a, p) => a + Math.max(0, valorInscricao(s, p) - pago(p) - ofertado(p)), 0)
 
   return (
@@ -71,6 +80,13 @@ export function CheckinView() {
         <div>
           <h1>Check-in — {s.retiro.nome}</h1>
           <div className="desc">Confirmação de pagamentos e presença na recepção.</div>
+        </div>
+        <div className="actions" style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
+          <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--fg-muted)' }}>Prédio:</span>
+          <select className="input" style={{ width: 'auto', minWidth: 180 }} value={filtroPredio} onChange={(e) => setFiltroPredio(e.target.value)}>
+            <option value="">Todos os prédios</option>
+            {prediosOpcoes.map((p) => <option key={p} value={p}>{p}</option>)}
+          </select>
         </div>
       </div>
 

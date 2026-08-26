@@ -88,6 +88,17 @@ export interface Produto {
   nome: string
   valor: number
   estoque: number
+  /** Vínculo com o catálogo global (null/ausente = produto só deste evento). */
+  catalogoId?: number | null
+  /** Ativo neste evento (default true quando ausente). */
+  ativo?: boolean
+}
+
+/** Item do catálogo global de produtos da cantina. */
+export interface CantinaCatalogoItem {
+  id: number
+  nome: string
+  valor: number
 }
 
 export interface ItemVenda {

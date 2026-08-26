@@ -7,6 +7,7 @@
 import { appConfig } from '../config'
 import { DIAS_ESCALA, FRENTE_INFO } from '../escalaConfig'
 import { fmt, stampAgora, stampDia, uid } from '../lib/format'
+import { apiClient, ApiError } from '../services/api/apiClient'
 import { exportPrestacaoContas } from '../services/reportExport'
 import type {
   Attachment,
@@ -365,6 +366,18 @@ export function useActions() {
     toast('Inscrição reativada.')
   }
 
+  /** Exclui definitivamente uma inscrição cancelada (some da tela). Só ADM.
+   *  Usa endpoint próprio porque o merge do snapshot não apaga inscritos. */
+  const excluirInscricao = async (pid: string) => {
+    try {
+      await apiClient.delete('/inscritos/' + pid)
+      patch({ inscritos: state.inscritos.filter((x) => x.id !== pid), modal: null })
+      toast('Inscrição excluída.')
+    } catch (e) {
+      toast(e instanceof ApiError ? e.message : 'Não foi possível excluir a inscrição.')
+    }
+  }
+
   /** Edição do retiro atual (a criação de novos vai por API — RetiroSelection).
    *  Os campos editáveis sincronizam via snapshot; slug e id não mudam aqui. */
   const salvarRetiro = () => {
@@ -671,6 +684,7 @@ export function useActions() {
     salvarEdicaoInscricao,
     salvarEdicaoPagamento,
     reativarInscricao,
+    excluirInscricao,
     confirmarFecharConta,
     salvarEdicaoConta,
     toggleLink,

@@ -94,9 +94,10 @@ function Campo({ label, valor }: { label: string; valor: React.ReactNode }) {
 
 export function DetalhesModal({ modal }: { modal: ModalDetalhes }) {
   const { state, setModal, closeModal } = useRetiro()
-  const { anexarComprovante, reativarInscricao } = useActions()
+  const { anexarComprovante, reativarInscricao, excluirInscricao } = useActions()
   const { user } = useAuth()
   const admin = isAdmin(user?.acessos)
+  const [confExcluir, setConfExcluir] = useState(false)
 
   const p = porId(state)[modal.pid]
   if (!p) return null
@@ -216,14 +217,32 @@ export function DetalhesModal({ modal }: { modal: ModalDetalhes }) {
             Cancelar inscrição
           </button>
         ) : admin ? (
-          <button
-            className="btn btn-default btn-sm"
-            style={{ color: 'var(--status-final-fg)' }}
-            title="Reativar esta inscrição cancelada (somente administrador)"
-            onClick={() => reativarInscricao(p.id)}
-          >
-            Reativar inscrição
-          </button>
+          confExcluir ? (
+            <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
+              <span style={{ fontSize: 12, color: 'var(--status-rejected-fg)' }}>Excluir definitivamente?</span>
+              <button className="btn btn-sm" style={{ background: 'var(--status-rejected-fg)', color: '#fff' }} onClick={() => excluirInscricao(p.id)}>Confirmar</button>
+              <button className="btn btn-default btn-sm" onClick={() => setConfExcluir(false)}>Não</button>
+            </div>
+          ) : (
+            <div style={{ display: 'inline-flex', gap: 8 }}>
+              <button
+                className="btn btn-default btn-sm"
+                style={{ color: 'var(--status-final-fg)' }}
+                title="Reativar esta inscrição cancelada (somente administrador)"
+                onClick={() => reativarInscricao(p.id)}
+              >
+                Reativar inscrição
+              </button>
+              <button
+                className="btn btn-default btn-sm"
+                style={{ color: 'var(--status-rejected-fg)' }}
+                title="Excluir esta inscrição cancelada da tela (somente administrador)"
+                onClick={() => setConfExcluir(true)}
+              >
+                Excluir
+              </button>
+            </div>
+          )
         ) : (
           <span />
         )}

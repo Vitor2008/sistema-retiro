@@ -23,7 +23,13 @@ export const produtoRepository = {
   async update(id: string, dto: Produto): Promise<Produto> {
     await db
       .update(produtos)
-      .set({ nome: dto.nome, valor: dto.valor, estoque: dto.estoque })
+      .set({
+        nome: dto.nome,
+        valor: dto.valor,
+        estoque: dto.estoque,
+        catalogoId: dto.catalogoId ?? null,
+        ativo: dto.ativo ?? true,
+      })
       .where(eq(produtos.id, id))
     return dto
   },
