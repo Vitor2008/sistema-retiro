@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { initials } from '../lib/format'
 import { esc, imprimirHtml } from '../lib/print'
 import { useRetiro } from '../store/RetiroContext'
@@ -8,8 +9,9 @@ import type { Genero } from '../types'
 
 export function QuartosView() {
   const { state, patch, toast } = useRetiro()
-  const { atribuirQuarto, preDefinirQuartos, setModal } = useActions()
+  const { atribuirQuarto, preDefinirQuartos, removerQuarto, setModal } = useActions()
   const { mid } = useViewport()
+  const [aExcluir, setAExcluir] = useState<string | null>(null)
 
   const s = state
   const narrow = s.narrow
@@ -97,6 +99,8 @@ export function QuartosView() {
     patch({ quartos })
   }
 
+  const quartoExcluir = aExcluir ? s.quartos.find((q) => q.id === aExcluir) ?? null : null
+
   const removeMembro = (qid: string, mid2: string) => {
     patch({
       inscritos: s.inscritos.map((x) => (x.id === mid2 ? { ...x, quarto: null } : x)),
@@ -118,7 +122,7 @@ export function QuartosView() {
           </div>
         </div>
         <div className="actions">
-          <button className="btn btn-outline btn-sm" onClick={() => setModal({ type: 'quarto', nome: '', genero: 'M', cap: '8' })}>
+          <button className="btn btn-outline btn-sm" onClick={() => setModal({ type: 'quarto', qid: null, nome: '', genero: 'M', cap: '8' })}>
             + Novo quarto
           </button>
           {temQuartos && (
@@ -208,7 +212,16 @@ export function QuartosView() {
         {/* Quartos */}
         <div style={{ display: 'grid', gridTemplateColumns: narrow ? '1fr' : mid ? '1fr 1fr' : '1fr 1fr 1fr', gap: 12 }}>
           {s.quartos.map((q) => {
-            const membros = atv.filter((p) => p.quarto === q.id)
+            // Líderes do quarto primeiro (na ordem em que foram marcados),
+            // depois os demais em ordem alfabética.
+            const membros = atv
+              .filter((p) => p.quarto === q.id)
+              .sort((a, b) => {
+                const ia = q.lideres.indexOf(a.id)
+                const ib = q.lideres.indexOf(b.id)
+                if (ia !== -1 || ib !== -1) return (ia === -1 ? 99 : ia) - (ib === -1 ? 99 : ib)
+                return a.nome.localeCompare(b.nome)
+              })
             const n = membros.length
             const over = n > q.cap
             const cheio = n >= q.cap
@@ -243,10 +256,31 @@ export function QuartosView() {
                   >
                     {q.genero === 'M' ? 'Masc.' : 'Fem.'}
                   </span>
-                  <h3 style={{ fontSize: 14 }}>{q.nome}</h3>
+                  <h3 style={{ fontSize: 14, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{q.nome}</h3>
                   <span style={{ marginLeft: 'auto', fontSize: 12, fontWeight: 700, color: over ? 'var(--status-rejected-fg)' : cheio ? 'var(--color-secondary)' : 'var(--fg-muted)' }}>
                     {n} / {q.cap}
                   </span>
+                  <button
+                    title="Editar quarto"
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      setModal({ type: 'quarto', qid: q.id, nome: q.nome, genero: q.genero, cap: String(q.cap) })
+                    }}
+                    style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--fg-muted)', padding: '0 2px', fontSize: 13, lineHeight: 1 }}
+                  >
+                    ✎
+                  </button>
+                  <button
+                    title={n > 0 ? 'Remova as pessoas do quarto para excluí-lo.' : 'Excluir quarto'}
+                    disabled={n > 0}
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      setAExcluir(q.id)
+                    }}
+                    style={{ background: 'none', border: 'none', cursor: n > 0 ? 'not-allowed' : 'pointer', color: n > 0 ? 'var(--border-strong)' : 'var(--status-rejected-fg)', padding: '0 2px', fontSize: 13, lineHeight: 1 }}
+                  >
+                    🗑
+                  </button>
                 </div>
                 <div style={{ height: 6, background: 'var(--bg-muted)', borderRadius: 999, overflow: 'hidden', marginBottom: 10 }}>
                   <div style={{ height: '100%', width: pct + '%', background: over ? 'var(--status-rejected-fg)' : cheio ? 'var(--color-secondary)' : 'var(--color-sage)' }} />
@@ -256,19 +290,29 @@ export function QuartosView() {
                     const lider = q.lideres.includes(m.id)
                     const podeLider = m.tipo === 'Servo'
                     return (
-                      <div key={m.id} style={{ display: 'flex', alignItems: 'center', gap: 7, fontSize: 12, padding: '4px 6px', borderRadius: 6, background: lider ? 'var(--color-sage-soft)' : 'transparent' }}>
+                      <div key={m.id} className={'quarto-membro' + (lider ? ' is-lider' : '')}>
                         <button
-                          title={lider ? 'Remover liderança' : podeLider ? 'Tornar líder de quarto' : ''}
+                          className={lider ? undefined : podeLider ? 'star-toggle' : 'star-vazia'}
+                          disabled={!lider && !podeLider}
+                          aria-hidden={!lider && !podeLider}
+                          tabIndex={!lider && !podeLider ? -1 : undefined}
+                          title={lider ? 'Remover liderança' : 'Tornar líder de quarto'}
                           onClick={(e) => {
                             e.stopPropagation()
-                            if (podeLider) toggleStar(q.id, m.id)
+                            toggleStar(q.id, m.id)
                           }}
-                          style={{ background: 'none', border: 'none', cursor: podeLider ? 'pointer' : 'default', padding: 0, fontSize: 13, color: lider ? 'var(--color-secondary)' : podeLider ? 'var(--border-strong)' : 'transparent', lineHeight: 1 }}
+                          style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, fontSize: 13, color: lider ? 'var(--color-secondary)' : 'var(--border-strong)', lineHeight: 1 }}
                         >
                           ★
                         </button>
-                        <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontWeight: lider ? 600 : 400 }}>{m.nome}</span>
-                        <span style={{ fontSize: 10, color: 'var(--fg-muted)' }}>{m.tipo === 'Servo' ? 'Servo' : 'Enc.'}</span>
+                        <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{m.nome}</span>
+                        {lider ? (
+                          <span className="chip-mini" style={{ background: 'var(--color-secondary-tint)', color: 'var(--color-secondary-hover)' }}>
+                            Líder
+                          </span>
+                        ) : (
+                          <span style={{ fontSize: 10, color: 'var(--fg-muted)' }}>{m.tipo === 'Servo' ? 'Servo' : 'Enc.'}</span>
+                        )}
                         <button
                           onClick={(e) => {
                             e.stopPropagation()
@@ -292,6 +336,40 @@ export function QuartosView() {
           })}
         </div>
       </div>
+
+      {quartoExcluir && (
+        <div
+          onClick={() => setAExcluir(null)}
+          style={{ position: 'fixed', inset: 0, background: 'var(--bg-overlay)', zIndex: 100, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16, animation: 'fadeIn .15s var(--ease-default)' }}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            style={{ background: '#fff', borderRadius: 10, boxShadow: 'var(--shadow-lg)', width: '100%', maxWidth: 440, animation: 'popIn .18s var(--ease-default)' }}
+          >
+            <div style={{ padding: '22px 24px' }}>
+              <h3 style={{ marginBottom: 6 }}>Excluir quarto</h3>
+              <p style={{ fontSize: 13, marginBottom: 18 }}>
+                Tem certeza que deseja excluir o quarto <b>{quartoExcluir.nome}</b>? Esta ação não pode ser desfeita.
+              </p>
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
+                <button className="btn btn-default" onClick={() => setAExcluir(null)}>
+                  Cancelar
+                </button>
+                <button
+                  className="btn"
+                  style={{ background: 'var(--status-rejected-fg)', color: '#fff' }}
+                  onClick={() => {
+                    removerQuarto(quartoExcluir.id)
+                    setAExcluir(null)
+                  }}
+                >
+                  Excluir
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

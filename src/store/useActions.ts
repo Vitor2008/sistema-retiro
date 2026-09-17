@@ -27,7 +27,15 @@ import type {
 } from '../types'
 import { useAuth } from './AuthContext'
 import { useRetiro } from './RetiroContext'
-import { escalaVazia, ofertado, pago, porId, servosServico, valorInscricao } from './selectors'
+import {
+  escalaVazia,
+  maisVelhoPrimeiro,
+  ofertado,
+  pago,
+  porId,
+  servosServico,
+  valorInscricao,
+} from './selectors'
 
 export function useActions() {
   const { state, patch, setModal, toast } = useRetiro()
@@ -223,14 +231,18 @@ export function useActions() {
     }
 
     const inscritos = s.inscritos.map((x) => (atrib[x.id] ? { ...x, quarto: atrib[x.id] } : x))
-    // Marca como líder de quarto os servos que são líderes de célula presentes (até 2).
+    // Cada quarto tem 2 líderes, nesta ordem de preferência: 1º os servos que
+    // são líderes de célula (é quem os encontristas escolheram na inscrição),
+    // 2º os servos mais velhos. Marcações feitas na mão são preservadas.
     const quartos = s.quartos.map((q) => {
       const membros = inscritos.filter((p) => p.statusInscricao !== 'cancelada' && p.quarto === q.id)
-      const lideres = q.lideres.slice()
-      membros
-        .filter((m) => m.tipo === 'Servo' && nomesLideres.has(m.nome))
+      const lideres = q.lideres.filter((id) => membros.some((m) => m.id === id)).slice(0, 2)
+      const servos = membros.filter((m) => m.tipo === 'Servo').sort(maisVelhoPrimeiro)
+      servos
+        .filter((m) => nomesLideres.has(m.nome))
+        .concat(servos.filter((m) => !nomesLideres.has(m.nome)))
         .forEach((m) => {
-          if (!lideres.includes(m.id) && lideres.length < 2) lideres.push(m.id)
+          if (lideres.length < 2 && !lideres.includes(m.id)) lideres.push(m.id)
         })
       return { ...q, lideres }
     })
@@ -416,6 +428,9 @@ export function useActions() {
     toast('Evento atualizado.')
   }
 
+  const ocupacaoQuarto = (qid: string) =>
+    state.inscritos.filter((x) => x.statusInscricao !== 'cancelada' && x.quarto === qid).length
+
   const salvarQuarto = () => {
     const s = state
     const m = s.modal as ModalQuarto
@@ -424,19 +439,63 @@ export function useActions() {
       toast('Informe o nome do quarto.')
       return
     }
+    const cap = Number(m.cap) || 8
+    if (cap < 1) {
+      toast('A capacidade deve ser de ao menos 1 cama.')
+      return
+    }
+    const dados = { nome: m.nome.trim(), genero: m.genero || 'M', cap }
+
+    if (m.qid) {
+      const atual = s.quartos.find((q) => q.id === m.qid)
+      if (!atual) {
+        toast('Quarto não encontrado.')
+        return
+      }
+      const ocupacao = ocupacaoQuarto(m.qid)
+      if (dados.genero !== atual.genero && ocupacao > 0) {
+        toast('Remova as pessoas do quarto antes de trocar o gênero.')
+        return
+      }
+      if (dados.cap < ocupacao) {
+        toast(
+          'A capacidade não pode ser menor que as ' + ocupacao + ' pessoas já alocadas no quarto.',
+        )
+        return
+      }
+      patch({
+        quartos: s.quartos.map((q) => (q.id === m.qid ? { ...q, ...dados } : q)),
+        modal: null,
+      })
+      toast('Quarto atualizado.')
+      return
+    }
+
     patch({
-      quartos: s.quartos.concat([
-        {
-          id: uid('q'),
-          nome: m.nome.trim(),
-          genero: m.genero || 'M',
-          cap: Number(m.cap) || 8,
-          lideres: [],
-        },
-      ]),
+      quartos: s.quartos.concat([{ id: uid('q'), ...dados, lideres: [] }]),
       modal: null,
     })
     toast('Quarto criado.')
+  }
+
+  /** Exclui um quarto — só é permitido quando não há ninguém alocado nele. */
+  const removerQuarto = (qid: string) => {
+    const s = state
+    const q = s.quartos.find((x) => x.id === qid)
+    if (!q) return
+    const ocupacao = ocupacaoQuarto(qid)
+    if (ocupacao > 0) {
+      toast(
+        'Não é possível excluir ' +
+          q.nome +
+          ': há ' +
+          ocupacao +
+          (ocupacao === 1 ? ' pessoa alocada.' : ' pessoas alocadas.'),
+      )
+      return
+    }
+    patch({ quartos: s.quartos.filter((x) => x.id !== qid) })
+    toast('Quarto excluído.')
   }
 
   const salvarProduto = () => {
@@ -677,6 +736,8 @@ export function useActions() {
     confirmarCancelamento,
     salvarRetiro,
     salvarQuarto,
+    removerQuarto,
+    ocupacaoQuarto,
     salvarProduto,
     salvarDespesa,
     salvarOferta,

@@ -44,6 +44,23 @@ export function servosServico(state: AppState): Inscrito[] {
   return ativos(state).filter((p) => p.tipo === 'Servo')
 }
 
+export function idadeDe(p: Inscrito): number {
+  if (typeof p.idade === 'number' && p.idade > 0) return p.idade
+  if (!p.dataNascimento) return -1
+  const nasc = new Date(p.dataNascimento)
+  if (Number.isNaN(nasc.getTime())) return -1
+  const hoje = new Date()
+  let anos = hoje.getFullYear() - nasc.getFullYear()
+  const m = hoje.getMonth() - nasc.getMonth()
+  if (m < 0 || (m === 0 && hoje.getDate() < nasc.getDate())) anos--
+  return anos >= 0 ? anos : -1
+}
+
+/** Ordena do mais velho para o mais novo; desempata pelo nome. */
+export function maisVelhoPrimeiro(a: Inscrito, b: Inscrito): number {
+  return idadeDe(b) - idadeDe(a) || a.nome.localeCompare(b.nome)
+}
+
 export function escalaVazia(): Escala {
   const cel = () => ({ louca: [], pratos: [], patio: [] })
   const dia = () => ({ cafe: cel(), almoco: cel(), jantar: cel() })

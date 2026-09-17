@@ -232,6 +232,7 @@ export interface ModalRetiro {
 }
 export interface ModalQuarto {
   type: 'quarto'
+  qid: string | null
   nome: string
   genero: Genero
   cap: string

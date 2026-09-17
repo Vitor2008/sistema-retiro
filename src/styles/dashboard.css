@@ -400,3 +400,26 @@
   font-size: 10px; font-weight: 700;
   padding: 3px 8px; border-radius: 5px; white-space: nowrap;
 }
+
+/* ---- Montagem de quartos: linha de membro do card ---- */
+.quarto-membro {
+  display: flex; align-items: center; gap: 7px;
+  font-size: 12px; padding: 4px 6px; border-radius: 6px;
+  border-left: 3px solid transparent;
+}
+.quarto-membro.is-lider {
+  background: var(--color-sage-soft);
+  border-left-color: var(--color-secondary);
+  font-weight: 600;
+}
+/* Servo que ainda não é líder: a estrela só aparece ao passar o mouse, para
+   não poluir o card — os líderes definidos ficam sempre visíveis. */
+.quarto-membro .star-toggle { opacity: 0; transition: opacity .12s var(--ease-default); }
+/* Encontristas não podem ser líderes: o espaço da estrela fica reservado só
+   para manter os nomes alinhados. */
+.quarto-membro .star-vazia { visibility: hidden; }
+.quarto-membro:hover .star-toggle,
+.quarto-membro:focus-within .star-toggle { opacity: 1; }
+@media (hover: none) {
+  .quarto-membro .star-toggle { opacity: 1; }
+}
