@@ -27,6 +27,7 @@ export function CheckinView() {
   const [ate, setAte] = useState('')
   // Filtro geral por prédio — afeta os cards E a lista.
   const [filtroPredio, setFiltroPredio] = useState('')
+  const [alfabetico, setAlfabetico] = useState(false)
 
   // Ao abrir o Check-in, sempre começa mostrando qualquer forma de pagamento.
   useEffect(() => {
@@ -51,7 +52,7 @@ export function CheckinView() {
   const inscritosBase = filtroPredio ? s.inscritos.filter((p) => (p.predio || '') === filtroPredio) : s.inscritos
   const atv = inscritosBase.filter((p) => p.statusInscricao !== 'cancelada')
 
-  const filtrados = inscritosBase.filter((p) => {
+  const filtrados0 = inscritosBase.filter((p) => {
     if (busca && !(p.nome.toLowerCase().includes(busca) || p.lider.toLowerCase().includes(busca))) return false
     if (s.ciTipo === 'servo' && p.tipo !== 'Servo') return false
     if (s.ciTipo === 'enc' && p.tipo !== 'Encontrista') return false
@@ -66,6 +67,10 @@ export function CheckinView() {
     if (s.ciPag === 'ok' && sp !== 'confirmado') return false
     return true
   })
+  // Sem ordenação alfabética a lista segue a ordem de inscrição.
+  const filtrados = alfabetico
+    ? filtrados0.slice().sort((a, b) => a.nome.localeCompare(b.nome))
+    : filtrados0
 
   const arrecadadoTot = inscritosBase.reduce((a, p) => a + pago(p), 0)
   const aReceberTot = atv.reduce((a, p) => a + Math.max(0, valorInscricao(s, p) - pago(p) - ofertado(p)), 0)
@@ -146,8 +151,17 @@ export function CheckinView() {
         </div>
       </div>
 
-      <div style={{ fontSize: 13, color: 'var(--fg-default)', marginBottom: 10 }}>
-        <b>{filtrados.length}</b> inscritos encontrados.
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', fontSize: 13, color: 'var(--fg-default)', marginBottom: 10 }}>
+        <span>
+          <b>{filtrados.length}</b> inscritos encontrados.
+        </span>
+        <button
+          className={'btn btn-sm ' + (alfabetico ? 'btn-secondary' : 'btn-outline')}
+          onClick={() => setAlfabetico((v) => !v)}
+          title={alfabetico ? 'Voltar à ordem de inscrição' : 'Ordenar os nomes de A a Z'}
+        >
+          {alfabetico ? '↓ A–Z ativo' : '↓ Ordenar A–Z'}
+        </button>
       </div>
 
       <div className="tbl-wrap" style={{ overflowX: 'auto' }}>

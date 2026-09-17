@@ -1,5 +1,7 @@
 import { useState } from 'react'
+import { appConfig } from '../config'
 import { initials, uid } from '../lib/format'
+import { cabecalho, esc, imprimirHtml } from '../lib/print'
 import { useRetiro } from '../store/RetiroContext'
 import { servosServico } from '../store/selectors'
 import type { Coordenacao } from '../types'
@@ -7,12 +9,14 @@ import type { Coordenacao } from '../types'
 /** Áreas que podem ser coordenadas. Lista fechada de propósito: evita que cada
  *  pessoa cadastre a mesma área com um nome diferente. */
 export const AREAS = [
-  'Quartos',
+  'Quartos - Homens',
+  'Quartos - Mulheres',
   'Cozinha',
   'Cantina',
   'Escalas de serviço',
   'Recepção',
   'Secretaria',
+  'Correios',
   'Louvor',
   'Intercessão',
   'Som e projeção',
@@ -96,6 +100,21 @@ export function CoordenacoesView() {
         (nomeServo(a.servoId) ?? '').localeCompare(nomeServo(b.servoId) ?? ''),
     )
 
+  const imprimir = () => {
+    let html = cabecalho('Coordenadores — ' + s.retiro.nome, appConfig.nomeIgrejaCompleto)
+    html += '<table><thead><tr><th style="width:24%">Área</th><th style="width:26%">Coordenador</th><th>Obrigações</th></tr></thead><tbody>'
+    ordenadas.forEach((c) => {
+      const nome = nomeServo(c.servoId)
+      html +=
+        '<tr><td><b>' + esc(c.area) + '</b></td><td>' +
+        (nome ? esc(nome) : '<i>a definir</i>') +
+        '</td><td style="white-space:pre-wrap">' + (c.obrigacoes ? esc(c.obrigacoes) : '<i>—</i>') +
+        '</td></tr>'
+    })
+    html += '</tbody></table>'
+    imprimirHtml('Coordenadores', html)
+  }
+
   return (
     <div data-screen-label="Coordenadores">
       <div className="crumbs">
@@ -109,6 +128,17 @@ export function CoordenacoesView() {
             Defina quem coordena cada área do evento e o que é esperado de cada um. A lista de nomes
             traz os servos inscritos.
           </div>
+        </div>
+        <div className="actions">
+          <button
+            className="btn btn-default btn-sm"
+            onClick={imprimir}
+            disabled={coordenacoes.length === 0}
+            title={coordenacoes.length ? undefined : 'Cadastre ao menos uma coordenação para imprimir.'}
+            style={coordenacoes.length ? undefined : { opacity: 0.5, cursor: 'not-allowed' }}
+          >
+            🖨 Gerar PDF
+          </button>
         </div>
       </div>
 

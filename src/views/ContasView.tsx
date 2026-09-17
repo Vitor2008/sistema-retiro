@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { AttachmentLink } from '../components/AttachmentLink'
 import { fmt, initials } from '../lib/format'
 import { useRetiro } from '../store/RetiroContext'
@@ -17,6 +18,8 @@ export function ContasView() {
   const { exportarRelatorio, setModal } = useActions()
   const { mid } = useViewport()
 
+  const [alfabetico, setAlfabetico] = useState(true)
+
   const s = state
   const narrow = s.narrow
   const atv = ativos(s)
@@ -34,9 +37,8 @@ export function ContasView() {
   const saldo = totalEntradas - despesasTot
   const ofertasN = s.inscritos.filter((p) => ofertado(p) > 0).length
 
-  const checkinRows = confirmados
-    .slice()
-    .sort((a, b) => a.nome.localeCompare(b.nome))
+  // Sem A–Z a lista segue a ordem de inscrição.
+  const checkinRows = (alfabetico ? confirmados.slice().sort((a, b) => a.nome.localeCompare(b.nome)) : confirmados)
     .map((p) => {
       const sp = statusPag(s, p)
       const rest = Math.max(0, valorInscricao(s, p) - pago(p) - ofertado(p))
@@ -203,7 +205,16 @@ export function ContasView() {
       <div className="tbl-wrap" style={{ marginTop: 4 }}>
         <div className="tbl-head-bar">
           <h3>Inscrições com check-in — pagamentos</h3>
-          <span style={{ fontSize: 12, color: 'var(--fg-muted)' }}>{checkinRows.length} confirmadas · pagas, parciais e pendentes</span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+            <span style={{ fontSize: 12, color: 'var(--fg-muted)' }}>{checkinRows.length} confirmadas · pagas, parciais e pendentes</span>
+            <button
+              className={'btn btn-sm ' + (alfabetico ? 'btn-secondary' : 'btn-outline')}
+              onClick={() => setAlfabetico((v) => !v)}
+              title={alfabetico ? 'Voltar à ordem de inscrição' : 'Ordenar os nomes de A a Z'}
+            >
+              {alfabetico ? '↓ A–Z ativo' : '↓ Ordenar A–Z'}
+            </button>
+          </div>
         </div>
         <div style={{ overflowX: 'auto' }}>
           <table className="tbl">

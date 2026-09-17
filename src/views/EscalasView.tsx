@@ -1,6 +1,6 @@
 import { DIAS_ESCALA, FRENTE_INFO, FRENTES_TODAS, TURNO_INFO } from '../escalaConfig'
 import { fmtData } from '../lib/format'
-import { esc, imprimirHtml } from '../lib/print'
+import { cabecalho, esc, imprimirHtml } from '../lib/print'
 import { useRetiro } from '../store/RetiroContext'
 import { useActions } from '../store/useActions'
 import { escalaVazia, porId, servosServico } from '../store/selectors'
@@ -80,8 +80,7 @@ export function EscalasView() {
   const imprimirEscala = () => {
     const nomeCurto = (id: string) =>
       byId[id] ? byId[id].nome.split(' ').slice(0, 2).join(' ') + ' (' + byId[id].genero + ')' : '—'
-    let html = `<h1>Escala de serviço — ${esc(s.retiro.nome)}</h1>`
-    html += `<div class="sub">${esc(appConfig.nomeIgrejaCompleto)}</div>`
+    let html = cabecalho('Escala de serviço — ' + s.retiro.nome, appConfig.nomeIgrejaCompleto)
     DIAS_ESCALA.forEach((dia) => {
       const data = dataDoDia(s.retiro.inicio, dia.offset)
       html += `<h2>${esc(dia.label)}${data ? ' — ' + esc(data) : ''}</h2>`

@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { initials } from '../lib/format'
-import { esc, imprimirHtml } from '../lib/print'
+import { esc, imprimirHtml, logoFolha } from '../lib/print'
 import { useRetiro } from '../store/RetiroContext'
 import { useActions } from '../store/useActions'
 import { ativos, porId } from '../store/selectors'
@@ -44,6 +44,7 @@ export function QuartosView() {
               .join('')
           : `<div class="membro" style="color:#999">— quarto vazio —</div>`
         return `<section class="folha">
+          ${logoFolha()}
           <div class="titulo">${esc(q.nome)}</div>
           <div class="subtitulo">${q.genero === 'M' ? 'Masculino' : 'Feminino'} · ${membros.length}/${q.cap}</div>
           ${linhas}
