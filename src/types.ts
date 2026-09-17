@@ -83,6 +83,15 @@ export interface Quarto {
   lideres: string[]
 }
 
+/** Coordenador de uma área de serviço do evento (quartos, cozinha, recepção...).
+ *  `servoId` é o id do inscrito responsável — null quando ainda não definido. */
+export interface Coordenacao {
+  id: string
+  area: string
+  servoId: string | null
+  obrigacoes: string
+}
+
 export interface Produto {
   id: string
   nome: string
@@ -376,6 +385,7 @@ export interface AppState {
   conducoes: string[]
   inscritos: Inscrito[]
   quartos: Quarto[]
+  coordenacoes: Coordenacao[]
   produtos: Produto[]
   vendas: Venda[]
   despesas: Despesa[]

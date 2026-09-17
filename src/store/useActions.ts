@@ -250,12 +250,19 @@ export function useActions() {
     toast(nAtrib + ' pessoa(s) alocada(s) na pré-definição.')
   }
 
+  /** Aloca a pessoa no quarto — também serve para mover de um quarto para outro
+   *  (nesse caso ela perde a liderança que tinha no quarto de origem). */
   const atribuirQuarto = (pid: string, qid: string) => {
     const s = state
     const byId = porId(s)
     const p = byId[pid]
     const q = s.quartos.find((x) => x.id === qid)
     if (!p || !q) return
+    // Soltar no próprio quarto não é erro, só não faz nada.
+    if (p.quarto === qid) {
+      patch({ dragId: null, selId: null })
+      return
+    }
     if (p.genero !== q.genero) {
       toast('Quartos não podem misturar gêneros.')
       return
@@ -267,14 +274,25 @@ export function useActions() {
       toast(q.nome + ' está lotado (' + q.cap + ' camas).')
       return
     }
+    const origem = p.quarto ? s.quartos.find((x) => x.id === p.quarto) : null
     patch({
       inscritos: s.inscritos.map((x) =>
         x.id === pid ? { ...x, quarto: qid } : x,
       ),
+      quartos: origem
+        ? s.quartos.map((x) =>
+            x.id === origem.id ? { ...x, lideres: x.lideres.filter((i) => i !== pid) } : x,
+          )
+        : s.quartos,
       dragId: null,
       selId: null,
     })
-    toast(p.nome.split(' ')[0] + ' alocado em ' + q.nome + '.')
+    const primeiro = p.nome.split(' ')[0]
+    toast(
+      origem
+        ? primeiro + ' movido de ' + origem.nome + ' para ' + q.nome + '.'
+        : primeiro + ' alocado em ' + q.nome + '.',
+    )
   }
 
   const salvarPagamento = () => {

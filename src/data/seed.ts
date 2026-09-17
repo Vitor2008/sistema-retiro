@@ -32,6 +32,7 @@ export function seedState(): AppState {
     conducoes: [],
     inscritos: [],
     quartos: [],
+    coordenacoes: [],
     produtos: [],
     vendas: [],
     despesas: [],

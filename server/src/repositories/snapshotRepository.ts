@@ -3,6 +3,7 @@ import { db } from '../db/client.js'
 import {
   categorias,
   conducoes,
+  coordenacoes,
   despesas,
   escalas,
   inscritos,
@@ -15,6 +16,7 @@ import {
   vendas,
 } from '../db/schema.js'
 import type { DomainSnapshot } from '../types.js'
+import { coordenacaoRepository } from './coordenacaoRepository.js'
 import { despesaRepository } from './despesaRepository.js'
 import { escalaRepository } from './escalaRepository.js'
 import { inscritoRepository } from './inscritoRepository.js'
@@ -46,6 +48,7 @@ export const snapshotRepository = {
       conducoesLista,
       inscritosLista,
       quartosLista,
+      coordenacoesLista,
       produtosLista,
       vendasLista,
       despesasLista,
@@ -57,6 +60,7 @@ export const snapshotRepository = {
       conducaoRepository.list(retiroId),
       inscritoRepository.list(retiroId),
       quartoRepository.list(retiroId),
+      coordenacaoRepository.list(retiroId),
       produtoRepository.list(retiroId),
       vendaRepository.list(retiroId),
       despesaRepository.list(retiroId),
@@ -73,6 +77,7 @@ export const snapshotRepository = {
       conducoes: conducoesLista,
       inscritos: inscritosLista,
       quartos: quartosLista,
+      coordenacoes: coordenacoesLista,
       produtos: produtosLista,
       vendas: vendasLista,
       despesas: despesasLista,
@@ -88,6 +93,7 @@ export const snapshotRepository = {
       // cascata (FK) ao apagar vendas/inscritos.
       await tx.delete(vendas).where(eq(vendas.retiroId, retiroId))
       await tx.delete(quartos).where(eq(quartos.retiroId, retiroId))
+      await tx.delete(coordenacoes).where(eq(coordenacoes.retiroId, retiroId))
       await tx.delete(produtos).where(eq(produtos.retiroId, retiroId))
       await tx.delete(despesas).where(eq(despesas.retiroId, retiroId))
       await tx.delete(lideres).where(eq(lideres.retiroId, retiroId))
@@ -175,12 +181,15 @@ export const snapshotRepository = {
       if (pags.length) await tx.insert(pagamentos).values(pags)
 
       const quartosU = dedupePorId(snap.quartos)
+      const coordenacoesU = dedupePorId(snap.coordenacoes ?? [])
       const produtosU = dedupePorId(snap.produtos)
       const despesasU = dedupePorId(snap.despesas)
       const vendasU = dedupePorId(snap.vendas)
 
       if (quartosU.length)
         await tx.insert(quartos).values(quartosU.map((q) => ({ ...q, retiroId })))
+      if (coordenacoesU.length)
+        await tx.insert(coordenacoes).values(coordenacoesU.map((c) => ({ ...c, retiroId })))
       if (produtosU.length)
         await tx.insert(produtos).values(
           produtosU.map((p) => ({

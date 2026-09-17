@@ -2,6 +2,7 @@ import type { ReactElement } from 'react'
 import { CantinaView } from './views/CantinaView'
 import { CheckinView } from './views/CheckinView'
 import { ContasView } from './views/ContasView'
+import { CoordenacoesView } from './views/CoordenacoesView'
 import { EscalasView } from './views/EscalasView'
 import { LojaView } from './views/LojaView'
 import { PrediosView } from './views/PrediosView'
@@ -103,6 +104,19 @@ export const NAV: NavItem[] = [
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
         <circle cx="12" cy="12" r="9"></circle>
         <polyline points="12 7 12 12 15 15"></polyline>
+      </svg>
+    ),
+  },
+  {
+    key: 'coordenadores',
+    path: '/coordenadores',
+    label: 'Coordenadores',
+    element: <CoordenacoesView />,
+    icon: (
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path>
+        <circle cx="9" cy="7" r="4"></circle>
+        <path d="M19 4.5l1.2 2.5 2.8.4-2 2 .5 2.8L19 10.9l-2.5 1.3.5-2.8-2-2 2.8-.4z"></path>
       </svg>
     ),
   },

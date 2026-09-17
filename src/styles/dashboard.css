@@ -393,6 +393,15 @@
   transform: translateX(-50%);
   border: 4px solid transparent; border-top-color: #1f2937;
 }
+/* Variante para quando não há espaço acima do elemento: abre para baixo. */
+.tt.tt-below {
+  transform: translate(-50%, 0);
+  margin-top: 6px;
+}
+.tt.tt-below::after {
+  bottom: auto; top: -4px;
+  border-top-color: transparent; border-bottom-color: #1f2937;
+}
 
 /* badge inside table */
 .chip-mini {
@@ -406,11 +415,20 @@
   display: flex; align-items: center; gap: 7px;
   font-size: 12px; padding: 4px 6px; border-radius: 6px;
   border-left: 3px solid transparent;
+  cursor: grab;
 }
+.quarto-membro:active { cursor: grabbing; }
 .quarto-membro.is-lider {
   background: var(--color-sage-soft);
   border-left-color: var(--color-secondary);
   font-weight: 600;
+}
+/* Pessoa escolhida para mover: basta tocar no quarto de destino. Vem depois de
+   .is-lider para que a seleção continue visível num líder. */
+.quarto-membro.is-sel {
+  background: var(--color-sage-soft);
+  border-left-color: var(--color-sage);
+  box-shadow: inset 0 0 0 1px var(--color-sage);
 }
 /* Servo que ainda não é líder: a estrela só aparece ao passar o mouse, para
    não poluir o card — os líderes definidos ficam sempre visíveis. */

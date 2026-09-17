@@ -160,6 +160,16 @@ export const quartos = pgTable('quartos', {
   lideres: jsonb('lideres').$type<string[]>().notNull().default([]),
 })
 
+/** Coordenadores por área de serviço do evento (quartos, cozinha, recepção...).
+ *  `servoId` aponta para o inscrito responsável; fica null se ele sair do evento. */
+export const coordenacoes = pgTable('coordenacoes', {
+  id: text('id').primaryKey(),
+  retiroId: text('retiro_id').references(() => retiros.id, { onDelete: 'cascade' }),
+  area: text('area').notNull(),
+  servoId: text('servo_id'),
+  obrigacoes: text('obrigacoes').notNull().default(''),
+})
+
 /** Catálogo global de produtos da cantina (reutilizável entre eventos). */
 export const cantinaCatalogo = pgTable('cantina_catalogo', {
   id: serial('id').primaryKey(),

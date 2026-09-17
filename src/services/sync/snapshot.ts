@@ -11,6 +11,7 @@ export interface DomainSnapshot {
   conducoes: AppState['conducoes']
   inscritos: AppState['inscritos']
   quartos: AppState['quartos']
+  coordenacoes: AppState['coordenacoes']
   produtos: AppState['produtos']
   vendas: AppState['vendas']
   despesas: AppState['despesas']
@@ -27,6 +28,7 @@ export function toSnapshot(state: AppState): DomainSnapshot {
     conducoes: state.conducoes,
     inscritos: state.inscritos,
     quartos: state.quartos,
+    coordenacoes: state.coordenacoes,
     produtos: state.produtos,
     vendas: state.vendas,
     despesas: state.despesas,

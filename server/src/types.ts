@@ -46,6 +46,14 @@ export interface Quarto {
   lideres: string[]
 }
 
+/** Coordenador de uma área de serviço do evento. */
+export interface Coordenacao {
+  id: string
+  area: string
+  servoId: string | null
+  obrigacoes: string
+}
+
 export interface Produto {
   id: string
   nome: string
@@ -193,6 +201,7 @@ export interface DomainSnapshot {
   conducoes: string[]
   inscritos: Inscrito[]
   quartos: Quarto[]
+  coordenacoes: Coordenacao[]
   produtos: Produto[]
   vendas: Venda[]
   despesas: Despesa[]

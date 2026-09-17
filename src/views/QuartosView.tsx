@@ -5,13 +5,14 @@ import { useRetiro } from '../store/RetiroContext'
 import { useActions } from '../store/useActions'
 import { ativos, porId } from '../store/selectors'
 import { useViewport } from '../hooks/useViewport'
-import type { Genero } from '../types'
+import type { Genero, Inscrito } from '../types'
 
 export function QuartosView() {
   const { state, patch, toast } = useRetiro()
   const { atribuirQuarto, preDefinirQuartos, removerQuarto, setModal } = useActions()
   const { mid } = useViewport()
   const [aExcluir, setAExcluir] = useState<string | null>(null)
+  const [tip, setTip] = useState<{ txt: string; x: number; y: number; below: boolean } | null>(null)
 
   const s = state
   const narrow = s.narrow
@@ -101,6 +102,31 @@ export function QuartosView() {
 
   const quartoExcluir = aExcluir ? s.quartos.find((q) => q.id === aExcluir) ?? null : null
 
+  // Líder de célula e prédio de origem só no hover do nome, para não poluir os
+  // cards. O tooltip é posicionado em coordenadas de tela porque a lista "Sem
+  // quarto" tem rolagem própria e cortaria um elemento posicionado dentro dela.
+  const infoPessoa = (p: Inscrito) => {
+    const partes: string[] = []
+    partes.push(p.lider ? 'Líder: ' + p.lider : 'Sem líder informado')
+    partes.push(p.predio ? 'Prédio: ' + p.predio : 'Sem prédio informado')
+    return partes.join('  ·  ')
+  }
+
+  const tipDe = (p: Inscrito) => ({
+    onMouseEnter: (e: React.MouseEvent<HTMLElement>) => {
+      const r = e.currentTarget.getBoundingClientRect()
+      const below = r.top < 56
+      const meia = 140 // metade da largura máxima do tooltip
+      setTip({
+        txt: infoPessoa(p),
+        x: Math.min(Math.max(r.left + r.width / 2, meia + 8), window.innerWidth - meia - 8),
+        y: below ? r.bottom : r.top,
+        below,
+      })
+    },
+    onMouseLeave: () => setTip(null),
+  })
+
   const removeMembro = (qid: string, mid2: string) => {
     patch({
       inscritos: s.inscritos.map((x) => (x.id === mid2 ? { ...x, quarto: null } : x)),
@@ -118,7 +144,7 @@ export function QuartosView() {
         <div>
           <h1>Montagem de quartos</h1>
           <div className="desc">
-            Arraste pessoas para os quartos, ou toque na pessoa e depois no quarto. ★ marca líderes de quarto (servos, ideal 2 por quarto).
+            Arraste pessoas para os quartos — inclusive de um quarto para outro — ou toque na pessoa e depois no quarto de destino. ★ marca líderes de quarto (servos, ideal 2 por quarto).
           </div>
         </div>
         <div className="actions">
@@ -173,9 +199,14 @@ export function QuartosView() {
                 draggable
                 onDragStart={(e) => {
                   e.dataTransfer.setData('text/plain', p.id)
+                  setTip(null)
                   patch({ dragId: p.id })
                 }}
-                onClick={() => patch({ selId: s.selId === p.id ? null : p.id })}
+                onDragEnd={() => patch({ dragId: null })}
+                onClick={() => {
+                  setTip(null)
+                  patch({ selId: s.selId === p.id ? null : p.id })
+                }}
                 style={{
                   display: 'flex',
                   alignItems: 'center',
@@ -191,7 +222,9 @@ export function QuartosView() {
                 <div style={{ width: 24, height: 24, borderRadius: '50%', background: 'var(--color-primary)', color: '#fff', fontWeight: 700, fontSize: 10, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                   {initials(p.nome)}
                 </div>
-                <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.nome}</span>
+                <span {...tipDe(p)} style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  {p.nome}
+                </span>
                 <span
                   className="chip-mini"
                   style={{
@@ -226,7 +259,7 @@ export function QuartosView() {
             const over = n > q.cap
             const cheio = n >= q.cap
             const dragP = s.dragId ? byId[s.dragId] : s.selId ? byId[s.selId] : null
-            const alvo = !!dragP && dragP.genero === q.genero && !cheio
+            const alvo = !!dragP && dragP.genero === q.genero && !cheio && dragP.quarto !== q.id
             const pct = Math.min(100, Math.round((n / q.cap) * 100))
             return (
               <div
@@ -290,7 +323,31 @@ export function QuartosView() {
                     const lider = q.lideres.includes(m.id)
                     const podeLider = m.tipo === 'Servo'
                     return (
-                      <div key={m.id} className={'quarto-membro' + (lider ? ' is-lider' : '')}>
+                      <div
+                        key={m.id}
+                        draggable
+                        onDragStart={(e) => {
+                          e.stopPropagation()
+                          e.dataTransfer.setData('text/plain', m.id)
+                          setTip(null)
+                          patch({ dragId: m.id })
+                        }}
+                        onDragEnd={() => patch({ dragId: null })}
+                        onClick={(e) => {
+                          // O clique não sobe para o card: aqui já se decide se
+                          // é o destino de quem está selecionado ou uma nova
+                          // seleção (tocar na pessoa e depois no quarto).
+                          e.stopPropagation()
+                          setTip(null)
+                          if (s.selId && s.selId !== m.id) atribuirQuarto(s.selId, q.id)
+                          else patch({ selId: s.selId === m.id ? null : m.id })
+                        }}
+                        className={
+                          'quarto-membro' +
+                          (lider ? ' is-lider' : '') +
+                          (s.selId === m.id ? ' is-sel' : '')
+                        }
+                      >
                         <button
                           className={lider ? undefined : podeLider ? 'star-toggle' : 'star-vazia'}
                           disabled={!lider && !podeLider}
@@ -305,7 +362,9 @@ export function QuartosView() {
                         >
                           ★
                         </button>
-                        <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{m.nome}</span>
+                        <span {...tipDe(m)} style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                          {m.nome}
+                        </span>
                         {lider ? (
                           <span className="chip-mini" style={{ background: 'var(--color-secondary-tint)', color: 'var(--color-secondary-hover)' }}>
                             Líder
@@ -336,6 +395,15 @@ export function QuartosView() {
           })}
         </div>
       </div>
+
+      {tip && (
+        <div
+          className={'tt' + (tip.below ? ' tt-below' : '')}
+          style={{ position: 'fixed', left: tip.x, top: tip.y, maxWidth: 280, whiteSpace: 'normal', textAlign: 'center' }}
+        >
+          {tip.txt}
+        </div>
+      )}
 
       {quartoExcluir && (
         <div
