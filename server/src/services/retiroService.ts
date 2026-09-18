@@ -1,9 +1,5 @@
 import { retiroRepository } from '../repositories/retiroRepository.js'
-import {
-  categoriaRepository,
-  conducaoRepository,
-  predioRepository,
-} from '../repositories/listaRepository.js'
+import { categoriaRepository, conducaoRepository } from '../repositories/listaRepository.js'
 import type { Retiro } from '../types.js'
 import type { TokenPayload } from './authService.js'
 
@@ -37,13 +33,11 @@ export const retiroService = {
   list: () => retiroRepository.list(),
   get: (id: string) => retiroRepository.get(id),
 
-  /** Retiros visíveis para o usuário. Adm vê todos. Para os demais: se o evento
-   *  tem lista de usuários permitidos, só quem está nela; senão, vale o prédio
-   *  do usuário. */
+  /** Retiros visíveis para o usuário: adm vê todos; os demais, só os eventos em
+   *  cuja equipe estão. Lista vazia num evento = somente administradores. */
   async listForUser(user: TokenPayload): Promise<Retiro[]> {
     if (user.acessos?.includes('adm')) return retiroRepository.list()
-    const predio = user.predioId ? await predioRepository.getById(user.predioId) : null
-    return retiroRepository.listVisiveis(predio?.nome ?? null, user.sub)
+    return retiroRepository.listByUsuario(user.sub)
   },
 
   /** O usuário pode abrir este evento? Reaproveita listForUser para não ter

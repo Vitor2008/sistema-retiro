@@ -57,24 +57,21 @@ export const retiroRepository = {
   },
 
   /** Eventos em que um prédio (nome) participa. */
-  /** Eventos visíveis a um usuário comum.
+  /** Eventos que um usuário comum pode organizar: só os que o listam na equipe.
    *
-   *  A lista de usuários permitidos, quando existe, SUBSTITUI a regra por
-   *  prédio: é o caso do evento que envolve todos os prédios mas cuja
-   *  organização é restrita a algumas pessoas. Sem lista, vale o prédio. */
-  async listVisiveis(predioNome: string | null, userId: number): Promise<Retiro[]> {
+   *  O prédio do usuário NÃO entra nesta conta. `prediosParticipantes` diz para
+   *  quem o evento é (campo "Qual prédio?" do formulário público), não quem o
+   *  administra — misturar as duas coisas fazia um evento de vários prédios
+   *  aparecer para todo mundo. */
+  async listByUsuario(userId: number): Promise<Retiro[]> {
     const rows = await db.select().from(retiros).orderBy(asc(retiros.criadoEm))
     return rows
-      .filter((r) => {
-        const permitidos = r.usuariosPermitidos ?? []
-        if (permitidos.length) return permitidos.includes(userId)
-        return predioNome ? (r.prediosParticipantes ?? []).includes(predioNome) : false
-      })
+      .filter((r) => (r.usuariosPermitidos ?? []).includes(userId))
       .map(toDTO)
       .reverse()
   },
 
-  /** Ids dos usuários com acesso liberado ao evento ([] = regra por prédio). */
+  /** Ids dos usuários que formam a equipe do evento ([] = somente adm). */
   async getAcesso(id: string): Promise<number[]> {
     const [row] = await db
       .select({ ids: retiros.usuariosPermitidos })

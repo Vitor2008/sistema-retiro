@@ -33,18 +33,19 @@ export function RetirosView() {
   const [excluindo, setExcluindo] = useState(false)
   const [erroExcluir, setErroExcluir] = useState('')
   // Catálogo global de prédios (gerido na tela Prédios), usado para marcar os participantes.
-  const [catalogoPredios, setCatalogoPredios] = useState<string[]>([])
+  const [catalogoPredios, setCatalogoPredios] = useState<{ id: number; nome: string }[]>([])
   useEffect(() => {
     apiClient
       .get<{ id: number; nome: string }[]>('/predios')
-      .then((lista) => setCatalogoPredios(lista.map((p) => p.nome)))
+      .then(setCatalogoPredios)
       .catch(() => setCatalogoPredios([]))
   }, [])
 
-  // Acesso por usuário: lista VAZIA = vale a regra por prédio; preenchida =
-  // só esses usuários enxergam o evento (evento que envolve todos os prédios
-  // mas tem equipe fechada). Fica fora do snapshot — é controle de acesso, só
-  // o administrador altera, por endpoint próprio.
+  // Equipe do evento: quem pode organizá-lo. Administradores sempre entram; os
+  // demais, só se estiverem nesta lista. Lista vazia = somente administradores.
+  // O prédio do usuário não influencia — `state.predios` só alimenta o campo
+  // "Qual prédio?" do formulário público. Fica fora do snapshot: é controle de
+  // acesso, e o snapshot é gravado pelo cliente de qualquer usuário.
   const [usuarios, setUsuarios] = useState<UsuarioResumo[]>([])
   const [permitidos, setPermitidos] = useState<number[]>([])
   const [acessoCarregado, setAcessoCarregado] = useState(false)
@@ -74,6 +75,17 @@ export function RetirosView() {
   const togglePermitido = (id: number) =>
     setPermitidos((atual) => (atual.includes(id) ? atual.filter((x) => x !== id) : [...atual, id]))
 
+  // Montar a equipe na mão em todo Encontro seria trabalhoso: este atalho marca
+  // os usuários cujo prédio está participando do evento.
+  const nomePredioDoUsuario = (u: UsuarioResumo) =>
+    catalogoPredios.find((p) => p.id === u.predioId)?.nome ?? null
+  const sugestaoPorPredio = usuariosSelecionaveis.filter((u) => {
+    const nome = nomePredioDoUsuario(u)
+    return !!nome && state.predios.includes(nome)
+  })
+  const sugerirPorPredio = () =>
+    setPermitidos(Array.from(new Set([...permitidos, ...sugestaoPorPredio.map((u) => u.id)])))
+
   const salvarAcesso = async () => {
     setSalvandoAcesso(true)
     setErroAcesso('')
@@ -85,8 +97,8 @@ export function RetirosView() {
       setPermitidos(r.usuariosPermitidos ?? [])
       toast(
         (r.usuariosPermitidos ?? []).length
-          ? 'Acesso restrito a ' + r.usuariosPermitidos.length + ' usuário(s).'
-          : 'Acesso liberado pelos prédios participantes.',
+          ? 'Equipe salva: ' + r.usuariosPermitidos.length + ' usuário(s) + administradores.'
+          : 'Equipe vazia: somente administradores acessam este evento.',
       )
     } catch (e) {
       setErroAcesso(e instanceof ApiError ? e.message : 'Erro ao salvar o acesso.')
@@ -150,7 +162,7 @@ export function RetirosView() {
     patch({ lideres: state.lideres.filter((_, i) => i !== idx) })
 
   // Prédios: catálogo global; o admin marca quais participam do evento.
-  const prediosOpcoes = Array.from(new Set([...catalogoPredios, ...state.predios]))
+  const prediosOpcoes = Array.from(new Set([...catalogoPredios.map((p) => p.nome), ...state.predios]))
   const togglePredio = (nome: string) =>
     patch({
       predios: state.predios.includes(nome)
@@ -403,6 +415,7 @@ export function RetirosView() {
         <div style={{ padding: '14px 16px' }}>
           <div style={{ fontSize: 12, color: 'var(--fg-muted)', marginBottom: 10 }}>
             Marque os prédios que participam deste evento (campo “Qual prédio?” do formulário).
+            Isto <b>não</b> define quem acessa o evento — quem acessa é a <b>equipe</b>, logo abaixo.
             O catálogo de prédios é gerenciado na tela <b>Prédios</b>.
           </div>
           {prediosOpcoes.length === 0 && (
@@ -430,24 +443,27 @@ export function RetirosView() {
       {isAdmin && (
         <div className="tbl-wrap" style={{ marginTop: 8 }}>
           <div className="tbl-head-bar">
-            <h3>Quem pode acessar este evento</h3>
+            <h3>Equipe deste evento</h3>
             <span
               className="chip-mini"
               style={
                 permitidos.length
-                  ? { background: 'var(--status-progress-bg)', color: 'var(--status-progress-fg)' }
-                  : { background: 'var(--color-primary-tint)', color: 'var(--color-primary)' }
+                  ? { background: 'var(--color-primary-tint)', color: 'var(--color-primary)' }
+                  : { background: 'var(--status-progress-bg)', color: 'var(--status-progress-fg)' }
               }
             >
-              {permitidos.length ? 'Restrito a ' + permitidos.length + ' usuário(s)' : 'Pelos prédios participantes'}
+              {permitidos.length
+                ? permitidos.length + ' usuário(s) + administradores'
+                : 'Somente administradores'}
             </span>
           </div>
           <div style={{ padding: '14px 16px' }}>
             <div style={{ fontSize: 12, color: 'var(--fg-muted)', marginBottom: 12 }}>
-              Sem ninguém marcado, o evento aparece para os usuários dos <b>prédios participantes</b> —
-              é o caso do Encontro. Marcando pessoas, a lista <b>substitui</b> a regra por prédio e só elas
-              enxergam o evento, mesmo que todos os prédios participem — é o caso da Conferência.
-              Administradores enxergam todos os eventos e não entram na lista.
+              Só quem está marcado aqui enxerga e organiza este evento. <b>Administradores sempre
+              acessam</b> e por isso não aparecem na lista — deixar a equipe vazia significa evento
+              só para administradores, que é o caso da Conferência. O prédio do usuário não
+              influencia: os <b>prédios participantes</b> logo acima servem apenas ao campo “Qual
+              prédio?” do formulário de inscrição.
             </div>
 
             {erroAcesso && (
@@ -480,13 +496,27 @@ export function RetirosView() {
                         />
                         <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                           {u.nome || u.username}
-                          <span style={{ color: 'var(--fg-muted)' }}> · @{u.username}</span>
+                          <span style={{ color: 'var(--fg-muted)' }}>
+                            {' · '}
+                            {nomePredioDoUsuario(u) ?? 'sem prédio'}
+                          </span>
                         </span>
                       </label>
                     )
                   })}
                 </div>
-                <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, marginTop: 14 }}>
+                <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, marginTop: 14, flexWrap: 'wrap' }}>
+                  {sugestaoPorPredio.length > 0 && (
+                    <button
+                      className="btn btn-outline btn-sm"
+                      disabled={salvandoAcesso}
+                      onClick={sugerirPorPredio}
+                      title="Marca os usuários cujo prédio participa deste evento"
+                      style={{ marginRight: 'auto' }}
+                    >
+                      + Marcar os {sugestaoPorPredio.length} dos prédios participantes
+                    </button>
+                  )}
                   {permitidos.length > 0 && (
                     <button className="btn btn-default btn-sm" disabled={salvandoAcesso} onClick={() => setPermitidos([])}>
                       Limpar seleção
