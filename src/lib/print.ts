@@ -49,7 +49,7 @@ const ESTILO = `
   th, td { border: 1px solid #ccc; padding: 6px 8px; font-size: 12px; text-align: left; }
   th { background: #f1f3f5; }
   /* Uma "folha" por página A4 (ex.: alocação de quarto colada na porta). */
-  .folha { min-height: 96vh; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; page-break-after: always; padding: 24px; }
+  .folha { min-height: 96vh; display: flex; flex-direction: column; justify-content: flex-start; align-items: center; text-align: center; page-break-after: always; padding: 24px; }
   .folha:last-child { page-break-after: auto; }
   .folha .titulo { font-size: 32px; font-weight: 800; margin: 0 0 6px; }
   .folha .subtitulo { font-size: 15px; color: #666; margin-bottom: 28px; }
