@@ -51,6 +51,10 @@ export const retiros = pgTable('retiros', {
   mostrarConducao: boolean('mostrar_conducao').notNull().default(true),
   /** Nomes dos prédios (do catálogo) que participam deste evento. */
   prediosParticipantes: jsonb('predios_participantes').$type<string[]>().notNull().default([]),
+  /** Restrição de acesso por usuário (ids). VAZIO = vale a regra por prédio.
+   *  PREENCHIDO = só estes usuários enxergam o evento, independente do prédio —
+   *  usado em eventos que envolvem todos os prédios mas têm equipe fechada. */
+  usuariosPermitidos: jsonb('usuarios_permitidos').$type<number[]>().notNull().default([]),
   aberto: boolean('aberto').notNull().default(true),
   /** Slug único para o link público de inscrição. */
   slug: text('slug').notNull().default(''),

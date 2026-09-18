@@ -13,10 +13,18 @@ import {
 } from '../store/selectors'
 import type { Lider } from '../types'
 
+interface UsuarioResumo {
+  id: number
+  username: string
+  nome: string
+  acessos: string[]
+  predioId: number | null
+}
+
 export function RetirosView() {
   const { state, patch, toast } = useRetiro()
   const { toggleLink, setModal } = useActions()
-  const { retiros, select, reload } = useRetiroSelection()
+  const { retiros, select, reload, isAdmin } = useRetiroSelection()
   const [novoLiderNome, setNovoLiderNome] = useState('')
   const [novoLiderPredio, setNovoLiderPredio] = useState('')
   const [novaConducao, setNovaConducao] = useState('')
@@ -32,6 +40,60 @@ export function RetirosView() {
       .then((lista) => setCatalogoPredios(lista.map((p) => p.nome)))
       .catch(() => setCatalogoPredios([]))
   }, [])
+
+  // Acesso por usuário: lista VAZIA = vale a regra por prédio; preenchida =
+  // só esses usuários enxergam o evento (evento que envolve todos os prédios
+  // mas tem equipe fechada). Fica fora do snapshot — é controle de acesso, só
+  // o administrador altera, por endpoint próprio.
+  const [usuarios, setUsuarios] = useState<UsuarioResumo[]>([])
+  const [permitidos, setPermitidos] = useState<number[]>([])
+  const [acessoCarregado, setAcessoCarregado] = useState(false)
+  const [salvandoAcesso, setSalvandoAcesso] = useState(false)
+  const [erroAcesso, setErroAcesso] = useState('')
+
+  const retiroId = state.retiro.id
+  useEffect(() => {
+    if (!isAdmin || !retiroId) return
+    setAcessoCarregado(false)
+    Promise.all([
+      apiClient.get<UsuarioResumo[]>('/usuarios'),
+      apiClient.get<{ usuariosPermitidos: number[] }>('/retiros/' + retiroId + '/acesso'),
+    ])
+      .then(([lista, acesso]) => {
+        setUsuarios(lista)
+        setPermitidos(acesso.usuariosPermitidos ?? [])
+        setErroAcesso('')
+      })
+      .catch((e) => setErroAcesso(e instanceof ApiError ? e.message : 'Erro ao carregar o acesso.'))
+      .finally(() => setAcessoCarregado(true))
+  }, [isAdmin, retiroId])
+
+  // Administradores enxergam todos os eventos por definição: não faz sentido
+  // marcá-los na lista.
+  const usuariosSelecionaveis = usuarios.filter((u) => !(u.acessos ?? []).includes('adm'))
+  const togglePermitido = (id: number) =>
+    setPermitidos((atual) => (atual.includes(id) ? atual.filter((x) => x !== id) : [...atual, id]))
+
+  const salvarAcesso = async () => {
+    setSalvandoAcesso(true)
+    setErroAcesso('')
+    try {
+      const r = await apiClient.put<{ usuariosPermitidos: number[] }>(
+        '/retiros/' + retiroId + '/acesso',
+        { usuariosPermitidos: permitidos },
+      )
+      setPermitidos(r.usuariosPermitidos ?? [])
+      toast(
+        (r.usuariosPermitidos ?? []).length
+          ? 'Acesso restrito a ' + r.usuariosPermitidos.length + ' usuário(s).'
+          : 'Acesso liberado pelos prédios participantes.',
+      )
+    } catch (e) {
+      setErroAcesso(e instanceof ApiError ? e.message : 'Erro ao salvar o acesso.')
+    } finally {
+      setSalvandoAcesso(false)
+    }
+  }
 
   const valor = state.retiro.valor
   const atv = ativos(state)
@@ -364,6 +426,81 @@ export function RetirosView() {
           </div>
         </div>
       </div>
+
+      {isAdmin && (
+        <div className="tbl-wrap" style={{ marginTop: 8 }}>
+          <div className="tbl-head-bar">
+            <h3>Quem pode acessar este evento</h3>
+            <span
+              className="chip-mini"
+              style={
+                permitidos.length
+                  ? { background: 'var(--status-progress-bg)', color: 'var(--status-progress-fg)' }
+                  : { background: 'var(--color-primary-tint)', color: 'var(--color-primary)' }
+              }
+            >
+              {permitidos.length ? 'Restrito a ' + permitidos.length + ' usuário(s)' : 'Pelos prédios participantes'}
+            </span>
+          </div>
+          <div style={{ padding: '14px 16px' }}>
+            <div style={{ fontSize: 12, color: 'var(--fg-muted)', marginBottom: 12 }}>
+              Sem ninguém marcado, o evento aparece para os usuários dos <b>prédios participantes</b> —
+              é o caso do Encontro. Marcando pessoas, a lista <b>substitui</b> a regra por prédio e só elas
+              enxergam o evento, mesmo que todos os prédios participem — é o caso da Conferência.
+              Administradores enxergam todos os eventos e não entram na lista.
+            </div>
+
+            {erroAcesso && (
+              <div style={{ fontSize: 13, color: 'var(--status-rejected-fg)', background: 'var(--status-rejected-bg)', borderRadius: 8, padding: '10px 14px', marginBottom: 12 }}>
+                {erroAcesso}
+              </div>
+            )}
+
+            {!acessoCarregado ? (
+              <div style={{ fontSize: 12, color: 'var(--fg-muted)' }}>Carregando usuários…</div>
+            ) : usuariosSelecionaveis.length === 0 ? (
+              <div style={{ fontSize: 12, color: 'var(--fg-muted)' }}>
+                Nenhum usuário não-administrador cadastrado — cadastre em <b>Usuários</b>.
+              </div>
+            ) : (
+              <>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))', gap: 8 }}>
+                  {usuariosSelecionaveis.map((u) => {
+                    const on = permitidos.includes(u.id)
+                    return (
+                      <label
+                        key={u.id}
+                        style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, cursor: 'pointer', padding: '7px 10px', borderRadius: 8, border: '1px solid ' + (on ? 'var(--color-primary)' : 'var(--border-default)'), background: on ? 'var(--color-primary-tint)' : '#fff' }}
+                      >
+                        <input
+                          type="checkbox"
+                          checked={on}
+                          onChange={() => togglePermitido(u.id)}
+                          style={{ width: 16, height: 16, accentColor: 'var(--color-primary)' }}
+                        />
+                        <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                          {u.nome || u.username}
+                          <span style={{ color: 'var(--fg-muted)' }}> · @{u.username}</span>
+                        </span>
+                      </label>
+                    )
+                  })}
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, marginTop: 14 }}>
+                  {permitidos.length > 0 && (
+                    <button className="btn btn-default btn-sm" disabled={salvandoAcesso} onClick={() => setPermitidos([])}>
+                      Limpar seleção
+                    </button>
+                  )}
+                  <button className="btn btn-primary btn-sm" disabled={salvandoAcesso} onClick={salvarAcesso}>
+                    {salvandoAcesso ? 'Salvando…' : 'Salvar acesso'}
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
+        </div>
+      )}
 
       <ListaChips
         titulo="Conduções"

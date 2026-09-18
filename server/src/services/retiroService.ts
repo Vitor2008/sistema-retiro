@@ -37,14 +37,33 @@ export const retiroService = {
   list: () => retiroRepository.list(),
   get: (id: string) => retiroRepository.get(id),
 
-  /** Retiros visíveis para o usuário: adm vê todos; demais só os eventos em que
-   *  o prédio dele participa. */
+  /** Retiros visíveis para o usuário. Adm vê todos. Para os demais: se o evento
+   *  tem lista de usuários permitidos, só quem está nela; senão, vale o prédio
+   *  do usuário. */
   async listForUser(user: TokenPayload): Promise<Retiro[]> {
     if (user.acessos?.includes('adm')) return retiroRepository.list()
-    if (!user.predioId) return []
-    const predio = await predioRepository.getById(user.predioId)
-    if (!predio) return []
-    return retiroRepository.listByPredio(predio.nome)
+    const predio = user.predioId ? await predioRepository.getById(user.predioId) : null
+    return retiroRepository.listVisiveis(predio?.nome ?? null, user.sub)
+  },
+
+  /** O usuário pode abrir este evento? Reaproveita listForUser para não ter
+   *  duas cópias da regra de visibilidade. */
+  async podeAcessar(user: TokenPayload, retiroId: string): Promise<boolean> {
+    if (user.acessos?.includes('adm')) return true
+    const visiveis = await this.listForUser(user)
+    return visiveis.some((r) => r.id === retiroId)
+  },
+
+  getAcesso: (id: string) => retiroRepository.getAcesso(id),
+
+  async setAcesso(id: string, ids: unknown): Promise<number[]> {
+    const atual = await retiroRepository.get(id)
+    if (!atual) throw new Error('Evento não encontrado.')
+    const limpos = Array.from(
+      new Set((Array.isArray(ids) ? ids : []).map((n) => Number(n)).filter((n) => Number.isInteger(n) && n > 0)),
+    )
+    await retiroRepository.setAcesso(id, limpos)
+    return limpos
   },
 
   /** Cria um retiro e semeia as listas padrão (categorias e conduções). */
