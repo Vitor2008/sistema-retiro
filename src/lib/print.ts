@@ -51,10 +51,10 @@ const ESTILO = `
   /* Uma "folha" por página A4 (ex.: alocação de quarto colada na porta). */
   .folha { min-height: 96vh; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; page-break-after: always; padding: 24px; }
   .folha:last-child { page-break-after: auto; }
-  .folha .titulo { font-size: 46px; font-weight: 800; margin: 0 0 6px; }
-  .folha .subtitulo { font-size: 18px; color: #666; margin-bottom: 40px; }
-  .folha .membro { font-size: 38px; font-weight: 700; line-height: 1.15; margin: 14px 0; }
-  .folha .papel { display: block; font-size: 15px; font-weight: 700; color: #888; text-transform: uppercase; letter-spacing: .12em; }
+  .folha .titulo { font-size: 32px; font-weight: 800; margin: 0 0 6px; }
+  .folha .subtitulo { font-size: 15px; color: #666; margin-bottom: 28px; }
+  .folha .membro { font-size: 24px; font-weight: 700; line-height: 1.15; margin: 10px 0; }
+  .folha .papel { display: block; font-size: 12px; font-weight: 700; color: #888; text-transform: uppercase; letter-spacing: .12em; }
   /* Cabeçalho com a logo da igreja. */
   .marca { display: flex; align-items: center; gap: 14px; border-bottom: 2px solid #e9ecef; padding-bottom: 12px; margin-bottom: 16px; }
   .marca img { height: 54px; width: auto; }
