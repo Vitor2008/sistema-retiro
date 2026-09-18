@@ -46,6 +46,14 @@ export interface Quarto {
   lideres: string[]
 }
 
+/** Área de coordenação do catálogo global (nome + obrigações institucionais). */
+export interface CoordenacaoArea {
+  id: number
+  nome: string
+  obrigacoes: string
+  ordem: number
+}
+
 /** Coordenador de uma área de serviço do evento. */
 export interface Coordenacao {
   id: string

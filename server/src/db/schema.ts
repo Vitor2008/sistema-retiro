@@ -160,6 +160,16 @@ export const quartos = pgTable('quartos', {
   lideres: jsonb('lideres').$type<string[]>().notNull().default([]),
 })
 
+/** Catálogo GLOBAL de áreas de coordenação e suas obrigações. Vale para todos
+ *  os eventos: o texto das obrigações é institucional, não muda por retiro. */
+export const coordenacaoAreas = pgTable('coordenacao_areas', {
+  id: serial('id').primaryKey(),
+  nome: text('nome').notNull(),
+  obrigacoes: text('obrigacoes').notNull().default(''),
+  /** Ordem de exibição — mantém a sequência definida pela coordenação. */
+  ordem: integer('ordem').notNull().default(0),
+})
+
 /** Coordenadores por área de serviço do evento (quartos, cozinha, recepção...).
  *  `servoId` aponta para o inscrito responsável; fica null se ele sair do evento. */
 export const coordenacoes = pgTable('coordenacoes', {

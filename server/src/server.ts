@@ -1,5 +1,6 @@
 import { createApp } from './app.js'
 import { runMigrations } from './db/migrator.js'
+import { seedAreasCoordenacao } from './db/seedAreas.js'
 import { env } from './env.js'
 
 async function start() {
@@ -12,6 +13,14 @@ async function start() {
   } catch (e) {
     console.error('[start] falha ao aplicar migrações:', e)
     process.exit(1)
+  }
+
+  // Catálogo de áreas de coordenação: semeado só na primeira subida (tabela
+  // vazia). Uma falha aqui não impede o servidor de atender.
+  try {
+    await seedAreasCoordenacao()
+  } catch (e) {
+    console.error('[start] falha ao semear áreas de coordenação:', e)
   }
 
   const app = createApp()

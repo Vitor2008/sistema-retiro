@@ -3,6 +3,7 @@ import { arquivoRoutes } from './arquivoRoutes.js'
 import { requireAuth } from './authMiddleware.js'
 import { authRoutes } from './authRoutes.js'
 import { cantinaCatalogoRoutes } from './cantinaCatalogoRoutes.js'
+import { coordenacaoAreaRoutes } from './coordenacaoAreaRoutes.js'
 import { inscritoRoutes } from './inscritoRoutes.js'
 import { lojaRoutes } from './lojaRoutes.js'
 import { predioRoutes } from './predioRoutes.js'
@@ -28,6 +29,9 @@ apiRouter.use('/retiros', retiroRoutes)
 
 // Prédios persistentes (participação em retiros, gestão)
 apiRouter.use('/predios', predioRoutes)
+
+// Catálogo global de áreas de coordenação (nome + obrigações)
+apiRouter.use('/coordenacao-areas', coordenacaoAreaRoutes)
 
 // Sincronização por retiro (/api/snapshot/:retiroId)
 apiRouter.use('/snapshot', snapshotRoutes)

@@ -3,7 +3,7 @@ import { initials } from '../lib/format'
 import { esc, imprimirHtml, logoFolha } from '../lib/print'
 import { useRetiro } from '../store/RetiroContext'
 import { useActions } from '../store/useActions'
-import { ativos, porId } from '../store/selectors'
+import { ativos, idadeDe, porId } from '../store/selectors'
 import { useViewport } from '../hooks/useViewport'
 import type { Genero, Inscrito } from '../types'
 
@@ -108,6 +108,8 @@ export function QuartosView() {
   // quarto" tem rolagem própria e cortaria um elemento posicionado dentro dela.
   const infoPessoa = (p: Inscrito) => {
     const partes: string[] = []
+    const anos = idadeDe(p)
+    partes.push(anos > 0 ? anos + ' anos' : 'Idade não informada')
     partes.push(p.lider ? 'Líder: ' + p.lider : 'Sem líder informado')
     partes.push(p.predio ? 'Prédio: ' + p.predio : 'Sem prédio informado')
     return partes.join('  ·  ')
