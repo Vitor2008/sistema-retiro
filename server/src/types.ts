@@ -24,6 +24,8 @@ export interface Inscrito {
    *  (preços por lote). Null em inscrições antigas → usa o valor atual do evento. */
   valor?: number | null
   vez: string
+  /** Para servos: vai dormir na chácara? ('Sim' | 'Não' | ''). */
+  dormeChacara?: string
   lider: string
   predio: string
   conducao: string
@@ -124,6 +126,11 @@ export interface Retiro {
   tipo: string
   descricao: string
   linkPagamento: string
+  /** Textos do template do retiro no formulário (vazio = texto padrão). */
+  formTitulo: string
+  formDescricao: string
+  formVersiculo: string
+  formVersiculoRef: string
   mostrarLider: boolean
   mostrarPredio: boolean
   mostrarConducao: boolean

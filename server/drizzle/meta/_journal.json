@@ -190,6 +190,20 @@
       "when": 1792681916749,
       "tag": "0026_certain_fixer",
       "breakpoints": true
+    },
+    {
+      "idx": 27,
+      "version": "7",
+      "when": 1792691770689,
+      "tag": "0027_sharp_outlaw_kid",
+      "breakpoints": true
+    },
+    {
+      "idx": 28,
+      "version": "7",
+      "when": 1792691973729,
+      "tag": "0028_polite_colleen_wing",
+      "breakpoints": true
     }
   ]
 }

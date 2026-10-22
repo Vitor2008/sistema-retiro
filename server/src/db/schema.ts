@@ -45,6 +45,12 @@ export const retiros = pgTable('retiros', {
   descricao: text('descricao').notNull().default(''),
   /** Link de pagamento (cartão/checkout) exibido no formulário público. */
   linkPagamento: text('link_pagamento').notNull().default(''),
+  /** Textos do template do retiro no formulário público (título, descrição e
+   *  versículo). Vazio = usa o texto padrão do app (config.formulario). */
+  formTitulo: text('form_titulo').notNull().default(''),
+  formDescricao: text('form_descricao').notNull().default(''),
+  formVersiculo: text('form_versiculo').notNull().default(''),
+  formVersiculoRef: text('form_versiculo_ref').notNull().default(''),
   /** Controla quais campos aparecem no formulário público de inscrição. */
   mostrarLider: boolean('mostrar_lider').notNull().default(true),
   mostrarPredio: boolean('mostrar_predio').notNull().default(true),
@@ -120,6 +126,8 @@ export const inscritos = pgTable('inscritos', {
   valor: doublePrecision('valor'),
   /** Para convidados: 1ª vez, 2ª vez ou + de 2. */
   vez: text('vez').notNull().default(''),
+  /** Para servos: se vai dormir na chácara ('Sim' | 'Não' | '' = não informado). */
+  dormeChacara: text('dorme_chacara').notNull().default(''),
   lider: text('lider').notNull().default(''),
   /** Prédio de origem e forma de condução até o retiro. */
   predio: text('predio').notNull().default(''),

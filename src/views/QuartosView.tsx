@@ -3,7 +3,7 @@ import { initials } from '../lib/format'
 import { esc, imprimirHtml, logoFolha } from '../lib/print'
 import { useRetiro } from '../store/RetiroContext'
 import { useActions } from '../store/useActions'
-import { ativos, idadeDe, porId } from '../store/selectors'
+import { ativos, idadeDe, naoDorme, porId } from '../store/selectors'
 import { useViewport } from '../hooks/useViewport'
 import type { Genero, Inscrito } from '../types'
 
@@ -19,8 +19,12 @@ export function QuartosView() {
   const atv = ativos(s)
   const byId = porId(s)
   const semQuartoAll = atv.filter((p) => !p.quarto)
+  // Quem não vai dormir na chácara aparece na lista (para alocação manual), mas
+  // não conta como pendente nem bloqueia a impressão.
+  const pendentes = semQuartoAll.filter((p) => !naoDorme(p))
+  const naoDormemSemQuarto = semQuartoAll.length - pendentes.length
   const temQuartos = s.quartos.length > 0
-  const todosAlocados = atv.length > 0 && semQuartoAll.length === 0
+  const todosAlocados = atv.length > 0 && pendentes.length === 0
 
   const imprimirAlocacao = () => {
     // Uma folha A4 por quarto (para colar na porta), nomes grandes e centralizados.
@@ -75,14 +79,14 @@ export function QuartosView() {
         fg: 'var(--status-progress-fg)',
       })
   })
-  if (semQuartoAll.length)
+  if (pendentes.length)
     alertas.push({
       msg:
-        semQuartoAll.length +
+        pendentes.length +
         ' pessoas ainda sem quarto (' +
-        semQuartoAll.filter((p) => p.genero === 'M').length +
+        pendentes.filter((p) => p.genero === 'M').length +
         ' homens, ' +
-        semQuartoAll.filter((p) => p.genero === 'F').length +
+        pendentes.filter((p) => p.genero === 'F').length +
         ' mulheres).',
       bg: 'var(--status-progress-bg)',
       fg: 'var(--status-progress-fg)',
@@ -115,13 +119,13 @@ export function QuartosView() {
     return partes.join('  ·  ')
   }
 
-  const tipDe = (p: Inscrito) => ({
+  const tipTexto = (txt: string) => ({
     onMouseEnter: (e: React.MouseEvent<HTMLElement>) => {
       const r = e.currentTarget.getBoundingClientRect()
       const below = r.top < 56
       const meia = 140 // metade da largura máxima do tooltip
       setTip({
-        txt: infoPessoa(p),
+        txt,
         x: Math.min(Math.max(r.left + r.width / 2, meia + 8), window.innerWidth - meia - 8),
         y: below ? r.bottom : r.top,
         below,
@@ -129,6 +133,19 @@ export function QuartosView() {
     },
     onMouseLeave: () => setTip(null),
   })
+  const tipDe = (p: Inscrito) => tipTexto(infoPessoa(p))
+
+  /** Ícone de informação para quem não vai dormir na chácara. */
+  const iconeNaoDorme = (p: Inscrito) =>
+    naoDorme(p) ? (
+      <span
+        {...tipTexto('Não irá dormir na chácara.')}
+        aria-label="Não irá dormir na chácara"
+        style={{ flexShrink: 0, width: 16, height: 16, borderRadius: '50%', background: 'var(--status-progress-bg)', color: 'var(--status-progress-fg)', fontSize: 11, fontWeight: 700, fontStyle: 'italic', fontFamily: 'Georgia, serif', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', cursor: 'help' }}
+      >
+        i
+      </span>
+    ) : null
 
   const removeMembro = (qid: string, mid2: string) => {
     patch({
@@ -188,7 +205,10 @@ export function QuartosView() {
           <div className="head" style={{ marginBottom: 10 }}>
             <div>
               <h3>Sem quarto</h3>
-              <div className="sub">{semQuartoAll.length} pessoas aguardando</div>
+              <div className="sub">
+                {pendentes.length} pessoas aguardando
+                {naoDormemSemQuarto > 0 && ' · ' + naoDormemSemQuarto + ' não dormem na chácara'}
+              </div>
             </div>
           </div>
           <div className="seg" style={{ marginBottom: 10 }}>
@@ -225,6 +245,7 @@ export function QuartosView() {
                 <div style={{ width: 24, height: 24, borderRadius: '50%', background: 'var(--color-primary)', color: '#fff', fontWeight: 700, fontSize: 10, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                   {initials(p.nome)}
                 </div>
+                {iconeNaoDorme(p)}
                 <span {...tipDe(p)} style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                   {p.nome}
                 </span>
@@ -365,6 +386,7 @@ export function QuartosView() {
                         >
                           ★
                         </button>
+                        {iconeNaoDorme(m)}
                         <span {...tipDe(m)} style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                           {m.nome}
                         </span>

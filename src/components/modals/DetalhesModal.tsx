@@ -145,6 +145,7 @@ export function DetalhesModal({ modal }: { modal: ModalDetalhes }) {
         <Campo label="Idade" valor={p.idade != null ? String(p.idade) : ''} />
         <Campo label="Data de nascimento" valor={dataBR(p.dataNascimento)} />
         {!avulso && p.tipo === 'Encontrista' && <Campo label="Participação" valor={p.vez} />}
+        {!avulso && p.tipo === 'Servo' && <Campo label="Vai dormir na chácara?" valor={p.dormeChacara} />}
         <Campo label="Quem convidou / líder" valor={p.lider} />
         <Campo label="Prédio" valor={p.predio} />
         <Campo label="Condução" valor={p.conducao} />
@@ -316,6 +317,7 @@ export function DetalhesModal({ modal }: { modal: ModalDetalhes }) {
                 valor: String(valorCheio(state, p)),
                 tipo: p.tipo,
                 vez: p.vez,
+                dormeChacara: p.dormeChacara ?? '',
                 lider: p.lider,
                 predio: p.predio,
                 conducao: p.conducao,

@@ -1,6 +1,6 @@
 import { useRetiro } from '../../store/RetiroContext'
 import { useActions } from '../../store/useActions'
-import type { FormaPagamento, Genero, ModalEditarInscricao, TipoInscricao, Vez } from '../../types'
+import type { DormeChacara, FormaPagamento, Genero, ModalEditarInscricao, TipoInscricao, Vez } from '../../types'
 
 const label: React.CSSProperties = { fontSize: 12, fontWeight: 600, display: 'block', marginBottom: 5 }
 
@@ -64,6 +64,16 @@ export function EditarInscricaoModal({ modal }: { modal: ModalEditarInscricao })
                 <option value="1ª Vez">1ª Vez</option>
                 <option value="2ª Vez">2ª Vez</option>
                 <option value="+ de 2">+ de 2</option>
+              </select>
+            </div>
+          )}
+          {modal.tipo === 'Servo' && (
+            <div>
+              <label style={label}>Vai dormir na chácara?</label>
+              <select className="input" value={modal.dormeChacara} onChange={(e) => set({ dormeChacara: e.target.value as DormeChacara })}>
+                <option value="">Selecione…</option>
+                <option value="Sim">Sim</option>
+                <option value="Não">Não</option>
               </select>
             </div>
           )}

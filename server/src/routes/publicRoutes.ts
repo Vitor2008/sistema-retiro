@@ -56,6 +56,10 @@ publicRoutes.get('/retiro/:slug', async (req, res, next) => {
       tipo: r.tipo,
       descricao: r.descricao,
       linkPagamento: r.linkPagamento,
+      formTitulo: r.formTitulo,
+      formDescricao: r.formDescricao,
+      formVersiculo: r.formVersiculo,
+      formVersiculoRef: r.formVersiculoRef,
       mostrarLider: r.mostrarLider,
       mostrarPredio: r.mostrarPredio,
       mostrarConducao: r.mostrarConducao,
@@ -227,6 +231,8 @@ publicRoutes.post('/inscricao/:slug', async (req, res, next) => {
     const dataNascimento = String(b.dataNascimento || '').trim()
     // "Vez" só se aplica a convidados (Encontrista).
     const vez = tipo === 'Encontrista' ? String(b.vez || '').trim() : ''
+    // "Vai dormir na chácara?" só se aplica a servos de retiro.
+    const dormeChacara = r.tipo !== 'avulso' && tipo === 'Servo' && (b.dormeChacara === 'Sim' || b.dormeChacara === 'Não') ? b.dormeChacara : ''
     const lider = String(b.lider || '').trim()
     const predio = String(b.predio || '').trim()
     const conducao = String(b.conducao || '').trim()
@@ -240,6 +246,7 @@ publicRoutes.post('/inscricao/:slug', async (req, res, next) => {
     if (!tel) return res.status(400).json({ error: 'Informe o telefone.' })
     if (!dataNascimento) return res.status(400).json({ error: 'Informe a data de nascimento.' })
     if (r.tipo !== 'avulso' && tipo === 'Encontrista' && !vez) return res.status(400).json({ error: 'Selecione se é a 1ª, 2ª ou mais vezes.' })
+    if (r.tipo !== 'avulso' && tipo === 'Servo' && !dormeChacara) return res.status(400).json({ error: 'Informe se vai dormir na chácara.' })
     // Campos condicionais: só são obrigatórios se o evento os exibe.
     if (r.mostrarLider && !lider) return res.status(400).json({ error: 'Informe quem convidou.' })
     if (r.mostrarPredio && !predio) return res.status(400).json({ error: 'Selecione o prédio.' })
@@ -255,6 +262,7 @@ publicRoutes.post('/inscricao/:slug', async (req, res, next) => {
       dataNascimento,
       valor: r.valor,
       vez,
+      dormeChacara,
       lider,
       predio,
       conducao,

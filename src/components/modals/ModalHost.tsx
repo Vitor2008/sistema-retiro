@@ -21,7 +21,7 @@ export function ModalHost() {
     m.type === 'detalhes'
       ? '760px'
       : m.type === 'retiro'
-        ? '680px'
+        ? '1180px'
         : m.type === 'pagamento' || m.type === 'editarInscricao' || m.type === 'editarPagamento'
           ? '560px'
           : '460px'

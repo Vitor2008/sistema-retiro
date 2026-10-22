@@ -11,9 +11,10 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useParams } from 'react-router-dom'
 import { Loader } from '../components/Loader'
+import { Cartao, ConteudoEvento, Hero } from '../components/FormularioTopo'
 import { appConfig } from '../config'
 import { fmt, fmtData } from '../lib/format'
-import type { FormaPagamento, Genero, TipoInscricao, Vez } from '../types'
+import type { DormeChacara, FormaPagamento, Genero, TipoInscricao, Vez } from '../types'
 
 const BASE_URL =
   (import.meta.env.VITE_API_URL as string | undefined) ?? 'http://localhost:3001/api'
@@ -29,6 +30,11 @@ interface RetiroPublico {
   tipo: string
   descricao: string
   linkPagamento: string
+  /** Textos do template (vazio = padrão do app). */
+  formTitulo?: string
+  formDescricao?: string
+  formVersiculo?: string
+  formVersiculoRef?: string
   mostrarLider: boolean
   mostrarPredio: boolean
   mostrarConducao: boolean
@@ -49,6 +55,7 @@ interface FormState {
   dataNascimento: string
   tipo: TipoInscricao
   vez: Vez
+  dormeChacara: DormeChacara
   lider: string
   predio: string
   conducao: string
@@ -63,6 +70,7 @@ const formInicial: FormState = {
   dataNascimento: '',
   tipo: 'Encontrista',
   vez: '',
+  dormeChacara: '',
   lider: '',
   predio: '',
   conducao: '',
@@ -143,6 +151,7 @@ export function InscricaoPublica() {
     if (!form.tel.trim()) e.tel = true
     if (!form.dataNascimento) e.dataNascimento = true
     if (retiro?.tipo !== 'avulso' && form.tipo === 'Encontrista' && !form.vez) e.vez = true
+    if (retiro?.tipo !== 'avulso' && form.tipo === 'Servo' && !form.dormeChacara) e.dormeChacara = true
     if (retiro?.mostrarLider !== false && !form.lider.trim()) e.lider = true
     if (retiro?.mostrarPredio !== false && !form.predio) e.predio = true
     if (retiro?.mostrarConducao !== false && !form.conducao) e.conducao = true
@@ -170,6 +179,7 @@ export function InscricaoPublica() {
           dataNascimento: form.dataNascimento,
           tipo: form.tipo,
           vez: form.tipo === 'Encontrista' ? form.vez : '',
+          dormeChacara: form.tipo === 'Servo' ? form.dormeChacara : '',
           lider: form.lider.trim(),
           predio: form.predio,
           conducao: form.conducao,
@@ -266,42 +276,7 @@ export function InscricaoPublica() {
         {fase === 'aberto' && retiro && (
           <>
             {/* ---- Conteúdo do evento ---- */}
-            <Cartao>
-              {retiro.tipo === 'avulso' ? (
-                // Evento avulso: descrição livre informada pelo organizador.
-                retiro.descricao ? (
-                  <p style={{ whiteSpace: 'pre-wrap' }}>{retiro.descricao}</p>
-                ) : null
-              ) : (
-                // Retiro: template fixo (subtítulo, descrição, o que inclui).
-                <>
-                  <h2 style={{ textAlign: 'center' }}>{cfg.subtitulo}</h2>
-                  <p style={{ marginTop: 12 }}>{cfg.descricao}</p>
-                  <div style={{ marginTop: 16, display: 'flex', flexDirection: 'column', gap: 6 }}>
-                    {cfg.incluidos.map((item) => (
-                      <div key={item} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 14 }}>
-                        <span style={{ color: 'var(--color-sage)' }}>✔️</span>
-                        {item}
-                      </div>
-                    ))}
-                  </div>
-                </>
-              )}
-
-              <div style={{ marginTop: 16, display: 'flex', flexDirection: 'column', gap: 6, fontSize: 14 }}>
-                <InfoLinha emoji="🗓" texto={<><b>Data:</b> {periodo}</>} />
-                {retiro.local && <InfoLinha emoji="📍" texto={<><b>Local:</b> {retiro.local}</>} />}
-                {retiro.tipo !== 'avulso' && retiro.saida && <InfoLinha emoji="🚌" texto={<><b>Saída:</b> {retiro.saida}</>} />}
-                <InfoLinha emoji="📌" texto={<><b>{retiro.vagasRestantes}</b> vagas restantes — garanta a sua!</>} />
-              </div>
-
-              {retiro.tipo !== 'avulso' && cfg.versiculo && (
-                <blockquote style={{ marginTop: 16, padding: '10px 14px', borderLeft: '3px solid var(--color-secondary)', background: 'var(--color-secondary-tint)', borderRadius: 6, fontStyle: 'italic', fontSize: 13 }}>
-                  “{cfg.versiculo}”
-                  <div style={{ marginTop: 4, fontStyle: 'normal', fontWeight: 600, color: 'var(--color-secondary-hover)' }}>— {cfg.versiculoRef}</div>
-                </blockquote>
-              )}
-            </Cartao>
+            <ConteudoEvento evento={retiro} periodo={periodo} vagasRestantes={retiro.vagasRestantes} />
 
             {/* ---- Formulário ---- */}
             <div style={{ marginTop: 16 }}>
@@ -357,6 +332,17 @@ export function InscricaoPublica() {
                     </Campo>
                   )}
 
+                  {retiro.tipo !== 'avulso' && form.tipo === 'Servo' && (
+                    <Campo label="Vai dormir na chácara? *" erro={erros.dormeChacara ? 'Selecione Sim ou Não.' : ''}>
+                      <select className="input" value={form.dormeChacara}
+                        onChange={(e) => setF({ dormeChacara: e.target.value as DormeChacara })}>
+                        <option value="">Selecione…</option>
+                        <option value="Sim">Sim</option>
+                        <option value="Não">Não</option>
+                      </select>
+                    </Campo>
+                  )}
+
                   {retiro.tipo !== 'avulso' && form.tipo === 'Encontrista' && (
                     <Campo label="Se convidado, é a sua… *" erro={erros.vez ? 'Selecione uma opção.' : ''}>
                       <div style={{ display: 'flex', gap: 8 }}>
@@ -367,26 +353,16 @@ export function InscricaoPublica() {
                     </Campo>
                   )}
 
-                  {retiro.mostrarLider && (
-                    <Campo label="Quem lhe convidou? (líder) *" erro={erros.lider ? 'Selecione quem convidou.' : ''}>
-                      <select className="input" value={form.lider} onChange={(e) => setF({ lider: e.target.value })}>
-                        <option value="">
-                          {!retiro.mostrarPredio || form.predio ? 'Selecione o líder…' : 'Escolha o prédio primeiro…'}
-                        </option>
-                        {retiro.lideres
-                          .filter((l) => !form.predio || l.predio === form.predio || !l.predio)
-                          .map((l) => (
-                            <option key={l.nome + '|' + l.predio} value={l.nome}>{l.nome}</option>
-                          ))}
-                      </select>
-                    </Campo>
-                  )}
-
                   {(retiro.mostrarPredio || retiro.mostrarConducao) && (
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 200px), 1fr))', gap: 12 }}>
                       {retiro.mostrarPredio && (
                         <Campo label="Qual prédio? *" erro={erros.predio ? 'Selecione o prédio.' : ''}>
-                          <select className="input" value={form.predio} onChange={(e) => setF({ predio: e.target.value })}>
+                          <select className="input" value={form.predio} onChange={(e) => {
+                            const predio = e.target.value
+                            // Líder já escolhido que não é deste prédio é descartado.
+                            const liderOk = retiro.lideres.some((l) => l.nome === form.lider && (!l.predio || l.predio === predio))
+                            setF({ predio, lider: liderOk ? form.lider : '' })
+                          }}>
                             <option value="">Selecione…</option>
                             {retiro.predios.map((p) => (
                               <option key={p} value={p}>{p}</option>
@@ -405,6 +381,21 @@ export function InscricaoPublica() {
                         </Campo>
                       )}
                     </div>
+                  )}
+
+                  {retiro.mostrarLider && (
+                    <Campo label="Quem lhe convidou? (líder) *" erro={erros.lider ? 'Selecione quem convidou.' : ''}>
+                      <select className="input" value={form.lider} onChange={(e) => setF({ lider: e.target.value })}>
+                        <option value="">
+                          {!retiro.mostrarPredio || form.predio ? 'Selecione o líder…' : 'Escolha o prédio primeiro…'}
+                        </option>
+                        {retiro.lideres
+                          .filter((l) => !form.predio || l.predio === form.predio || !l.predio)
+                          .map((l) => (
+                            <option key={l.nome + '|' + l.predio} value={l.nome}>{l.nome}</option>
+                          ))}
+                      </select>
+                    </Campo>
                   )}
                 </div>
               </Cartao>
@@ -509,63 +500,6 @@ export function InscricaoPublica() {
 }
 
 // ---- Subcomponentes ---------------------------------------------------------
-
-function Hero({ bannerUrl, igreja, nome }: { bannerUrl: string | null; igreja: string; nome?: string }) {
-  return (
-    <div
-      style={{
-        position: 'relative',
-        borderRadius: 16,
-        overflow: 'hidden',
-        marginBottom: 16,
-        minHeight: bannerUrl ? 200 : 150,
-        display: 'flex',
-        alignItems: 'flex-end',
-        background: bannerUrl
-          ? undefined
-          : 'linear-gradient(135deg, var(--color-primary) 0%, var(--color-secondary) 100%)',
-        boxShadow: 'var(--shadow-md)',
-      }}
-    >
-      {bannerUrl && (
-        <img
-          src={bannerUrl}
-          alt={nome || 'Banner do evento'}
-          style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }}
-        />
-      )}
-      <div
-        style={{
-          position: 'relative',
-          width: '100%',
-          padding: '20px 24px',
-          background: 'linear-gradient(to top, rgba(0,0,0,0.72) 0%, rgba(0,0,0,0.15) 70%, transparent 100%)',
-          color: '#fff',
-        }}
-      >
-        <div style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: '.1em', fontWeight: 700, opacity: 0.9 }}>
-          {igreja}
-        </div>
-        <div style={{ fontSize: 26, fontWeight: 700, lineHeight: 1.15, marginTop: 4 }}>
-          {nome || 'Inscrição'}
-        </div>
-      </div>
-    </div>
-  )
-}
-
-function Cartao({ children }: { children: React.ReactNode }) {
-  return <div className="card" style={{ padding: '28px 28px 24px' }}>{children}</div>
-}
-
-function InfoLinha({ emoji, texto }: { emoji: string; texto: React.ReactNode }) {
-  return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-      <span>{emoji}</span>
-      <span>{texto}</span>
-    </div>
-  )
-}
 
 function Campo({ label, erro, children }: { label: string; erro?: string; children: React.ReactNode }) {
   return (

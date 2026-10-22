@@ -1,0 +1,1 @@
+ALTER TABLE "inscritos" ADD COLUMN "dorme_chacara" text DEFAULT '' NOT NULL;

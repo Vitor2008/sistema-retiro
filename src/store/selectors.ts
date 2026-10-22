@@ -34,6 +34,12 @@ export function statusPag(state: AppState, p: Inscrito): StatusPagamento {
   return 'pendente'
 }
 
+/** Servo que respondeu que NÃO vai dormir na chácara: fica fora da
+ *  pré-definição de quartos (só entra em quarto se for alocado à mão). */
+export function naoDorme(p: Inscrito): boolean {
+  return p.dormeChacara === 'Não'
+}
+
 export function ativos(state: AppState): Inscrito[] {
   return state.inscritos.filter((p) => p.statusInscricao !== 'cancelada')
 }

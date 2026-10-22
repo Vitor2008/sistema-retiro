@@ -1,3 +1,4 @@
+import { appConfig } from '../config'
 import { useEffect, useState } from 'react'
 import { fmt, fmtData } from '../lib/format'
 import { apiClient, ApiError } from '../services/api/apiClient'
@@ -184,7 +185,13 @@ export function RetirosView() {
     patch({ conducoes: state.conducoes.filter((c) => c !== nome) })
 
   const abrirNovoRetiro = () =>
-    setModal({ type: 'retiro', novo: true, nome: '', inicio: '', fim: '', valor: '260', max: '45', local: '', saida: '', tipoEvento: 'retiro', descricao: '', linkPagamento: '', bannerId: null })
+    setModal({
+      type: 'retiro', novo: true, nome: '', inicio: '', fim: '', valor: '260', max: '45', local: '', saida: '', tipoEvento: 'retiro', descricao: '', linkPagamento: '', bannerId: null,
+      formTitulo: appConfig.formulario.subtitulo,
+      formDescricao: appConfig.formulario.descricao,
+      formVersiculo: appConfig.formulario.versiculo,
+      formVersiculoRef: appConfig.formulario.versiculoRef,
+    })
 
   const editarRetiro = () =>
     setModal({
@@ -201,6 +208,11 @@ export function RetirosView() {
       descricao: state.retiro.descricao,
       linkPagamento: state.retiro.linkPagamento,
       bannerId: state.retiro.bannerId,
+      // Mostra o texto em uso: o personalizado ou, se vazio, o padrão.
+      formTitulo: state.retiro.formTitulo || appConfig.formulario.subtitulo,
+      formDescricao: state.retiro.formDescricao || appConfig.formulario.descricao,
+      formVersiculo: state.retiro.formVersiculo || appConfig.formulario.versiculo,
+      formVersiculoRef: state.retiro.formVersiculoRef || appConfig.formulario.versiculoRef,
     })
 
   return (

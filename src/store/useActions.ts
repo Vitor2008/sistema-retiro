@@ -30,6 +30,7 @@ import { useRetiro } from './RetiroContext'
 import {
   escalaVazia,
   maisVelhoPrimeiro,
+  naoDorme,
   ofertado,
   pago,
   porId,
@@ -185,7 +186,8 @@ export function useActions() {
     const atrib: Record<string, string> = {}
 
     ;(['M', 'F'] as const).forEach((g) => {
-      const semQuarto = ativosList.filter((p) => p.genero === g && !p.quarto)
+      // Quem não vai dormir na chácara fica de fora (alocação só manual).
+      const semQuarto = ativosList.filter((p) => p.genero === g && !p.quarto && !naoDorme(p))
       const usados = new Set<string>()
       const grupos: Inscrito[][] = []
       // Um grupo por célula: o líder (se inscrito deste gênero) + seus liderados.
@@ -237,7 +239,7 @@ export function useActions() {
     const quartos = s.quartos.map((q) => {
       const membros = inscritos.filter((p) => p.statusInscricao !== 'cancelada' && p.quarto === q.id)
       const lideres = q.lideres.filter((id) => membros.some((m) => m.id === id)).slice(0, 2)
-      const servos = membros.filter((m) => m.tipo === 'Servo').sort(maisVelhoPrimeiro)
+      const servos = membros.filter((m) => m.tipo === 'Servo' && !naoDorme(m)).sort(maisVelhoPrimeiro)
       servos
         .filter((m) => nomesLideres.has(m.nome))
         .concat(servos.filter((m) => !nomesLideres.has(m.nome)))
@@ -468,6 +470,10 @@ export function useActions() {
         descricao: m.descricao,
         linkPagamento: m.linkPagamento,
         bannerId: m.bannerId,
+        formTitulo: m.formTitulo.trim(),
+        formDescricao: m.formDescricao.trim(),
+        formVersiculo: m.formVersiculo.trim(),
+        formVersiculoRef: m.formVersiculoRef.trim(),
       },
       inscritos: inscritosCongelados,
       modal: null,
@@ -645,6 +651,7 @@ export function useActions() {
               valor: m.valor.trim() !== '' && Number(m.valor) >= 0 ? Number(m.valor) : x.valor ?? null,
               tipo: m.tipo,
               vez: m.tipo === 'Encontrista' ? m.vez : '',
+              dormeChacara: m.tipo === 'Servo' ? m.dormeChacara : '',
               lider: m.lider,
               predio: m.predio,
               conducao: m.conducao,

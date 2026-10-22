@@ -43,6 +43,9 @@ export interface Pagamento {
   dataPrevista?: string | null
 }
 
+/** Resposta do servo à pergunta "Vai dormir na chácara?". */
+export type DormeChacara = '' | 'Sim' | 'Não'
+
 /** Quantas vezes o convidado já participou (campo do formulário público). */
 export type Vez = '' | '1ª Vez' | '2ª Vez' | '+ de 2'
 
@@ -58,6 +61,8 @@ export interface Inscrito {
   valor?: number | null
   /** Para convidados: 1ª, 2ª ou + de 2 vezes. */
   vez: Vez
+  /** Para servos: vai dormir na chácara? ('' = não informado). */
+  dormeChacara?: DormeChacara
   lider: string
   /** Prédio de origem e condução informados na inscrição. */
   predio: string
@@ -167,6 +172,12 @@ export interface Retiro {
   descricao: string
   /** Link de pagamento (cartão/checkout) exibido no formulário público. */
   linkPagamento: string
+  /** Textos do template do retiro no formulário público (título, descrição e
+   *  versículo). Vazio = usa o texto padrão (appConfig.formulario). */
+  formTitulo?: string
+  formDescricao?: string
+  formVersiculo?: string
+  formVersiculoRef?: string
   /** Controlam quais campos aparecem no formulário público de inscrição. */
   mostrarLider: boolean
   mostrarPredio: boolean
@@ -244,6 +255,10 @@ export interface ModalRetiro {
   descricao: string
   linkPagamento: string
   bannerId: string | null
+  formTitulo: string
+  formDescricao: string
+  formVersiculo: string
+  formVersiculoRef: string
 }
 export interface ModalQuarto {
   type: 'quarto'
@@ -285,6 +300,7 @@ export interface ModalEditarInscricao {
   valor: string
   tipo: TipoInscricao
   vez: Vez
+  dormeChacara: DormeChacara
   lider: string
   predio: string
   conducao: string
