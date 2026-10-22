@@ -301,6 +301,8 @@ export interface ModalFecharConta {
   type: 'fecharConta'
   vid: string
   pagamentos: PagamentoLinha[]
+  /** Edição da forma de pagamento de uma venda já paga (só ADM). */
+  editar?: boolean
 }
 
 export interface ModalEditarConta {

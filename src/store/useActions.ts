@@ -684,9 +684,20 @@ export function useActions() {
       return
     }
     const troco = Math.max(0, soma - total)
+    // Venda avulsa paga numa forma só guarda apenas o nome da forma (ex.: "Pix").
     const resumo =
-      linhas.map((l) => l.forma + ' ' + fmt(l.valor)).join(' + ') +
-      (troco > 0.005 ? ' (troco ' + fmt(troco) + ')' : '')
+      m.editar && v.tipo === 'avulsa' && linhas.length === 1 && troco <= 0.005
+        ? linhas[0].forma
+        : linhas.map((l) => l.forma + ' ' + fmt(l.valor)).join(' + ') +
+          (troco > 0.005 ? ' (troco ' + fmt(troco) + ')' : '')
+    if (m.editar) {
+      patch({
+        vendas: s.vendas.map((x) => (x.id === m.vid ? { ...x, forma: resumo } : x)),
+        modal: null,
+      })
+      toast('Forma de pagamento atualizada.')
+      return
+    }
     patch({
       vendas: s.vendas.map((x) =>
         x.id === m.vid ? { ...x, status: 'pago', forma: resumo } : x,

@@ -26,7 +26,6 @@ export function ContasView() {
   const confirmados = atv.filter((p) => p.statusInscricao === 'confirmada')
 
   const arrecadadoTot = s.inscritos.reduce((a, p) => a + pago(p), 0)
-  const aReceberTot = atv.reduce((a, p) => a + Math.max(0, valorInscricao(s, p) - pago(p) - ofertado(p)), 0)
   const ofertaUtilizada = s.inscritos.reduce((a, p) => a + ofertado(p), 0)
   const ofertaRecebida = s.retiro.oferta || 0
   const ofertaDisponivel = ofertaRecebida - ofertaUtilizada
@@ -93,16 +92,11 @@ export function ContasView() {
       </div>
 
       {/* KPIs */}
-      <div className="kpi-grid" style={{ gridTemplateColumns: narrow ? '1fr 1fr' : 'repeat(5, 1fr)' }}>
+      <div className="kpi-grid" style={{ gridTemplateColumns: narrow ? '1fr 1fr' : 'repeat(4, 1fr)' }}>
         <div className="kpi">
           <div className="topline">Total arrecadado</div>
           <div className="v" style={{ fontSize: 22, color: 'var(--color-primary)' }}>{fmt(arrecadadoTot)}</div>
           <div className="meta">{confirmados.length} inscrições confirmadas</div>
-        </div>
-        <div className="kpi">
-          <div className="topline">A arrecadar</div>
-          <div className="v" style={{ fontSize: 22, color: 'var(--status-progress-fg)' }}>{fmt(aReceberTot)}</div>
-          <div className="meta">pendentes + parciais</div>
         </div>
         <div className="kpi">
           <div className="topline">Oferta recebida</div>

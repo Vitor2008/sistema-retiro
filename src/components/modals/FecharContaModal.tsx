@@ -30,9 +30,12 @@ export function FecharContaModal({ modal }: { modal: ModalFecharConta }) {
 
   return (
     <div style={{ padding: '22px 24px' }}>
-      <h3 style={{ marginBottom: 4 }}>Receber conta</h3>
+      <h3 style={{ marginBottom: 4 }}>{modal.editar ? 'Editar forma de pagamento' : 'Receber conta'}</h3>
       <p style={{ fontSize: 13, marginBottom: 14 }}>
-        {venda?.cliente ?? ''} — total de <b>{fmt(total)}</b>.
+        {venda?.cliente || 'Venda avulsa'} — total de <b>{fmt(total)}</b>.
+        {modal.editar && venda?.forma && (
+          <span style={{ display: 'block', fontSize: 12, color: 'var(--fg-muted)', marginTop: 2 }}>Atual: {venda.forma}</span>
+        )}
       </p>
 
       <label style={{ fontSize: 12, fontWeight: 600, display: 'block', marginBottom: 6 }}>
@@ -113,7 +116,7 @@ export function FecharContaModal({ modal }: { modal: ModalFecharConta }) {
       <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
         <button className="btn btn-default" onClick={closeModal}>Fechar</button>
         <button className="btn btn-primary" onClick={confirmarFecharConta} disabled={!valido}>
-          Confirmar recebimento
+          {modal.editar ? 'Salvar forma de pagamento' : 'Confirmar recebimento'}
         </button>
       </div>
     </div>

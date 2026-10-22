@@ -3,6 +3,7 @@ import { isAdmin } from '../acessos'
 import { fmt, initials, uid } from '../lib/format'
 import { apiClient, ApiError } from '../services/api/apiClient'
 import { exportVendasCantina } from '../services/cantinaReport'
+import { formasDaVenda, totalVenda } from '../lib/vendaFormas'
 import { useAuth } from '../store/AuthContext'
 import { useRetiro } from '../store/RetiroContext'
 import { useActions } from '../store/useActions'
@@ -535,13 +536,25 @@ export function CantinaView() {
 }
 
 function ResumoVendas() {
-  const { state, patch, toast } = useRetiro()
+  const { state, patch, toast, setModal } = useRetiro()
   const { user } = useAuth()
   const admin = isAdmin(user?.acessos)
   const s = state
   const narrow = s.narrow
   const contasPend = s.vendas.filter((v) => v.status === 'pendente')
-  const avulsas = s.vendas.filter((v) => v.tipo === 'avulsa')
+  // Vendas já pagas: avulsas e contas recebidas (com comprador).
+  const pagas = s.vendas.filter((v) => v.status === 'pago')
+  const editarForma = (v: Venda) =>
+    setModal({
+      type: 'fecharConta',
+      vid: v.id,
+      editar: true,
+      pagamentos: formasDaVenda(v).map((l) => ({
+        // Forma desconhecida (ex.: venda antiga sem forma gravada) começa como Dinheiro.
+        forma: (['Dinheiro', 'Pix', 'Débito', 'Crédito'].includes(l.forma) ? l.forma : 'Dinheiro') as FormaPagamento,
+        valor: String(l.valor),
+      })),
+    })
   const [aExcluirVenda, setAExcluirVenda] = useState<Venda | null>(null)
 
   const confirmarExcluirVenda = () => {
@@ -696,16 +709,18 @@ function ResumoVendas() {
         </div>
       </div>
 
-      {/* Vendas avulsas — com exclusão (somente ADM) */}
+      {/* Vendas pagas — edição da forma de pagamento e exclusão de avulsas (somente ADM) */}
       <div className="tbl-wrap" style={{ marginTop: 14 }}>
         <div className="tbl-head-bar">
-          <h3>Vendas avulsas</h3>
-          <span style={{ fontSize: 12, color: 'var(--fg-muted)' }}>{avulsas.length} venda(s)</span>
+          <h3>Vendas pagas</h3>
+          <span style={{ fontSize: 12, color: 'var(--fg-muted)' }}>{pagas.length} venda(s)</span>
         </div>
         <div style={{ overflowX: 'auto' }}>
           <table className="tbl">
             <thead>
               <tr>
+                <th>Data</th>
+                <th>Comprador</th>
                 <th>Itens</th>
                 <th>Forma</th>
                 <th style={{ textAlign: 'right' }}>Total</th>
@@ -713,22 +728,29 @@ function ResumoVendas() {
               </tr>
             </thead>
             <tbody>
-              {avulsas.map((v) => (
+              {pagas.map((v) => (
                 <tr key={v.id}>
+                  <td style={{ fontSize: 12, whiteSpace: 'nowrap' }}>{v.data}</td>
+                  <td style={{ fontSize: 12 }}>{v.tipo === 'anotada' ? v.cliente : <span style={{ color: 'var(--fg-muted)' }}>Avulsa</span>}</td>
                   <td style={{ fontSize: 12 }}>{resumoItensVenda(v)}</td>
                   <td style={{ fontSize: 12 }}>{v.forma}</td>
-                  <td style={{ textAlign: 'right', fontWeight: 600 }}>{fmt(v.itens.reduce((a, i) => a + i.valor * i.qtd, 0))}</td>
+                  <td style={{ textAlign: 'right', fontWeight: 600 }}>{fmt(totalVenda(v))}</td>
                   {admin && (
                     <td style={{ textAlign: 'right', whiteSpace: 'nowrap' }}>
-                      <button className="btn btn-default btn-xs" style={{ color: 'var(--status-rejected-fg)' }} onClick={() => setAExcluirVenda(v)}>Excluir</button>
+                      <div style={{ display: 'inline-flex', gap: 6 }}>
+                        <button className="btn btn-outline btn-xs" onClick={() => editarForma(v)}>Editar pagamento</button>
+                        {v.tipo === 'avulsa' && (
+                          <button className="btn btn-default btn-xs" style={{ color: 'var(--status-rejected-fg)' }} onClick={() => setAExcluirVenda(v)}>Excluir</button>
+                        )}
+                      </div>
                     </td>
                   )}
                 </tr>
               ))}
-              {avulsas.length === 0 && (
+              {pagas.length === 0 && (
                 <tr>
-                  <td colSpan={admin ? 4 : 3} style={{ textAlign: 'center', color: 'var(--fg-muted)', fontSize: 13, padding: 24 }}>
-                    Nenhuma venda avulsa registrada.
+                  <td colSpan={admin ? 6 : 5} style={{ textAlign: 'center', color: 'var(--fg-muted)', fontSize: 13, padding: 24 }}>
+                    Nenhuma venda paga registrada.
                   </td>
                 </tr>
               )}
