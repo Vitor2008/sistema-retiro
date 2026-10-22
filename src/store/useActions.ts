@@ -120,7 +120,7 @@ export function useActions() {
           cliente: s.vCliente.trim(),
           forma: '',
           status: 'pendente',
-          data: 'hoje',
+          data: stampAgora(),
           itens,
         })
         toast('Conta aberta para ' + s.vCliente.trim() + '.')
@@ -132,7 +132,7 @@ export function useActions() {
         cliente: '',
         forma: s.vendaForma,
         status: 'pago',
-        data: 'hoje',
+        data: stampAgora(),
         itens,
       })
       toast(
@@ -311,9 +311,9 @@ export function useActions() {
       toast('Informe um valor pago, marque como oferta ou defina a data prevista para pagar.')
       return
     }
-    // Ao registrar um pagamento em dinheiro, o comprovante é obrigatório (novo
-    // anexo ou já existente na inscrição).
-    if (vp > 0 && !m.comprovante && !mp.comprovanteId) {
+    // Ao registrar um pagamento (exceto em dinheiro), o comprovante é
+    // obrigatório (novo anexo ou já existente na inscrição).
+    if (vp > 0 && m.forma !== 'Dinheiro' && !m.comprovante && !mp.comprovanteId) {
       toast('Anexe o comprovante do pagamento.')
       return
     }
@@ -406,6 +406,35 @@ export function useActions() {
     } catch (e) {
       toast(e instanceof ApiError ? e.message : 'Não foi possível excluir a inscrição.')
     }
+  }
+
+  /** Define/remove a cortesia de uma inscrição (só ADM, na UI do check-in).
+   *  Ao conceder, uma inscrição pendente é confirmada — não há nada a pagar. */
+  const definirCortesia = (pid: string, cortesia: boolean, motivo: string) => {
+    const s = state
+    patch({
+      inscritos: s.inscritos.map((x) =>
+        x.id === pid
+          ? {
+              ...x,
+              cortesia,
+              cortesiaMotivo: cortesia ? motivo.trim() : '',
+              statusInscricao: cortesia && x.statusInscricao === 'pendente' ? 'confirmada' : x.statusInscricao,
+            }
+          : x,
+      ),
+    })
+    toast(cortesia ? 'Inscrição marcada como cortesia.' : 'Cortesia removida.')
+  }
+
+  /** Alterna a presença (presente/ausente). Não mexe no status da inscrição. */
+  const alternarPresenca = (pid: string) => {
+    const s = state
+    const p = s.inscritos.find((x) => x.id === pid)
+    if (!p) return
+    const presente = !p.presente
+    patch({ inscritos: s.inscritos.map((x) => (x.id === pid ? { ...x, presente } : x)) })
+    toast(p.nome.split(' ')[0] + (presente ? ' marcado(a) como presente.' : ' marcado(a) como ausente.'))
   }
 
   /** Edição do retiro atual (a criação de novos vai por API — RetiroSelection).
@@ -551,10 +580,6 @@ export function useActions() {
     if (!m || m.type !== 'despesa') return
     if (!m.descricao || !(Number(m.valor) > 0)) {
       toast('Informe descrição e valor.')
-      return
-    }
-    if (!m.comprovante) {
-      toast('Anexe o comprovante da compra.')
       return
     }
     patch({
@@ -764,6 +789,8 @@ export function useActions() {
     salvarEdicaoPagamento,
     reativarInscricao,
     excluirInscricao,
+    definirCortesia,
+    alternarPresenca,
     confirmarFecharConta,
     salvarEdicaoConta,
     toggleLink,

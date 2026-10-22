@@ -15,8 +15,15 @@ export function ofertado(p: Inscrito): number {
 }
 
 /** Valor da inscrição da pessoa: o preço travado no cadastro (preços por lote)
- *  ou, se a inscrição não tiver um (legada), o valor atual do evento. */
+ *  ou, se a inscrição não tiver um (legada), o valor atual do evento. Cortesia
+ *  vale R$ 0 (o preço travado é preservado caso a cortesia seja removida). */
 export function valorInscricao(state: AppState, p: Inscrito): number {
+  if (p.cortesia) return 0
+  return valorCheio(state, p)
+}
+
+/** Valor da inscrição ignorando a cortesia (base para edição). */
+export function valorCheio(state: AppState, p: Inscrito): number {
   return p.valor != null ? p.valor : state.retiro.valor
 }
 

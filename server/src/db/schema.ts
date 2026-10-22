@@ -136,6 +136,15 @@ export const inscritos = pgTable('inscritos', {
   quarto: text('quarto'),
   /** Data/hora (ISO) em que a inscrição foi feita. */
   criadoEm: text('criado_em').notNull().default(''),
+  /** Cortesia (ex.: pastores, preletores): definida pelo ADM no check-in;
+   *  a inscrição passa a valer R$ 0. */
+  cortesia: boolean('cortesia').notNull().default(false),
+  cortesiaMotivo: text('cortesia_motivo').notNull().default(''),
+  /** Presença no evento (check-in): independente do status da inscrição. */
+  presente: boolean('presente').notNull().default(false),
+  /** Exclusão lógica (ISO). Inscrição excluída não volta a aparecer, mesmo que
+   *  um aparelho desatualizado a reenvie no snapshot. */
+  excluidoEm: text('excluido_em'),
 })
 
 /** Lançamentos de pagamento (filhos de inscritos). */

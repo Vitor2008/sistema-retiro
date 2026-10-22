@@ -6,7 +6,7 @@ import { fmt, initials } from '../../lib/format'
 import { useAuth } from '../../store/AuthContext'
 import { useRetiro } from '../../store/RetiroContext'
 import { useActions } from '../../store/useActions'
-import { ofertado, pago, porId, statusPag, valorInscricao } from '../../store/selectors'
+import { ofertado, pago, porId, statusPag, valorCheio, valorInscricao } from '../../store/selectors'
 import type { ModalDetalhes } from '../../types'
 
 /** 'YYYY-MM-DD' → 'DD/MM/AAAA'. */
@@ -94,10 +94,11 @@ function Campo({ label, valor }: { label: string; valor: React.ReactNode }) {
 
 export function DetalhesModal({ modal }: { modal: ModalDetalhes }) {
   const { state, setModal, closeModal } = useRetiro()
-  const { anexarComprovante, reativarInscricao, excluirInscricao } = useActions()
+  const { anexarComprovante, reativarInscricao, excluirInscricao, definirCortesia, alternarPresenca } = useActions()
   const { user } = useAuth()
   const admin = isAdmin(user?.acessos)
   const [confExcluir, setConfExcluir] = useState(false)
+  const [cortesiaMotivo, setCortesiaMotivo] = useState(porId(state)[modal.pid]?.cortesiaMotivo ?? '')
 
   const p = porId(state)[modal.pid]
   if (!p) return null
@@ -127,7 +128,12 @@ export function DetalhesModal({ modal }: { modal: ModalDetalhes }) {
               </span>
             )}
             <span className={'chip-mini ' + (insInfo[p.statusInscricao]?.[0] ?? '')}>{insInfo[p.statusInscricao]?.[1] ?? p.statusInscricao}</span>
-            <span className={'chip-mini ' + (pagInfo[sp]?.[0] ?? '')}>{pagInfo[sp]?.[1] ?? sp}</span>
+            {p.cortesia ? (
+              <span className="chip-mini chip-approved">Cortesia</span>
+            ) : (
+              <span className={'chip-mini ' + (pagInfo[sp]?.[0] ?? '')}>{pagInfo[sp]?.[1] ?? sp}</span>
+            )}
+            <span className={'chip-mini ' + (p.presente ? 'chip-final' : 'chip-closed')}>{p.presente ? 'Presente' : 'Ausente'}</span>
           </div>
         </div>
       </div>
@@ -146,6 +152,54 @@ export function DetalhesModal({ modal }: { modal: ModalDetalhes }) {
         {p.quarto && <Campo label="Quarto" valor={p.quarto} />}
         <Campo label="Inscrição feita em" valor={dataInscricao} />
       </div>
+
+      {/* Presença — status separado do status da inscrição */}
+      {!cancelada && (
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, border: '1px solid var(--border-default)', borderRadius: 8, padding: '10px 14px', marginBottom: 16 }}>
+          <div>
+            <div style={labelStyle}>Presença no evento</div>
+            <div style={{ ...valorStyle, color: p.presente ? 'var(--status-final-fg)' : 'var(--fg-muted)' }}>{p.presente ? 'Presente' : 'Ausente'}</div>
+          </div>
+          <button className={'btn btn-sm ' + (p.presente ? 'btn-default' : 'btn-primary')} onClick={() => alternarPresenca(p.id)}>
+            {p.presente ? 'Marcar ausente' : 'Marcar presente'}
+          </button>
+        </div>
+      )}
+
+      {/* Cortesia — só o ADM concede/remove */}
+      {(admin || p.cortesia) && !cancelada && (
+        <div style={{ border: '1px solid ' + (p.cortesia ? 'var(--color-sage)' : 'var(--border-default)'), background: p.cortesia ? 'var(--color-sage-soft)' : undefined, borderRadius: 8, padding: '10px 14px', marginBottom: 16 }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>
+            <div>
+              <div style={labelStyle}>Cortesia</div>
+              <div style={valorStyle}>
+                {p.cortesia ? 'Sim' + (p.cortesiaMotivo ? ' — ' + p.cortesiaMotivo : '') + ' (inscrição sem custo)' : 'Não'}
+              </div>
+            </div>
+            {admin && p.cortesia && (
+              <button className="btn btn-default btn-sm" onClick={() => definirCortesia(p.id, false, '')}>Remover cortesia</button>
+            )}
+          </div>
+          {admin && !p.cortesia && (
+            <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
+              <input
+                className="input"
+                list="cortesia-motivos"
+                placeholder="Motivo (ex.: Pastor, Preletor)"
+                value={cortesiaMotivo}
+                onChange={(e) => setCortesiaMotivo(e.target.value)}
+              />
+              <datalist id="cortesia-motivos">
+                <option value="Pastor" />
+                <option value="Preletor" />
+              </datalist>
+              <button className="btn btn-outline btn-sm" style={{ whiteSpace: 'nowrap' }} onClick={() => definirCortesia(p.id, true, cortesiaMotivo)}>
+                Conceder cortesia
+              </button>
+            </div>
+          )}
+        </div>
+      )}
 
       {cancelada && p.cancelInfo && (
         <div style={{ fontSize: 12, color: 'var(--status-rejected-fg)', background: 'var(--status-rejected-bg)', padding: '8px 12px', borderRadius: 8, marginBottom: 16 }}>
@@ -259,7 +313,7 @@ export function DetalhesModal({ modal }: { modal: ModalDetalhes }) {
                 genero: p.genero,
                 idade: p.idade != null ? String(p.idade) : '',
                 dataNascimento: p.dataNascimento,
-                valor: String(valorInscricao(state, p)),
+                valor: String(valorCheio(state, p)),
                 tipo: p.tipo,
                 vez: p.vez,
                 lider: p.lider,

@@ -20,7 +20,7 @@ const insInfo: Record<StatusInscricao, [string, string]> = {
 
 export function CheckinView() {
   const { state, patch } = useRetiro()
-  const { setModal } = useActions()
+  const { setModal, alternarPresenca } = useActions()
 
   // Filtros de visualização (estado local, não sincronizado).
   const [de, setDe] = useState('')
@@ -28,6 +28,8 @@ export function CheckinView() {
   // Filtro geral por prédio — afeta os cards E a lista.
   const [filtroPredio, setFiltroPredio] = useState('')
   const [alfabetico, setAlfabetico] = useState(false)
+  // Filtro de presença (status separado do status da inscrição).
+  const [filtroPresenca, setFiltroPresenca] = useState<'todos' | 'presentes' | 'ausentes'>('todos')
 
   // Ao abrir o Check-in, sempre começa mostrando qualquer forma de pagamento.
   useEffect(() => {
@@ -65,6 +67,8 @@ export function CheckinView() {
     const sp = statusPag(s, p)
     if (s.ciPag === 'pend' && (sp === 'confirmado' || p.statusInscricao === 'cancelada')) return false
     if (s.ciPag === 'ok' && sp !== 'confirmado') return false
+    if (filtroPresenca === 'presentes' && !p.presente) return false
+    if (filtroPresenca === 'ausentes' && p.presente) return false
     return true
   })
   // Sem ordenação alfabética a lista segue a ordem de inscrição.
@@ -95,7 +99,7 @@ export function CheckinView() {
         </div>
       </div>
 
-      <div className="kpi-grid" style={{ gridTemplateColumns: narrow ? '1fr 1fr' : 'repeat(4, 1fr)' }}>
+      <div className="kpi-grid" style={{ gridTemplateColumns: narrow ? '1fr 1fr' : 'repeat(5, 1fr)' }}>
         <div className="kpi">
           <div className="topline">Inscritos ativos</div>
           <div className="v">{atv.length}</div>
@@ -107,6 +111,13 @@ export function CheckinView() {
             {atv.filter((p) => p.statusInscricao === 'confirmada').length}
           </div>
           <div className="meta">check-in feito</div>
+        </div>
+        <div className="kpi">
+          <div className="topline">Presentes</div>
+          <div className="v" style={{ color: 'var(--status-final-fg)' }}>
+            {atv.filter((p) => p.presente).length}
+          </div>
+          <div className="meta">{atv.filter((p) => !p.presente).length} ausentes</div>
         </div>
         <div className="kpi">
           <div className="topline">Pagamento pendente</div>
@@ -139,6 +150,11 @@ export function CheckinView() {
           <button className={seg(s.ciPag === 'todos')} onClick={() => patch({ ciPag: 'todos' })}>Qualquer pagamento</button>
           <button className={seg(s.ciPag === 'pend')} onClick={() => patch({ ciPag: 'pend' })}>Pendentes</button>
           <button className={seg(s.ciPag === 'ok')} onClick={() => patch({ ciPag: 'ok' })}>Confirmados</button>
+        </div>
+        <div className="seg">
+          <button className={seg(filtroPresenca === 'todos')} onClick={() => setFiltroPresenca('todos')}>Qualquer presença</button>
+          <button className={seg(filtroPresenca === 'presentes')} onClick={() => setFiltroPresenca('presentes')}>Presentes</button>
+          <button className={seg(filtroPresenca === 'ausentes')} onClick={() => setFiltroPresenca('ausentes')}>Ausentes</button>
         </div>
         <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12, color: 'var(--fg-muted)' }}>
           <span style={{ fontWeight: 600 }}>Período da inscrição:</span>
@@ -176,6 +192,7 @@ export function CheckinView() {
               <th>Pagamento</th>
               <th>Status pgto.</th>
               <th>Inscrição</th>
+              <th>Presença</th>
               <th style={{ textAlign: 'right' }}>Ações</th>
             </tr>
           </thead>
@@ -187,7 +204,8 @@ export function CheckinView() {
               const vInsc = valorInscricao(s, p)
               const cancelada = p.statusInscricao === 'cancelada'
               let resumo = ''
-              if (of >= vInsc) resumo = 'abatido como oferta'
+              if (p.cortesia) resumo = 'cortesia' + (p.cortesiaMotivo ? ' — ' + p.cortesiaMotivo : '')
+              else if (of >= vInsc) resumo = 'abatido como oferta'
               else if (pg > 0)
                 resumo = fmt(pg) + ' pago' + (of ? ' + oferta' : '') + (sp === 'parcial' ? ' · resta ' + fmt(vInsc - pg - of) : '')
               else resumo = 'nada recebido'
@@ -233,10 +251,28 @@ export function CheckinView() {
                     )}
                   </td>
                   <td>
-                    <span className={'chip-mini ' + pagInfo[sp][0]}>{pagInfo[sp][1]}</span>
+                    {p.cortesia ? (
+                      <span className="chip-mini chip-approved" title={p.cortesiaMotivo || undefined}>Cortesia</span>
+                    ) : (
+                      <span className={'chip-mini ' + pagInfo[sp][0]}>{pagInfo[sp][1]}</span>
+                    )}
                   </td>
                   <td>
                     <span className={'chip-mini ' + insInfo[p.statusInscricao][0]}>{insInfo[p.statusInscricao][1]}</span>
+                  </td>
+                  <td onClick={(e) => e.stopPropagation()}>
+                    {cancelada ? (
+                      '—'
+                    ) : (
+                      <button
+                        className={'chip-mini ' + (p.presente ? 'chip-final' : 'chip-closed')}
+                        style={{ border: 'none', cursor: 'pointer', fontFamily: 'inherit' }}
+                        title={p.presente ? 'Clique para marcar como ausente' : 'Clique para marcar como presente'}
+                        onClick={() => alternarPresenca(p.id)}
+                      >
+                        {p.presente ? '✓ Presente' : 'Ausente'}
+                      </button>
+                    )}
                   </td>
                   <td style={{ textAlign: 'right', whiteSpace: 'nowrap' }}>
                     <button

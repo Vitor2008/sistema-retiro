@@ -178,6 +178,7 @@ export async function exportPrestacaoContas(
     { width: 12 }, // Oferta
     { width: 12 }, // Saldo
     { width: 40 }, // Observação
+    { width: 12 }, // Presença
   ]
   const ch = checkin.addRow([
     'Inscrito',
@@ -196,6 +197,7 @@ export async function exportPrestacaoContas(
     'Oferta',
     'Saldo',
     'Observação',
+    'Presença',
   ])
   styleHeader(ch)
   confirmados
@@ -217,11 +219,12 @@ export async function exportPrestacaoContas(
         p.predio,
         p.conducao,
         p.forma,
-        pagLabel[sp],
+        p.cortesia ? 'Cortesia' + (p.cortesiaMotivo ? ' (' + p.cortesiaMotivo + ')' : '') : pagLabel[sp],
         pago(p),
         ofertado(p),
         rest,
         obs,
+        p.presente ? 'Presente' : 'Ausente',
       ])
       // Pago / Oferta / Saldo → colunas 13, 14, 15.
       ;[13, 14, 15].forEach((c) => (r.getCell(c).numFmt = MONEY))

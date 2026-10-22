@@ -3,6 +3,7 @@ import { inscritoRepository } from '../repositories/inscritoRepository.js'
 import { requireAdmin } from './authMiddleware.js'
 
 /** Ações administrativas sobre inscritos (requireAuth já aplicado antes).
+ *  A exclusão é lógica (ver inscritoRepository.remove).
  *  Exclusão restrita ao ADM e apenas para inscrições canceladas. */
 export const inscritoRoutes = Router()
 

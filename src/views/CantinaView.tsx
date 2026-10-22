@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { isAdmin } from '../acessos'
 import { fmt, initials, uid } from '../lib/format'
 import { apiClient, ApiError } from '../services/api/apiClient'
+import { exportVendasCantina } from '../services/cantinaReport'
 import { useAuth } from '../store/AuthContext'
 import { useRetiro } from '../store/RetiroContext'
 import { useActions } from '../store/useActions'
@@ -116,6 +117,15 @@ export function CantinaView() {
       setExcluindoCat(false)
     }
   }
+  const exportarVendas = async () => {
+    toast('Gerando relatório de vendas…')
+    try {
+      await exportVendasCantina(s)
+    } catch {
+      toast('Não foi possível gerar o relatório.')
+    }
+  }
+
   const cartTotal = cart.reduce((a, i) => a + i.valor * i.qtd, 0)
   const contasPend = s.vendas.filter((v) => v.status === 'pendente')
   const vfBtn = (f: FormaPagamento) => (s.vendaForma === f ? 'btn-primary' : 'btn-default')
@@ -155,6 +165,9 @@ export function CantinaView() {
             {tab('produtos', 'Produtos')}
             {tab('resumo', 'Resumo')}
           </div>
+          <button className="btn btn-outline btn-sm" onClick={exportarVendas} title="Exportar o relatório de vendas da cantina (Excel)">
+            Exportar vendas
+          </button>
         </div>
       </div>
 

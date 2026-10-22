@@ -102,6 +102,17 @@ export function RetiroProvider({ retiroId, children }: { retiroId: string; child
           // Há alterações locais não enviadas → sobe o local.
           bootstrapped.current = true
           await syncManager.sync()
+          // Depois de subir, recarrega do banco: o servidor faz merge (ex.: ignora
+          // inscrições excluídas e mantém as feitas pelo formulário público), então
+          // o estado local pode estar desatualizado.
+          if (syncManager.getStatus() === 'synced') {
+            const antes = JSON.stringify(toSnapshot(stateRef.current))
+            const remote = await syncManager.pull()
+            if (remote && JSON.stringify(toSnapshot(stateRef.current)) === antes) {
+              dispatch({ type: 'PATCH', patch: snapshotToPatch(remote) })
+              syncManager.markSynced(remote)
+            }
+          }
         } else {
           const antes = JSON.stringify(toSnapshot(stateRef.current))
           const remote = await syncManager.pull()

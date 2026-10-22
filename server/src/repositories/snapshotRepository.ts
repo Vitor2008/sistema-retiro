@@ -1,4 +1,4 @@
-import { eq } from 'drizzle-orm'
+import { and, eq, isNotNull } from 'drizzle-orm'
 import { db } from '../db/client.js'
 import {
   categorias,
@@ -137,7 +137,18 @@ export const snapshotRepository = {
 
       // Inscritos: MERGE (upsert), escopado ao retiro. Nunca apaga inscritos que
       // não vieram no snapshot (inscrições públicas sobrevivem a um save do admin).
-      for (const p of snap.inscritos) {
+      // Inscrições excluídas (exclusão lógica) são ignoradas: um aparelho com
+      // cache antigo não as ressuscita.
+      const excluidos = new Set(
+        (
+          await tx
+            .select({ id: inscritos.id })
+            .from(inscritos)
+            .where(and(eq(inscritos.retiroId, retiroId), isNotNull(inscritos.excluidoEm)))
+        ).map((r) => r.id),
+      )
+      const inscritosAtivos = snap.inscritos.filter((p) => !excluidos.has(p.id))
+      for (const p of inscritosAtivos) {
         const row = {
           id: p.id,
           retiroId,
@@ -159,13 +170,16 @@ export const snapshotRepository = {
           comprovanteId: p.comprovanteId,
           quarto: p.quarto,
           criadoEm: p.criadoEm || new Date().toISOString(),
+          cortesia: p.cortesia ?? false,
+          cortesiaMotivo: p.cortesiaMotivo ?? '',
+          presente: p.presente ?? false,
         }
         // No update, NÃO sobrescreve criadoEm (preserva a data original da inscrição).
         const { criadoEm: _ce, ...setSemCriadoEm } = row
         await tx.insert(inscritos).values(row).onConflictDoUpdate({ target: inscritos.id, set: setSemCriadoEm })
         await tx.delete(pagamentos).where(eq(pagamentos.inscritoId, p.id))
       }
-      const pags = snap.inscritos.flatMap((p) =>
+      const pags = inscritosAtivos.flatMap((p) =>
         p.pagamentos.map((pg, i) => ({
           inscritoId: p.id,
           ordem: i,

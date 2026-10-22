@@ -15,6 +15,8 @@ export function PagamentoModal({ modal }: { modal: ModalPagamento }) {
   const mRestanteV = Math.max(0, valor - pago(mp) - ofertado(mp))
   const valorPagoN = Number(modal.valorPago) || 0
   const mostraDataPrevista = !modal.oferta && valorPagoN < mRestanteV
+  // Pagamento em dinheiro não tem comprovante — o anexo fica opcional.
+  const exigeComprovante = valorPagoN > 0 && modal.forma !== 'Dinheiro'
 
   // Saldo de oferta cadastrado (retiro) menos o que já foi abatido em inscrições.
   const ofertaRecebida = state.retiro.oferta || 0
@@ -129,13 +131,13 @@ export function PagamentoModal({ modal }: { modal: ModalPagamento }) {
 
       <div style={{ marginBottom: 16 }}>
         <label style={{ fontSize: 12, fontWeight: 600, display: 'block', marginBottom: 5 }}>
-          Comprovante de pagamento {valorPagoN > 0 ? '*' : ''}
+          Comprovante de pagamento {exigeComprovante ? '*' : '(opcional)'}
         </label>
         <FileDropField
           label={attachLabel(modal.comprovante, mp.comprovanteId ? 'Comprovante já anexado — anexar outro (opcional)' : 'Anexar comprovante de pagamento')}
           onFile={(a) => patchModal({ comprovante: a })}
         />
-        {valorPagoN > 0 && !modal.comprovante && !mp.comprovanteId && (
+        {exigeComprovante && !modal.comprovante && !mp.comprovanteId && (
           <div style={{ fontSize: 11, color: 'var(--fg-muted)', marginTop: 4 }}>
             Obrigatório ao registrar um pagamento.
           </div>

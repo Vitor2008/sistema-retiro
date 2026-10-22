@@ -1,4 +1,4 @@
-import { asc, eq } from 'drizzle-orm'
+import { and, asc, eq, isNull } from 'drizzle-orm'
 import { db } from '../db/client.js'
 import { categorias, conducoes, inscritos, lideres, predios, retiros } from '../db/schema.js'
 import type { Lider, Predio } from '../types.js'
@@ -107,7 +107,7 @@ export const predioRepository = {
   async emUso(nome: string): Promise<boolean> {
     const rets = await db.select({ p: retiros.prediosParticipantes }).from(retiros)
     if (rets.some((r) => (r.p ?? []).includes(nome))) return true
-    const [insc] = await db.select({ id: inscritos.id }).from(inscritos).where(eq(inscritos.predio, nome)).limit(1)
+    const [insc] = await db.select({ id: inscritos.id }).from(inscritos).where(and(eq(inscritos.predio, nome), isNull(inscritos.excluidoEm))).limit(1)
     return !!insc
   },
 }

@@ -1,4 +1,4 @@
-import { asc, eq } from 'drizzle-orm'
+import { and, asc, eq, isNull } from 'drizzle-orm'
 import { db } from '../db/client.js'
 import { inscritos, pagamentos } from '../db/schema.js'
 import type { Inscrito, Pagamento } from '../types.js'
@@ -27,6 +27,9 @@ function toDTO(row: InscritoRow, pags: PagamentoRow[]): Inscrito {
     comprovanteId: row.comprovanteId,
     quarto: row.quarto,
     criadoEm: row.criadoEm,
+    cortesia: row.cortesia,
+    cortesiaMotivo: row.cortesiaMotivo,
+    presente: row.presente,
     pagamentos: pags
       .sort((a, b) => a.ordem - b.ordem)
       .map((p) => ({
@@ -59,10 +62,14 @@ async function inserirPagamentos(inscritoId: string, pags: Pagamento[]) {
 }
 
 export const inscritoRepository = {
+  /** Inscrições do retiro (ou todas), sem as excluídas. */
   async list(retiroId?: string): Promise<Inscrito[]> {
-    const rows = retiroId
-      ? await db.select().from(inscritos).where(eq(inscritos.retiroId, retiroId)).orderBy(asc(inscritos.id))
-      : await db.select().from(inscritos).orderBy(asc(inscritos.id))
+    const naoExcluido = isNull(inscritos.excluidoEm)
+    const rows = await db
+      .select()
+      .from(inscritos)
+      .where(retiroId ? and(eq(inscritos.retiroId, retiroId), naoExcluido) : naoExcluido)
+      .orderBy(asc(inscritos.id))
     const pags = await db.select().from(pagamentos)
     const porInscrito = new Map<string, PagamentoRow[]>()
     for (const p of pags) {
@@ -74,7 +81,10 @@ export const inscritoRepository = {
   },
 
   async get(id: string): Promise<Inscrito | null> {
-    const [row] = await db.select().from(inscritos).where(eq(inscritos.id, id))
+    const [row] = await db
+      .select()
+      .from(inscritos)
+      .where(and(eq(inscritos.id, id), isNull(inscritos.excluidoEm)))
     if (!row) return null
     const pags = await db
       .select()
@@ -105,6 +115,9 @@ export const inscritoRepository = {
       comprovanteId: dto.comprovanteId,
       quarto: dto.quarto,
       criadoEm: dto.criadoEm || new Date().toISOString(),
+      cortesia: dto.cortesia ?? false,
+      cortesiaMotivo: dto.cortesiaMotivo ?? '',
+      presente: dto.presente ?? false,
     })
     await inserirPagamentos(dto.id, dto.pagamentos)
     return dto
@@ -131,6 +144,9 @@ export const inscritoRepository = {
         comprovante: dto.comprovante,
         comprovanteId: dto.comprovanteId,
         quarto: dto.quarto,
+        cortesia: dto.cortesia ?? false,
+        cortesiaMotivo: dto.cortesiaMotivo ?? '',
+        presente: dto.presente ?? false,
       })
       .where(eq(inscritos.id, id))
     // pagamentos: substitui o conjunto (replace-all é suficiente aqui)
@@ -139,7 +155,14 @@ export const inscritoRepository = {
     return dto
   },
 
+  /** Exclusão LÓGICA: marca excluido_em em vez de apagar a linha. Se a linha
+   *  fosse apagada, o próximo snapshot de um aparelho que ainda a tem em cache
+   *  a recriaria (o snapshot faz upsert de inscritos). Com a marca, o upsert só
+   *  atualiza a linha, que continua oculta. */
   async remove(id: string): Promise<void> {
-    await db.delete(inscritos).where(eq(inscritos.id, id))
+    await db
+      .update(inscritos)
+      .set({ excluidoEm: new Date().toISOString(), quarto: null })
+      .where(eq(inscritos.id, id))
   },
 }

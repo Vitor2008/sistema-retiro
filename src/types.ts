@@ -73,6 +73,12 @@ export interface Inscrito {
   quarto: string | null
   /** Data/hora (ISO) em que a inscrição foi feita. */
   criadoEm: string
+  /** Cortesia (ex.: pastores, preletores) definida pelo ADM no check-in — a
+   *  inscrição passa a valer R$ 0. O formulário público não usa estes campos. */
+  cortesia?: boolean
+  cortesiaMotivo?: string
+  /** Presença no evento (presente/ausente). Independente do statusInscricao. */
+  presente?: boolean
 }
 
 export interface Quarto {

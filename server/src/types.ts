@@ -35,6 +35,11 @@ export interface Inscrito {
   comprovanteId: string | null
   quarto: string | null
   criadoEm: string
+  /** Cortesia definida pelo ADM no check-in (inscrição vale R$ 0). */
+  cortesia?: boolean
+  cortesiaMotivo?: string
+  /** Presença no evento — independente do status da inscrição. */
+  presente?: boolean
   pagamentos: Pagamento[]
 }
 
