@@ -49,9 +49,14 @@ export default async function handler(req, res) {
     // Margem para o backend acordar (Render); sem resposta, segue sem capa.
     const ev = await buscarJson(api + '/public/retiro/' + encodeURIComponent(slug), 9000)
     if (ev) {
-      const titulo = ev.nome || PADRAO_TITULO
-      const descricao = ev.tipo === 'avulso' ? ev.descricao || PADRAO_TITULO : ev.formTitulo || PADRAO_DESCRICAO
-      const imagem = ev.bannerId ? api + '/public/banner/' + encodeURIComponent(ev.bannerId) : origem + '/logo.png'
+      // Nome só com emoji (ex.: "🔥") faz o WhatsApp ignorar o título; nesse
+      // caso usa a 1ª linha da descrição do evento avulso.
+      const linhas = String(ev.tipo === 'avulso' ? ev.descricao || '' : '').split('\n').map((l) => l.trim()).filter(Boolean)
+      const nomeLegivel = /[\p{L}\p{N}]/u.test(ev.nome || '')
+      const titulo = nomeLegivel ? ev.nome : linhas.shift() || PADRAO_TITULO
+      const descricao = ev.tipo === 'avulso' ? linhas.join(' · ') || PADRAO_TITULO : ev.formTitulo || PADRAO_DESCRICAO
+      // Capa leve (JPEG reduzido) — o WhatsApp descarta imagens pesadas.
+      const imagem = ev.bannerId ? api + '/public/banner/' + encodeURIComponent(ev.bannerId) + '/og' : origem + '/logo.png'
       const tags = [
         `<meta property="og:type" content="website" />`,
         `<meta property="og:site_name" content="IMEL Cuiabá" />`,
@@ -59,6 +64,8 @@ export default async function handler(req, res) {
         `<meta property="og:description" content="${esc(descricao.slice(0, 200))}" />`,
         `<meta property="og:url" content="${esc(origem + '/inscricao/' + slug)}" />`,
         `<meta property="og:image" content="${esc(imagem)}" />`,
+        `<meta property="og:image:secure_url" content="${esc(imagem)}" />`,
+        `<meta property="og:image:type" content="${ev.bannerId ? 'image/jpeg' : 'image/png'}" />`,
         `<meta name="twitter:card" content="summary_large_image" />`,
       ].join('\n    ')
       html = html

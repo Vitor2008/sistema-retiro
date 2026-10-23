@@ -8,6 +8,7 @@
 // ============================================================================
 
 import express, { Router } from 'express'
+import sharp from 'sharp'
 import { arquivoService } from '../services/arquivoService.js'
 import { inscritoRepository } from '../repositories/inscritoRepository.js'
 import { conducaoRepository, lideresRepository } from '../repositories/listaRepository.js'
@@ -191,6 +192,35 @@ publicRoutes.get('/banner/:id', async (req, res, next) => {
     res.setHeader('Content-Type', a.mime)
     res.setHeader('Cache-Control', 'public, max-age=3600')
     res.send(a.dados)
+  } catch (e) {
+    next(e)
+  }
+})
+
+// ---- Capa do link (Open Graph) ---------------------------------------------
+// Versão leve do banner para a pré-visualização no WhatsApp/redes: JPEG de
+// até 1200×630. O WhatsApp descarta capas pesadas
+// (~600 KB+), e banners enviados costumam ter alguns MB. Cache em memória.
+const capasOg = new Map<string, Buffer>()
+
+publicRoutes.get('/banner/:id/og', async (req, res, next) => {
+  try {
+    let capa = capasOg.get(req.params.id)
+    if (!capa) {
+      const a = await arquivoService.get(req.params.id)
+      if (!a || !a.mime.startsWith('image/')) return res.status(404).json({ error: 'Imagem não encontrada.' })
+      capa = await sharp(a.dados)
+        // Reduz sem cortar (o banner inteiro aparece) e sem ampliar.
+        .resize(1200, 630, { fit: 'inside', withoutEnlargement: true })
+        .flatten({ background: '#ffffff' })
+        .jpeg({ quality: 80, mozjpeg: true })
+        .toBuffer()
+      if (capasOg.size >= 30) capasOg.delete(capasOg.keys().next().value!)
+      capasOg.set(req.params.id, capa)
+    }
+    res.setHeader('Content-Type', 'image/jpeg')
+    res.setHeader('Cache-Control', 'public, max-age=86400')
+    res.send(capa)
   } catch (e) {
     next(e)
   }
