@@ -134,6 +134,11 @@ export interface Retiro {
   mostrarLider: boolean
   mostrarPredio: boolean
   mostrarConducao: boolean
+  /** Só para eventos avulsos (no retiro são sempre exibidos). */
+  mostrarIdade: boolean
+  mostrarGenero: boolean
+  mostrarTelefone: boolean
+  mostrarNascimento: boolean
   aberto: boolean
   slug: string
   bannerId: string | null

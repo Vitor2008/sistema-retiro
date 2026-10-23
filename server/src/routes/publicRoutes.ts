@@ -63,6 +63,10 @@ publicRoutes.get('/retiro/:slug', async (req, res, next) => {
       mostrarLider: r.mostrarLider,
       mostrarPredio: r.mostrarPredio,
       mostrarConducao: r.mostrarConducao,
+      mostrarIdade: r.mostrarIdade,
+      mostrarGenero: r.mostrarGenero,
+      mostrarTelefone: r.mostrarTelefone,
+      mostrarNascimento: r.mostrarNascimento,
       slug: r.slug,
       bannerId: r.bannerId,
       lideres,
@@ -241,10 +245,12 @@ publicRoutes.post('/inscricao/:slug', async (req, res, next) => {
 
     // Validações espelham as do formulário (nome com 2+ palavras, etc.).
     if (nome.split(/\s+/).length < 2) return res.status(400).json({ error: 'Informe o nome completo.' })
-    if (!idade) return res.status(400).json({ error: 'Informe a idade.' })
-    if (!genero) return res.status(400).json({ error: 'Selecione o gênero.' })
-    if (!tel) return res.status(400).json({ error: 'Informe o telefone.' })
-    if (!dataNascimento) return res.status(400).json({ error: 'Informe a data de nascimento.' })
+    // Idade, gênero, telefone e nascimento podem ser ocultados em evento avulso.
+    const exibe = (flag: boolean) => r.tipo !== 'avulso' || flag
+    if (exibe(r.mostrarIdade) && !idade) return res.status(400).json({ error: 'Informe a idade.' })
+    if (exibe(r.mostrarGenero) && !genero) return res.status(400).json({ error: 'Selecione o gênero.' })
+    if (exibe(r.mostrarTelefone) && !tel) return res.status(400).json({ error: 'Informe o telefone.' })
+    if (exibe(r.mostrarNascimento) && !dataNascimento) return res.status(400).json({ error: 'Informe a data de nascimento.' })
     if (r.tipo !== 'avulso' && tipo === 'Encontrista' && !vez) return res.status(400).json({ error: 'Selecione se é a 1ª, 2ª ou mais vezes.' })
     if (r.tipo !== 'avulso' && tipo === 'Servo' && !dormeChacara) return res.status(400).json({ error: 'Informe se vai dormir na chácara.' })
     // Campos condicionais: só são obrigatórios se o evento os exibe.
@@ -256,7 +262,8 @@ publicRoutes.post('/inscricao/:slug', async (req, res, next) => {
     const inscrito: Inscrito = {
       id: 'p' + Date.now() + Math.floor(Math.random() * 1000),
       nome,
-      genero,
+      // Gênero oculto no formulário (evento avulso) fica vazio.
+      genero: (genero ?? '') as Inscrito['genero'],
       tipo,
       idade,
       dataNascimento,

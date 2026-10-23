@@ -191,6 +191,13 @@ export function RetirosView() {
       formDescricao: appConfig.formulario.descricao,
       formVersiculo: appConfig.formulario.versiculo,
       formVersiculoRef: appConfig.formulario.versiculoRef,
+      mostrarIdade: true,
+      mostrarGenero: true,
+      mostrarTelefone: true,
+      mostrarNascimento: true,
+      mostrarLider: true,
+      mostrarPredio: true,
+      mostrarConducao: true,
     })
 
   const editarRetiro = () =>
@@ -213,6 +220,13 @@ export function RetirosView() {
       formDescricao: state.retiro.formDescricao || appConfig.formulario.descricao,
       formVersiculo: state.retiro.formVersiculo || appConfig.formulario.versiculo,
       formVersiculoRef: state.retiro.formVersiculoRef || appConfig.formulario.versiculoRef,
+      mostrarIdade: state.retiro.mostrarIdade !== false,
+      mostrarGenero: state.retiro.mostrarGenero !== false,
+      mostrarTelefone: state.retiro.mostrarTelefone !== false,
+      mostrarNascimento: state.retiro.mostrarNascimento !== false,
+      mostrarLider: state.retiro.mostrarLider,
+      mostrarPredio: state.retiro.mostrarPredio,
+      mostrarConducao: state.retiro.mostrarConducao,
     })
 
   return (

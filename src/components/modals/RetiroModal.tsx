@@ -13,6 +13,17 @@ import type { ModalRetiro } from '../../types'
 
 const label: React.CSSProperties = { fontSize: 12, fontWeight: 600, display: 'block', marginBottom: 5 }
 
+/** Campos do formulário público que podem ser ocultados em evento avulso. */
+const CAMPOS_FORM: { key: keyof ModalRetiro; label: string }[] = [
+  { key: 'mostrarIdade', label: 'Idade' },
+  { key: 'mostrarGenero', label: 'Gênero' },
+  { key: 'mostrarTelefone', label: 'Telefone / WhatsApp' },
+  { key: 'mostrarNascimento', label: 'Data de nascimento' },
+  { key: 'mostrarPredio', label: 'Qual prédio?' },
+  { key: 'mostrarConducao', label: 'Como pretende ir?' },
+  { key: 'mostrarLider', label: 'Quem lhe convidou? (líder)' },
+]
+
 /** URL local (object URL) do banner — resolve o blob local/servidor. */
 function useBannerUrl(bannerId: string | null): string | null {
   const [url, setUrl] = useState<string | null>(null)
@@ -116,6 +127,13 @@ export function RetiroModal({ modal }: { modal: ModalRetiro }) {
         formDescricao: modal.formDescricao.trim(),
         formVersiculo: modal.formVersiculo.trim(),
         formVersiculoRef: modal.formVersiculoRef.trim(),
+        mostrarIdade: modal.mostrarIdade,
+        mostrarGenero: modal.mostrarGenero,
+        mostrarTelefone: modal.mostrarTelefone,
+        mostrarNascimento: modal.mostrarNascimento,
+        mostrarLider: modal.mostrarLider,
+        mostrarPredio: modal.mostrarPredio,
+        mostrarConducao: modal.mostrarConducao,
       })
       closeModal()
     } catch (e) {
@@ -231,6 +249,32 @@ export function RetiroModal({ modal }: { modal: ModalRetiro }) {
             />
             <div style={{ fontSize: 11, color: 'var(--fg-muted)', marginTop: 4 }}>
               Para eventos avulsos, este texto substitui o template fixo do retiro no formulário.
+            </div>
+          </div>
+        )}
+
+        {modal.tipoEvento === 'avulso' && (
+          <div>
+            <label style={label}>Campos do formulário de inscrição</label>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6 }}>
+              <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, color: 'var(--fg-muted)' }}>
+                <input type="checkbox" checked disabled style={{ width: 16, height: 16 }} />
+                Nome completo (sempre)
+              </label>
+              {CAMPOS_FORM.map((c) => (
+                <label key={c.key} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, cursor: 'pointer' }}>
+                  <input
+                    type="checkbox"
+                    checked={!!modal[c.key]}
+                    onChange={(e) => patchModal({ [c.key]: e.target.checked })}
+                    style={{ width: 16, height: 16, accentColor: 'var(--color-primary)' }}
+                  />
+                  {c.label}
+                </label>
+              ))}
+            </div>
+            <div style={{ fontSize: 11, color: 'var(--fg-muted)', marginTop: 4 }}>
+              Campos marcados aparecem no formulário e são obrigatórios.
             </div>
           </div>
         )}

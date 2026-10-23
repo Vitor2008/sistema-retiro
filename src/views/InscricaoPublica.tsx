@@ -38,6 +38,11 @@ interface RetiroPublico {
   mostrarLider: boolean
   mostrarPredio: boolean
   mostrarConducao: boolean
+  /** Só valem para evento avulso (no retiro são sempre exibidos). */
+  mostrarIdade?: boolean
+  mostrarGenero?: boolean
+  mostrarTelefone?: boolean
+  mostrarNascimento?: boolean
   slug: string
   bannerId: string | null
   lideres: { nome: string; predio: string }[]
@@ -143,13 +148,17 @@ export function InscricaoPublica() {
     setTimeout(() => setPixCopiado(false), 2000)
   }
 
+  // Idade, gênero, telefone e nascimento podem ser ocultados em evento avulso.
+  const exibe = (k: 'mostrarIdade' | 'mostrarGenero' | 'mostrarTelefone' | 'mostrarNascimento') =>
+    retiro?.tipo !== 'avulso' || retiro?.[k] !== false
+
   const validar = (): boolean => {
     const e: Record<string, boolean> = {}
     if (!form.nome.trim() || form.nome.trim().split(/\s+/).length < 2) e.nome = true
-    if (!(Number(form.idade) > 0)) e.idade = true
-    if (!form.genero) e.genero = true
-    if (!form.tel.trim()) e.tel = true
-    if (!form.dataNascimento) e.dataNascimento = true
+    if (exibe('mostrarIdade') && !(Number(form.idade) > 0)) e.idade = true
+    if (exibe('mostrarGenero') && !form.genero) e.genero = true
+    if (exibe('mostrarTelefone') && !form.tel.trim()) e.tel = true
+    if (exibe('mostrarNascimento') && !form.dataNascimento) e.dataNascimento = true
     if (retiro?.tipo !== 'avulso' && form.tipo === 'Encontrista' && !form.vez) e.vez = true
     if (retiro?.tipo !== 'avulso' && form.tipo === 'Servo' && !form.dormeChacara) e.dormeChacara = true
     if (retiro?.mostrarLider !== false && !form.lider.trim()) e.lider = true
@@ -292,31 +301,43 @@ export function InscricaoPublica() {
                       onChange={(e) => setF({ nome: e.target.value })} />
                   </Campo>
 
+                  {(exibe('mostrarIdade') || exibe('mostrarGenero')) && (
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 200px), 1fr))', gap: 12 }}>
-                    <Campo label="Idade *" erro={erros.idade ? 'Informe a idade.' : ''}>
-                      <input className="input" type="number" min="0" inputMode="numeric" value={form.idade}
-                        placeholder="Somente número" onChange={(e) => setF({ idade: e.target.value })} />
-                    </Campo>
-                    <Campo label="Gênero *" erro={erros.genero ? 'Selecione o gênero.' : ''}>
-                      <select className="input" value={form.genero}
-                        onChange={(e) => setF({ genero: e.target.value as Genero | '' })}>
-                        <option value="">Selecione…</option>
-                        <option value="M">Homem</option>
-                        <option value="F">Mulher</option>
-                      </select>
-                    </Campo>
+                    {exibe('mostrarIdade') && (
+                      <Campo label="Idade *" erro={erros.idade ? 'Informe a idade.' : ''}>
+                        <input className="input" type="number" min="0" inputMode="numeric" value={form.idade}
+                          placeholder="Somente número" onChange={(e) => setF({ idade: e.target.value })} />
+                      </Campo>
+                    )}
+                    {exibe('mostrarGenero') && (
+                      <Campo label="Gênero *" erro={erros.genero ? 'Selecione o gênero.' : ''}>
+                        <select className="input" value={form.genero}
+                          onChange={(e) => setF({ genero: e.target.value as Genero | '' })}>
+                          <option value="">Selecione…</option>
+                          <option value="M">Homem</option>
+                          <option value="F">Mulher</option>
+                        </select>
+                      </Campo>
+                    )}
                   </div>
+                  )}
 
+                  {(exibe('mostrarTelefone') || exibe('mostrarNascimento')) && (
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 200px), 1fr))', gap: 12 }}>
-                    <Campo label="Telefone / WhatsApp *" erro={erros.tel ? 'Informe o telefone.' : ''}>
-                      <input className="input" value={form.tel} placeholder="(65) 99999-9999"
-                        onChange={(e) => setF({ tel: e.target.value })} />
-                    </Campo>
-                    <Campo label="Data de nascimento *" erro={erros.dataNascimento ? 'Informe a data de nascimento.' : ''}>
-                      <input className="input" type="date" value={form.dataNascimento}
-                        onChange={(e) => setF({ dataNascimento: e.target.value })} />
-                    </Campo>
+                    {exibe('mostrarTelefone') && (
+                      <Campo label="Telefone / WhatsApp *" erro={erros.tel ? 'Informe o telefone.' : ''}>
+                        <input className="input" value={form.tel} placeholder="(65) 99999-9999"
+                          onChange={(e) => setF({ tel: e.target.value })} />
+                      </Campo>
+                    )}
+                    {exibe('mostrarNascimento') && (
+                      <Campo label="Data de nascimento *" erro={erros.dataNascimento ? 'Informe a data de nascimento.' : ''}>
+                        <input className="input" type="date" value={form.dataNascimento}
+                          onChange={(e) => setF({ dataNascimento: e.target.value })} />
+                      </Campo>
+                    )}
                   </div>
+                  )}
 
                   {/* "Como está indo" e "vez" não se aplicam a eventos avulsos. */}
                   {retiro.tipo !== 'avulso' && (

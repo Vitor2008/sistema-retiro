@@ -182,6 +182,11 @@ export interface Retiro {
   mostrarLider: boolean
   mostrarPredio: boolean
   mostrarConducao: boolean
+  /** Campos pessoais opcionais — só valem para eventos avulsos. */
+  mostrarIdade?: boolean
+  mostrarGenero?: boolean
+  mostrarTelefone?: boolean
+  mostrarNascimento?: boolean
   aberto: boolean
   slug: string
   /** id do arquivo (banner) exibido no formulário público. */
@@ -259,6 +264,14 @@ export interface ModalRetiro {
   formDescricao: string
   formVersiculo: string
   formVersiculoRef: string
+  /** Campos exibidos no formulário público (evento avulso). */
+  mostrarIdade: boolean
+  mostrarGenero: boolean
+  mostrarTelefone: boolean
+  mostrarNascimento: boolean
+  mostrarLider: boolean
+  mostrarPredio: boolean
+  mostrarConducao: boolean
 }
 export interface ModalQuarto {
   type: 'quarto'

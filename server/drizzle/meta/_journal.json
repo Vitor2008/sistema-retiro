@@ -204,6 +204,13 @@
       "when": 1792691973729,
       "tag": "0028_polite_colleen_wing",
       "breakpoints": true
+    },
+    {
+      "idx": 29,
+      "version": "7",
+      "when": 1792756715212,
+      "tag": "0029_powerful_chronomancer",
+      "breakpoints": true
     }
   ]
 }

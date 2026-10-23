@@ -55,6 +55,12 @@ export const retiros = pgTable('retiros', {
   mostrarLider: boolean('mostrar_lider').notNull().default(true),
   mostrarPredio: boolean('mostrar_predio').notNull().default(true),
   mostrarConducao: boolean('mostrar_conducao').notNull().default(true),
+  /** Campos pessoais opcionais — só valem para eventos AVULSOS (no retiro são
+   *  sempre exibidos). */
+  mostrarIdade: boolean('mostrar_idade').notNull().default(true),
+  mostrarGenero: boolean('mostrar_genero').notNull().default(true),
+  mostrarTelefone: boolean('mostrar_telefone').notNull().default(true),
+  mostrarNascimento: boolean('mostrar_nascimento').notNull().default(true),
   /** Nomes dos prédios (do catálogo) que participam deste evento. */
   prediosParticipantes: jsonb('predios_participantes').$type<string[]>().notNull().default([]),
   /** Restrição de acesso por usuário (ids). VAZIO = vale a regra por prédio.
